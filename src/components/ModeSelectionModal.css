@@ -1,0 +1,198 @@
+/* Simple Mode Selection Modal matching the clean dual-square design */
+
+.simple-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background-color: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: overlayFadeIn 0.2s ease-out forwards;
+}
+
+@keyframes overlayFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.simple-modal-box {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  background: #FFFFFF;
+  border-radius: 14px;
+  padding: 2.25rem 2rem 2.5rem;
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.25), 0 0 1px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  animation: modalPopIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes modalPopIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Close Button (X) */
+.simple-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  background: transparent;
+  border: none;
+  font-size: 1.35rem;
+  line-height: 1;
+  color: #9CA3AF;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.simple-modal-close:hover {
+  color: #1F2937;
+  background-color: #F3F4F6;
+}
+
+/* Header Text */
+.simple-modal-header {
+  margin-bottom: 1.75rem;
+}
+
+.simple-modal-title {
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 0.45rem;
+  line-height: 1.3;
+}
+
+.simple-modal-subtitle {
+  font-size: 0.88rem;
+  color: #6B7280;
+  line-height: 1.4;
+}
+
+/* Square Buttons Container */
+.simple-squares-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  width: 100%;
+}
+
+/* The Square Choice Button */
+.simple-choice-square {
+  flex: 1;
+  max-width: 175px;
+  aspect-ratio: 1 / 1;
+  background: #FFFFFF;
+  border: 1.5px solid #D1D5DB;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1.25rem 0.75rem;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  outline: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.simple-choice-square:hover {
+  transform: translateY(-2px);
+  border-color: #B81467;
+  box-shadow: 0 8px 18px rgba(184, 20, 103, 0.14);
+}
+
+.simple-choice-square:focus-visible {
+  border-color: #B81467;
+  box-shadow: 0 0 0 3px rgba(184, 20, 103, 0.2);
+}
+
+/* Active Selected state */
+.simple-choice-square.is-active {
+  border-color: #B81467;
+  border-width: 2px;
+  background: #FFF5F9;
+}
+
+/* Icon Wrap inside square */
+.square-icon-wrap {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #111827;
+  transition: transform 0.18s ease, color 0.18s ease;
+}
+
+.simple-choice-square:hover .square-icon-wrap {
+  transform: scale(1.08);
+}
+
+.mode-square-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Active Icon Color */
+.simple-choice-square.is-active .square-icon-wrap {
+  color: #B81467;
+}
+
+/* Label text under icon */
+.square-label {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #1F2937;
+  letter-spacing: -0.01em;
+}
+
+.simple-choice-square.is-active .square-label {
+  color: #B81467;
+  font-weight: 700;
+}
+
+@media (max-width: 440px) {
+  .simple-modal-box {
+    padding: 1.75rem 1.25rem 2rem;
+  }
+  .simple-squares-container {
+    gap: 0.85rem;
+  }
+  .simple-choice-square {
+    padding: 1rem 0.5rem;
+  }
+  .square-icon-wrap {
+    width: 52px;
+    height: 52px;
+  }
+  .square-label {
+    font-size: 0.95rem;
+  }
+}
