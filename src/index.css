@@ -1,4 +1,4 @@
-/* PreConsult - Core & Accessibility Design System */
+/* PreConsult - Core & Multi-Device Accessibility Design System */
 
 :root {
   --bg-base: #EDE8DC;
@@ -18,30 +18,36 @@
   --accent-modern: #1D4ED8;
   --accent-modern-bg: #DBEAFE;
 
-  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
-  --base-font-size: 16px;
+  --base-font-size: clamp(15px, 1.2vw + 12px, 17px);
   --btn-padding: 0.75rem 1.4rem;
   --btn-font-size: 0.95rem;
+
+  /* Safe Area Insets for notched phones / mobile bars */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
 }
 
 /* Elderly Mode Global Adjustments */
 body.mode-elderly {
-  --base-font-size: 19px;
+  --base-font-size: clamp(17px, 1.8vw + 13px, 20px);
   --text-primary: #0A0A0A;
   --text-secondary: #2E3440;
   --border-subtle: rgba(0, 0, 0, 0.16);
   --border-medium: rgba(0, 0, 0, 0.32);
-  --btn-padding: 1rem 1.85rem;
-  --btn-font-size: 1.15rem;
-  line-height: 1.75;
+  --btn-padding: clamp(0.85rem, 2.5vw, 1.15rem) clamp(1.25rem, 4vw, 2rem);
+  --btn-font-size: clamp(1.05rem, 2vw, 1.25rem);
+  line-height: 1.7;
   letter-spacing: 0.01em;
 }
 
 /* Modern Mode Global Adjustments */
 body.mode-modern {
-  --base-font-size: 16px;
+  --base-font-size: clamp(15px, 1vw + 12px, 16.5px);
   line-height: 1.6;
 }
 
@@ -49,12 +55,15 @@ body.mode-modern {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  -webkit-tap-highlight-color: transparent;
 }
 
 html {
   font-size: var(--base-font-size);
   scroll-behavior: smooth;
   color-scheme: light;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 body {
@@ -63,12 +72,25 @@ body {
   color: var(--text-primary);
   line-height: inherit;
   min-height: 100vh;
+  min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  width: 100%;
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
 }
 
 #root {
   width: 100%;
   min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+a, button {
+  touch-action: manipulation;
 }
 
 a {
@@ -76,13 +98,19 @@ a {
   text-decoration: none;
 }
 
+img, svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Fluid Layout Containers */
 .container-wide {
   width: 100%;
   max-width: 1320px;
   margin-left: auto;
   margin-right: auto;
-  padding-left: 1.5rem;
-  padding-right: 1.5rem;
+  padding-left: clamp(1rem, 4vw, 2rem);
+  padding-right: clamp(1rem, 4vw, 2rem);
 }
 
 .container {
@@ -90,6 +118,6 @@ a {
   max-width: 1080px;
   margin-left: auto;
   margin-right: auto;
-  padding-left: 1.25rem;
-  padding-right: 1.25rem;
+  padding-left: clamp(1rem, 3.5vw, 1.75rem);
+  padding-right: clamp(1rem, 3.5vw, 1.75rem);
 }

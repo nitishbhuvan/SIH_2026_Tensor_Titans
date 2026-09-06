@@ -1,16 +1,17 @@
-/* Simple Mode Selection Modal matching the clean dual-square design */
+/* Simple Mode Selection Modal - Fully Multi-Screen Responsive */
 
 .simple-modal-overlay {
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background-color: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background-color: rgba(0, 0, 0, 0.48);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  padding: clamp(0.75rem, 3vw, 1.5rem);
+  overscroll-behavior: contain;
   animation: overlayFadeIn 0.2s ease-out forwards;
 }
 
@@ -25,11 +26,13 @@
 
 .simple-modal-box {
   position: relative;
-  width: 100%;
-  max-width: 480px;
+  width: min(94vw, 460px);
+  max-height: min(90vh, 90dvh);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   background: #FFFFFF;
-  border-radius: 14px;
-  padding: 2.25rem 2rem 2.5rem;
+  border-radius: clamp(12px, 3vw, 16px);
+  padding: clamp(1.75rem, 4.5vw, 2.25rem) clamp(1rem, 3.5vw, 2rem) clamp(1.75rem, 4.5vw, 2.5rem);
   box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.25), 0 0 1px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
@@ -41,7 +44,7 @@
 @keyframes modalPopIn {
   from {
     opacity: 0;
-    transform: translateY(12px) scale(0.96);
+    transform: translateY(14px) scale(0.96);
   }
   to {
     opacity: 1;
@@ -49,45 +52,50 @@
   }
 }
 
-/* Close Button (X) */
+/* Close Button (X) - 44px touch target */
 .simple-modal-close {
   position: absolute;
-  top: 12px;
-  right: 14px;
+  top: 8px;
+  right: 8px;
   background: transparent;
   border: none;
-  font-size: 1.35rem;
+  font-size: 1.5rem;
   line-height: 1;
   color: #9CA3AF;
   cursor: pointer;
-  padding: 6px;
-  border-radius: 6px;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.15s ease;
+  touch-action: manipulation;
 }
 
-.simple-modal-close:hover {
+.simple-modal-close:hover,
+.simple-modal-close:active {
   color: #1F2937;
   background-color: #F3F4F6;
 }
 
 /* Header Text */
 .simple-modal-header {
-  margin-bottom: 1.75rem;
+  margin-bottom: clamp(1.25rem, 3.5vw, 1.75rem);
+  width: 100%;
+  padding: 0 0.5rem;
 }
 
 .simple-modal-title {
-  font-size: 1.45rem;
+  font-size: clamp(1.25rem, 4vw, 1.5rem);
   font-weight: 700;
   color: #111827;
-  margin-bottom: 0.45rem;
-  line-height: 1.3;
+  margin-bottom: 0.35rem;
+  line-height: 1.25;
 }
 
 .simple-modal-subtitle {
-  font-size: 0.88rem;
+  font-size: clamp(0.82rem, 2.5vw, 0.92rem);
   color: #6B7280;
   line-height: 1.4;
 }
@@ -97,28 +105,31 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1.25rem;
+  gap: clamp(0.75rem, 3vw, 1.25rem);
   width: 100%;
 }
 
 /* The Square Choice Button */
 .simple-choice-square {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
   max-width: 175px;
   aspect-ratio: 1 / 1;
+  min-height: 110px;
   background: #FFFFFF;
   border: 1.5px solid #D1D5DB;
-  border-radius: 12px;
+  border-radius: clamp(10px, 2.5vw, 14px);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
-  padding: 1.25rem 0.75rem;
+  gap: clamp(0.4rem, 1.5vw, 0.75rem);
+  padding: clamp(0.75rem, 2vw, 1.25rem) clamp(0.35rem, 1.5vw, 0.75rem);
   cursor: pointer;
   transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
   outline: none;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  touch-action: manipulation;
 }
 
 .simple-choice-square:hover {
@@ -127,7 +138,8 @@
   box-shadow: 0 8px 18px rgba(184, 20, 103, 0.14);
 }
 
-.simple-choice-square:focus-visible {
+.simple-choice-square:focus-visible,
+.simple-choice-square:active {
   border-color: #B81467;
   box-shadow: 0 0 0 3px rgba(184, 20, 103, 0.2);
 }
@@ -141,13 +153,14 @@
 
 /* Icon Wrap inside square */
 .square-icon-wrap {
-  width: 64px;
-  height: 64px;
+  width: clamp(46px, 12vw, 64px);
+  height: clamp(46px, 12vw, 64px);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #111827;
   transition: transform 0.18s ease, color 0.18s ease;
+  flex-shrink: 0;
 }
 
 .simple-choice-square:hover .square-icon-wrap {
@@ -167,10 +180,11 @@
 
 /* Label text under icon */
 .square-label {
-  font-size: 1.05rem;
+  font-size: clamp(0.92rem, 2.5vw, 1.05rem);
   font-weight: 600;
   color: #1F2937;
   letter-spacing: -0.01em;
+  white-space: nowrap;
 }
 
 .simple-choice-square.is-active .square-label {
@@ -178,21 +192,41 @@
   font-weight: 700;
 }
 
-@media (max-width: 440px) {
+/* Extra Small Screens (< 360px) */
+@media (max-width: 360px) {
   .simple-modal-box {
-    padding: 1.75rem 1.25rem 2rem;
+    padding: 1.5rem 0.85rem 1.75rem;
   }
   .simple-squares-container {
-    gap: 0.85rem;
+    gap: 0.6rem;
   }
   .simple-choice-square {
-    padding: 1rem 0.5rem;
+    min-height: 100px;
+    padding: 0.65rem 0.25rem;
   }
   .square-icon-wrap {
-    width: 52px;
-    height: 52px;
+    width: 42px;
+    height: 42px;
   }
   .square-label {
-    font-size: 0.95rem;
+    font-size: 0.88rem;
+  }
+}
+
+/* Landscape Mode on Phones (short viewport height) */
+@media (max-height: 520px) {
+  .simple-modal-box {
+    padding: 1.25rem 1.5rem;
+  }
+  .simple-modal-header {
+    margin-bottom: 0.85rem;
+  }
+  .simple-choice-square {
+    min-height: 90px;
+    max-height: 120px;
+  }
+  .square-icon-wrap {
+    width: 38px;
+    height: 38px;
   }
 }
