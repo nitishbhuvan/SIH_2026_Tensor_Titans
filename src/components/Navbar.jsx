@@ -1,6 +1,7 @@
 import React from 'react';
+import ThemeToggle from './ThemeToggle.jsx';
 
-export default function Navbar({ currentMode, onOpenModeModal }) {
+export default function Navbar({ currentMode, onOpenModeModal, currentTheme, onToggleTheme }) {
   const isElderly = currentMode === 'elderly';
 
   return (
@@ -18,7 +19,7 @@ export default function Navbar({ currentMode, onOpenModeModal }) {
             PreConsult
           </a>
 
-          {/* Mode Switcher Button in Navbar */}
+          {/* Actions in Navbar: Mode Switcher Button & Logo-Only Theme Toggle */}
           <div className="navbar-actions">
             <button
               type="button"
@@ -42,6 +43,12 @@ export default function Navbar({ currentMode, onOpenModeModal }) {
                 Switch • बदलें
               </span>
             </button>
+
+            {/* Pure logo, zero words, animated theme switch */}
+            <ThemeToggle
+              theme={currentTheme}
+              onToggle={onToggleTheme}
+            />
           </div>
         </nav>
       </div>

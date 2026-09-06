@@ -1,0 +1,274 @@
+/* ThemeToggle - Pure Logo Icon Animated Theme Switcher (No Words) */
+
+.theme-toggle-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  cursor: pointer;
+  outline: none;
+  background: #FFFFFF;
+  border: 1.5px solid var(--border-subtle, rgba(0, 0, 0, 0.12));
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 0;
+  margin: 0;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.3s ease,
+              border-color 0.3s ease,
+              box-shadow 0.3s ease;
+  overflow: visible;
+  touch-action: manipulation;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body.mode-elderly .theme-toggle-btn {
+  width: 48px;
+  height: 48px;
+  border-width: 2px;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
+}
+
+.theme-toggle-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+}
+
+.theme-toggle-btn:active {
+  transform: translateY(0) scale(0.95);
+}
+
+.theme-toggle-btn:focus-visible {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4);
+}
+
+/* Light state styling */
+.theme-toggle-btn.is-light {
+  background: #FFFFFF;
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.theme-toggle-btn.is-light:hover {
+  border-color: #F59E0B;
+  box-shadow: 0 6px 18px rgba(245, 158, 11, 0.22);
+}
+
+/* Dark state styling */
+.theme-toggle-btn.is-dark {
+  background: #1E293B;
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+}
+
+.theme-toggle-btn.is-dark:hover {
+  border-color: rgba(147, 197, 253, 0.5);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.28);
+}
+
+/* Button Click Pulse Bounce */
+.theme-toggle-btn.is-animating {
+  animation: themeBtnBounce 0.65s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes themeBtnBounce {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(0.82) rotate(-8deg);
+  }
+  60% {
+    transform: scale(1.12) rotate(4deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+/* Central Disc Container */
+.theme-toggle-disc {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+body.mode-elderly .theme-toggle-disc {
+  width: 30px;
+  height: 30px;
+}
+
+.theme-toggle-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+  transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Animation on switch */
+.theme-toggle-btn.is-animating .theme-toggle-svg {
+  animation: themeRotateSwitch 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes themeRotateSwitch {
+  0% {
+    transform: rotate(0deg) scale(0.8);
+  }
+  50% {
+    transform: rotate(180deg) scale(1.2);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+  }
+}
+
+/* ==========================================================================
+   SUN ICON STYLING & ANIMATION
+   ========================================================================== */
+.theme-sun-group {
+  transform-origin: 12px 12px;
+  transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+              opacity 0.35s ease;
+}
+
+.theme-sun-core {
+  fill: #F59E0B;
+  transition: fill 0.3s ease, transform 0.4s ease;
+}
+
+.theme-sun-rays {
+  stroke: #D97706;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  transform-origin: 12px 12px;
+  transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+              opacity 0.3s ease;
+}
+
+/* Light Mode active: Sun visible */
+.theme-toggle-btn.is-light .theme-sun-group {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+}
+
+.theme-toggle-btn.is-light .theme-sun-rays {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.theme-toggle-btn.is-light:hover .theme-sun-rays {
+  animation: sunRaysSpin 4s linear infinite;
+}
+
+@keyframes sunRaysSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Dark Mode active: Sun hidden */
+.theme-toggle-btn.is-dark .theme-sun-group {
+  opacity: 0;
+  transform: rotate(-90deg) scale(0.2);
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   MOON ICON STYLING & ANIMATION
+   ========================================================================== */
+.theme-moon-group {
+  transform-origin: 12px 12px;
+  transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+              opacity 0.35s ease;
+}
+
+.theme-moon-crescent {
+  fill: #F1F5F9;
+  filter: drop-shadow(0 0 5px rgba(226, 232, 240, 0.6));
+  transition: fill 0.3s ease, filter 0.3s ease;
+}
+
+.theme-moon-star {
+  fill: #FDE047;
+  transform-origin: center;
+  transition: transform 0.4s ease, opacity 0.3s ease;
+}
+
+/* Light Mode active: Moon hidden */
+.theme-toggle-btn.is-light .theme-moon-group {
+  opacity: 0;
+  transform: rotate(90deg) scale(0.2);
+  pointer-events: none;
+}
+
+/* Dark Mode active: Moon visible */
+.theme-toggle-btn.is-dark .theme-moon-group {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+}
+
+.theme-toggle-btn.is-dark .theme-moon-star.star-1 {
+  animation: starTwinkle 2s ease-in-out infinite alternate;
+}
+
+.theme-toggle-btn.is-dark .theme-moon-star.star-2 {
+  animation: starTwinkle 2.4s ease-in-out 0.4s infinite alternate;
+}
+
+.theme-toggle-btn.is-dark .theme-moon-star.star-3 {
+  animation: starTwinkle 1.8s ease-in-out 0.8s infinite alternate;
+}
+
+@keyframes starTwinkle {
+  0% {
+    transform: scale(0.65);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1.3);
+    opacity: 1;
+    filter: drop-shadow(0 0 2px #FDE047);
+  }
+}
+
+/* ==========================================================================
+   SHOCKWAVE RIPPLE ON SWITCH
+   ========================================================================== */
+.theme-toggle-wave {
+  position: absolute;
+  inset: -2px;
+  border-radius: 999px;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.theme-toggle-btn.is-light.is-animating .theme-toggle-wave {
+  border: 2px solid #F59E0B;
+  animation: waveExpand 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.theme-toggle-btn.is-dark.is-animating .theme-toggle-wave {
+  border: 2px solid #60A5FA;
+  animation: waveExpand 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes waveExpand {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}

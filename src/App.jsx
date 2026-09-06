@@ -1,20 +1,36 @@
 import React, { useState, useEffect } from 'react';
+import { flushSync } from 'react-dom';
 import Navbar from './components/Navbar.jsx';
 import ModeSelectionModal from './components/ModeSelectionModal.jsx';
 import './App.css';
 
-const STORAGE_KEY = 'preconsult_user_mode';
+const MODE_STORAGE_KEY = 'preconsult_user_mode';
+const THEME_STORAGE_KEY = 'preconsult_color_theme';
 
 export default function App() {
+  // Accessibility Mode: Elderly vs Modern
   const [userMode, setUserMode] = useState(() => {
-    return localStorage.getItem(STORAGE_KEY) || null;
+    return localStorage.getItem(MODE_STORAGE_KEY) || null;
   });
 
   const [showModeModal, setShowModeModal] = useState(() => {
-    return !localStorage.getItem(STORAGE_KEY);
+    return !localStorage.getItem(MODE_STORAGE_KEY);
   });
 
-  // Keep document.body class synchronized with the current mode
+  // Dark vs Light Mode
+  const [theme, setTheme] = useState(() => {
+    const saved = localStorage.getItem(THEME_STORAGE_KEY);
+    if (saved === 'dark' || saved === 'light') return saved;
+    if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      return 'dark';
+    }
+    return 'light';
+  });
+
+  // Top-to-bottom luminous sweep bar state
+  const [sweepState, setSweepState] = useState({ active: false, targetTheme: 'dark' });
+
+  // Synchronize document.body with accessibility mode
   useEffect(() => {
     if (userMode === 'elderly') {
       document.body.classList.add('mode-elderly');
@@ -25,9 +41,52 @@ export default function App() {
     }
   }, [userMode]);
 
+  // Synchronize html and body with theme
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    if (theme === 'dark') {
+      document.body.classList.add('dark-mode');
+      document.body.classList.remove('light-mode');
+    } else {
+      document.body.classList.add('light-mode');
+      document.body.classList.remove('dark-mode');
+    }
+    localStorage.setItem(THEME_STORAGE_KEY, theme);
+  }, [theme]);
+
+  // Handle top-to-bottom animated theme toggle
+  const handleToggleTheme = () => {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+
+    // Trigger the glowing sweep wave bar that travels from top to bottom
+    setSweepState({ active: true, targetTheme: nextTheme });
+
+    // If browser supports native View Transitions API (Chrome, Edge, Safari 18+)
+    if (typeof document !== 'undefined' && 'startViewTransition' in document) {
+      const transition = document.startViewTransition(() => {
+        flushSync(() => {
+          setTheme(nextTheme);
+        });
+      });
+
+      transition.finished.finally(() => {
+        setSweepState((prev) => ({ ...prev, active: false }));
+      });
+    } else {
+      // Fallback for browsers without View Transitions:
+      // Cascades colors sequentially from top to bottom
+      document.documentElement.classList.add('theme-transitioning');
+      setTheme(nextTheme);
+      setTimeout(() => {
+        document.documentElement.classList.remove('theme-transitioning');
+        setSweepState((prev) => ({ ...prev, active: false }));
+      }, 700);
+    }
+  };
+
   const handleSelectMode = (mode) => {
     setUserMode(mode);
-    localStorage.setItem(STORAGE_KEY, mode);
+    localStorage.setItem(MODE_STORAGE_KEY, mode);
     setShowModeModal(false);
   };
 
@@ -39,14 +98,23 @@ export default function App() {
     setShowModeModal(false);
   };
 
-
   const isElderly = userMode === 'elderly';
 
   return (
-    <div className={`app-wrapper ${isElderly ? 'is-elderly-theme' : 'is-modern-theme'}`}>
+    <div className={`app-wrapper ${isElderly ? 'is-elderly-theme' : 'is-modern-theme'} ${theme === 'dark' ? 'theme-dark' : 'theme-light'}`}>
+      {/* Top-to-bottom luminous laser sweep wave */}
+      {sweepState.active && (
+        <div
+          className={`theme-sweep-bar to-${sweepState.targetTheme}`}
+          aria-hidden="true"
+        />
+      )}
+
       <Navbar
         currentMode={userMode}
         onOpenModeModal={handleOpenModal}
+        currentTheme={theme}
+        onToggleTheme={handleToggleTheme}
       />
 
       <main className="main-content">
@@ -87,7 +155,7 @@ export default function App() {
             <h1 className="hero-box-title">
               {isElderly ? 'Welcome to PreConsult' : 'Smart Healthcare Pre-Consultation'}
               {isElderly && (
-                <div style={{ fontSize: '0.7em', color: '#B45309', marginTop: '0.25rem' }}>
+                <div style={{ fontSize: '0.7em', color: 'var(--accent-elderly)', marginTop: '0.35rem' }}>
                   प्री-कंसल्ट में आपका स्वागत है
                 </div>
               )}
@@ -97,7 +165,7 @@ export default function App() {
                 ? 'Doctor consultations made simple, comfortable, and easy to understand for everyone.'
                 : 'Empowering seamless pre-consultation diagnostics, scheduling, and patient history aggregation.'}
               {isElderly && (
-                <span style={{ display: 'block', marginTop: '0.35rem', color: '#4B5563' }}>
+                <span style={{ display: 'block', marginTop: '0.35rem', color: 'var(--text-secondary)' }}>
                   डॉक्टर परामर्श को सभी के लिए सरल, आरामदायक और समझने में आसान बनाया गया है।
                 </span>
               )}
@@ -110,7 +178,7 @@ export default function App() {
               <span className="action-card-icon" aria-hidden="true">👨‍⚕️</span>
               <h3 className="action-card-title">
                 Find a Doctor
-                {isElderly && <span style={{ display: 'block', fontSize: '0.85em', color: '#4B5563' }}>डॉक्टर खोजें</span>}
+                {isElderly && <span style={{ display: 'block', fontSize: '0.85em', color: 'var(--text-secondary)' }}>डॉक्टर खोजें</span>}
               </h3>
               <p className="action-card-desc">
                 {isElderly
@@ -131,7 +199,7 @@ export default function App() {
               <span className="action-card-icon" aria-hidden="true">📋</span>
               <h3 className="action-card-title">
                 Health Records
-                {isElderly && <span style={{ display: 'block', fontSize: '0.85em', color: '#4B5563' }}>स्वास्थ्य रिपोर्ट</span>}
+                {isElderly && <span style={{ display: 'block', fontSize: '0.85em', color: 'var(--text-secondary)' }}>स्वास्थ्य रिपोर्ट</span>}
               </h3>
               <p className="action-card-desc">
                 {isElderly
@@ -152,7 +220,7 @@ export default function App() {
               <span className="action-card-icon" aria-hidden="true">🚨</span>
               <h3 className="action-card-title">
                 Emergency Help
-                {isElderly && <span style={{ display: 'block', fontSize: '0.85em', color: '#DC2626' }}>आपातकालीन सहायता</span>}
+                {isElderly && <span style={{ display: 'block', fontSize: '0.85em', color: '#EF4444' }}>आपातकालीन सहायता</span>}
               </h3>
               <p className="action-card-desc">
                 {isElderly
@@ -167,7 +235,7 @@ export default function App() {
               <button
                 type="button"
                 className="action-card-btn"
-                style={isElderly ? { backgroundColor: '#DC2626' } : {}}
+                style={isElderly ? { backgroundColor: '#DC2626', color: '#FFFFFF' } : {}}
               >
                 {isElderly ? 'Call Helpline • कॉल करें (108)' : 'Emergency Response'}
               </button>

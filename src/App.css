@@ -6,7 +6,7 @@
   display: flex;
   flex-direction: column;
   background-color: var(--bg-base);
-  transition: background-color 0.2s ease, font-size 0.2s ease;
+  transition: background-color 0.4s cubic-bezier(0.16, 1, 0.3, 1), font-size 0.2s ease;
   width: 100%;
   overflow-x: hidden;
 }
@@ -21,11 +21,11 @@
   width: 100%;
   padding-top: calc(0.75rem + var(--safe-top));
   padding-bottom: 0.75rem;
-  background: rgba(237, 232, 220, 0.94);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: var(--navbar-bg);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border-subtle);
-  transition: padding 0.2s ease;
+  transition: padding 0.2s ease, background-color 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease;
 }
 
 body.mode-elderly .navbar-wrapper {
@@ -54,6 +54,11 @@ body.mode-elderly .navbar-wrapper {
   gap: 0.4rem;
   white-space: nowrap;
   flex-shrink: 0;
+  transition: color 0.3s ease, transform 0.2s ease;
+}
+
+.brand-logo:hover {
+  transform: translateY(-1px);
 }
 
 body.mode-elderly .brand-logo {
@@ -72,10 +77,11 @@ body.mode-elderly .brand-logo {
   letter-spacing: 0.05em;
 }
 
-/* Navbar Mode Switcher Button */
+/* Navbar Actions: Mode Switcher + Pure Logo Theme Toggle */
 .navbar-actions {
   display: flex;
   align-items: center;
+  gap: clamp(0.45rem, 1.6vw, 0.85rem);
   flex-shrink: 0;
 }
 
@@ -86,7 +92,7 @@ body.mode-elderly .brand-logo {
   padding: clamp(0.4rem, 1.5vw, 0.55rem) clamp(0.65rem, 2vw, 1rem);
   border-radius: 999px;
   border: 1.5px solid transparent;
-  background: #FFFFFF;
+  background: var(--navbar-btn-bg, #FFFFFF);
   color: var(--text-primary);
   font-family: var(--font-body);
   cursor: pointer;
@@ -113,6 +119,7 @@ body.mode-elderly .navbar-mode-btn {
   transform: translateY(0);
 }
 
+/* Light Theme Mode Button styles */
 .navbar-mode-btn.is-elderly {
   border-color: #FCD34D;
   background: #FFFBEB;
@@ -133,6 +140,32 @@ body.mode-elderly .navbar-mode-btn {
   background: #DBEAFE;
 }
 
+/* Dark Theme Mode Button adjustments */
+body.dark-mode .navbar-mode-btn {
+  background: #1E293B;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+body.dark-mode .navbar-mode-btn.is-elderly {
+  border-color: #B45309;
+  background: #271A06;
+}
+
+body.dark-mode .navbar-mode-btn.is-elderly:hover {
+  border-color: #F59E0B;
+  background: #3B2809;
+}
+
+body.dark-mode .navbar-mode-btn.is-modern {
+  border-color: #2563EB;
+  background: #111E38;
+}
+
+body.dark-mode .navbar-mode-btn.is-modern:hover {
+  border-color: #60A5FA;
+  background: #172C54;
+}
+
 .navbar-mode-icon {
   font-size: clamp(1.15rem, 3.5vw, 1.45rem);
   line-height: 1;
@@ -151,7 +184,7 @@ body.mode-elderly .navbar-mode-icon {
 .navbar-mode-primary {
   font-size: clamp(0.78rem, 2.2vw, 0.88rem);
   font-weight: 700;
-  color: #111827;
+  color: var(--text-primary);
   white-space: nowrap;
 }
 
@@ -162,20 +195,20 @@ body.mode-elderly .navbar-mode-primary {
 .navbar-mode-secondary {
   font-size: clamp(0.68rem, 2vw, 0.75rem);
   font-weight: 600;
-  color: #6B7280;
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
 body.mode-elderly .navbar-mode-secondary {
   font-size: clamp(0.8rem, 2.2vw, 0.92rem);
-  color: #4B5563;
+  color: var(--text-secondary);
 }
 
 .navbar-mode-switch-tag {
   font-size: 0.7rem;
   font-weight: 700;
-  background: rgba(0, 0, 0, 0.06);
-  color: #374151;
+  background: var(--border-subtle);
+  color: var(--text-secondary);
   padding: 0.2rem 0.45rem;
   border-radius: 999px;
   white-space: nowrap;
@@ -210,7 +243,7 @@ body.mode-elderly .main-content {
 }
 
 .mode-banner-alert {
-  background: #FFFFFF;
+  background: var(--bg-card);
   border-radius: clamp(12px, 2.5vw, 16px);
   border: 1px solid var(--border-subtle);
   padding: clamp(1rem, 3vw, 1.35rem) clamp(1rem, 3vw, 1.6rem);
@@ -219,12 +252,13 @@ body.mode-elderly .main-content {
   justify-content: space-between;
   gap: clamp(0.75rem, 2.5vw, 1.5rem);
   margin-bottom: clamp(1.25rem, 3.5vw, 2.25rem);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--card-shadow);
+  transition: all 0.35s ease;
 }
 
 body.mode-elderly .mode-banner-alert {
-  border: 2px solid #FCD34D;
-  background: #FFFBEB;
+  border: 2px solid var(--accent-elderly-border);
+  background: var(--accent-elderly-bg);
   padding: clamp(1.25rem, 3.5vw, 1.65rem) clamp(1.15rem, 3.5vw, 1.95rem);
 }
 
@@ -248,7 +282,7 @@ body.mode-elderly .mode-banner-symbol {
 .mode-banner-heading {
   font-size: clamp(1rem, 2.8vw, 1.2rem);
   font-weight: 800;
-  color: #111827;
+  color: var(--text-primary);
   line-height: 1.3;
 }
 
@@ -258,20 +292,20 @@ body.mode-elderly .mode-banner-heading {
 
 .mode-banner-sub {
   font-size: clamp(0.82rem, 2.2vw, 0.95rem);
-  color: #4B5563;
+  color: var(--text-secondary);
   margin-top: 0.2rem;
   line-height: 1.45;
 }
 
 body.mode-elderly .mode-banner-sub {
   font-size: clamp(1rem, 2.8vw, 1.25rem);
-  color: #1F2937;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
 .btn-banner-switch {
-  background: #111827;
-  color: #FFFFFF;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
   border: none;
   padding: clamp(0.6rem, 1.8vw, 0.75rem) clamp(0.95rem, 2.5vw, 1.35rem);
   border-radius: 10px;
@@ -279,7 +313,7 @@ body.mode-elderly .mode-banner-sub {
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.15s ease;
+  transition: all 0.2s ease;
   min-height: 44px;
   display: inline-flex;
   align-items: center;
@@ -291,12 +325,12 @@ body.mode-elderly .mode-banner-sub {
 body.mode-elderly .btn-banner-switch {
   font-size: clamp(1rem, 2.8vw, 1.25rem);
   padding: clamp(0.75rem, 2.5vw, 1rem) clamp(1.15rem, 3.5vw, 1.65rem);
-  background: #B45309;
+  background: var(--accent-elderly);
   min-height: 52px;
 }
 
 .btn-banner-switch:hover {
-  opacity: 0.9;
+  opacity: 0.92;
   transform: translateY(-1px);
 }
 
@@ -320,24 +354,25 @@ body.mode-elderly .btn-banner-switch {
    HERO PRESENTATION BOX
    ========================================================================== */
 .hero-box {
-  background: #FFFFFF;
+  background: var(--bg-card);
   border-radius: clamp(14px, 3vw, 22px);
   padding: clamp(1.75rem, 5vw, 2.75rem) clamp(1.15rem, 4vw, 2.25rem);
   border: 1px solid var(--border-subtle);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--hero-shadow);
   text-align: center;
   margin-bottom: clamp(1.5rem, 4vw, 2.25rem);
+  transition: background-color 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
 }
 
 body.mode-elderly .hero-box {
   padding: clamp(2rem, 5.5vw, 3.25rem) clamp(1.25rem, 4.5vw, 2.5rem);
-  border: 2px solid rgba(0, 0, 0, 0.15);
+  border: 2px solid var(--border-medium);
 }
 
 .hero-box-title {
   font-size: clamp(1.55rem, 5vw, 2.45rem);
   font-weight: 800;
-  color: #111827;
+  color: var(--text-primary);
   margin-bottom: 0.65rem;
   line-height: 1.2;
   word-wrap: break-word;
@@ -350,7 +385,7 @@ body.mode-elderly .hero-box-title {
 
 .hero-box-subtitle {
   font-size: clamp(0.92rem, 2.5vw, 1.15rem);
-  color: #4B5563;
+  color: var(--text-secondary);
   max-width: 680px;
   margin: 0 auto;
   line-height: 1.55;
@@ -358,7 +393,7 @@ body.mode-elderly .hero-box-title {
 
 body.mode-elderly .hero-box-subtitle {
   font-size: clamp(1.15rem, 3.2vw, 1.5rem);
-  color: #1F2937;
+  color: var(--text-secondary);
   line-height: 1.65;
   max-width: 820px;
 }
@@ -375,26 +410,30 @@ body.mode-elderly .hero-box-subtitle {
 }
 
 .action-card {
-  background: #FFFFFF;
+  background: var(--bg-card);
   border-radius: clamp(12px, 2.5vw, 18px);
   padding: clamp(1.25rem, 3.5vw, 1.85rem);
   border: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
-  transition: all 0.2s ease;
+  box-shadow: var(--card-shadow);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.25s ease,
+              background-color 0.35s ease,
+              border-color 0.35s ease;
   width: 100%;
 }
 
 body.mode-elderly .action-card {
   padding: clamp(1.5rem, 4vw, 2.15rem);
-  border: 2px solid rgba(0, 0, 0, 0.14);
+  border: 2px solid var(--border-medium);
 }
 
 .action-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+  background: var(--bg-card-hover);
+  box-shadow: var(--card-shadow-hover);
 }
 
 .action-card-icon {
@@ -409,7 +448,7 @@ body.mode-elderly .action-card-icon {
 .action-card-title {
   font-size: clamp(1.1rem, 3vw, 1.35rem);
   font-weight: 700;
-  color: #111827;
+  color: var(--text-primary);
   line-height: 1.25;
 }
 
@@ -419,28 +458,28 @@ body.mode-elderly .action-card-title {
 
 .action-card-desc {
   font-size: clamp(0.86rem, 2.2vw, 0.98rem);
-  color: #4B5563;
+  color: var(--text-secondary);
   line-height: 1.5;
   flex: 1;
 }
 
 body.mode-elderly .action-card-desc {
   font-size: clamp(1.05rem, 2.8vw, 1.3rem);
-  color: #1F2937;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
 .action-card-btn {
   margin-top: 0.85rem;
   padding: clamp(0.7rem, 2vw, 0.85rem) clamp(1rem, 2.5vw, 1.35rem);
-  background: #111827;
-  color: #FFFFFF;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
   border: none;
   border-radius: 10px;
   font-size: clamp(0.88rem, 2.2vw, 0.98rem);
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.2s ease;
   min-height: 46px;
   display: inline-flex;
   align-items: center;
@@ -452,7 +491,7 @@ body.mode-elderly .action-card-desc {
 body.mode-elderly .action-card-btn {
   padding: clamp(0.9rem, 2.5vw, 1.15rem) clamp(1.15rem, 3vw, 1.65rem);
   font-size: clamp(1.15rem, 3vw, 1.35rem);
-  background: #B45309;
+  background: var(--accent-elderly);
   min-height: 54px;
 }
 
@@ -472,13 +511,14 @@ body.mode-elderly .action-card-btn {
   padding: clamp(1.25rem, 3.5vw, 2rem) 0 calc(clamp(1.25rem, 3.5vw, 2rem) + var(--safe-bottom));
   text-align: center;
   font-size: clamp(0.8rem, 2.2vw, 0.92rem);
-  color: #6B7280;
+  color: var(--text-muted);
   width: 100%;
+  transition: border-color 0.35s ease, color 0.35s ease;
 }
 
 body.mode-elderly .simple-footer {
   padding: clamp(1.65rem, 4vw, 2.5rem) 0 calc(clamp(1.65rem, 4vw, 2.5rem) + var(--safe-bottom));
   font-size: clamp(0.95rem, 2.8vw, 1.2rem);
-  color: #374151;
+  color: var(--text-secondary);
   border-top-width: 2px;
 }
