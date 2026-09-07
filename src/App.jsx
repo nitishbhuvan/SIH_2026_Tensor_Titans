@@ -17,18 +17,15 @@ export default function App() {
     return !localStorage.getItem(MODE_STORAGE_KEY);
   });
 
-  // Dark vs Light Mode
+  // Dark vs Light Mode (Defaults to Light)
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem(THEME_STORAGE_KEY);
     if (saved === 'dark' || saved === 'light') return saved;
-    if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      return 'dark';
-    }
     return 'light';
   });
 
   // Top-to-bottom luminous sweep bar state
-  const [sweepState, setSweepState] = useState({ active: false, targetTheme: 'dark' });
+  const [sweepState, setSweepState] = useState({ active: false, targetTheme: 'light' });
 
   // Synchronize document.body with accessibility mode
   useEffect(() => {
