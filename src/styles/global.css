@@ -1,0 +1,257 @@
+/* ============================================================================
+   PRECONSULT — GLOBAL STYLES
+   Reset, base elements, containers, and theme transitions
+   ============================================================================ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  font-size: var(--base-font-size);
+  scroll-behavior: smooth;
+  color-scheme: light;
+  overflow-x: hidden;
+  width: 100%;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  line-height: inherit;
+  min-height: 100vh;
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  width: 100%;
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+a, button {
+  touch-action: manipulation;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img, svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ── App Wrapper ── */
+.app-wrapper {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-base);
+  transition: background-color 0.3s ease;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+/* ── Main Content ── */
+.main-content {
+  flex: 1;
+  padding: clamp(1rem, 3vw, 2rem) 0 clamp(2rem, 4vw, 3rem);
+  width: 100%;
+}
+
+body.mode-elderly .main-content {
+  padding: clamp(1.35rem, 3.5vw, 2.5rem) 0 clamp(2.5rem, 5vw, 4rem);
+}
+
+/* ── Focus Rings ── */
+:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+/* ── Layout Containers ── */
+.container-wide {
+  width: 100%;
+  max-width: 1280px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: clamp(1rem, 4vw, 2rem);
+  padding-right: clamp(1rem, 4vw, 2rem);
+}
+
+.container {
+  width: 100%;
+  max-width: 960px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: clamp(1rem, 3.5vw, 1.75rem);
+  padding-right: clamp(1rem, 3.5vw, 1.75rem);
+}
+
+/* ============================================================================
+   THEME TRANSITION — VIEW TRANSITIONS API (TOP-TO-BOTTOM SWEEP)
+   ============================================================================ */
+::view-transition-old(root) {
+  animation: none;
+  mix-blend-mode: normal;
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  animation: sweepTopToBottom 0.55s cubic-bezier(0.25, 1, 0.4, 1) forwards;
+  mix-blend-mode: normal;
+  z-index: 9999;
+}
+
+@keyframes sweepTopToBottom {
+  0% {
+    clip-path: inset(0 0 100% 0);
+  }
+  100% {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* ── Sweep Bar ── */
+.theme-sweep-bar {
+  position: fixed;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  pointer-events: none;
+  z-index: 9999999;
+  will-change: top, opacity, transform;
+  animation: sweepBarTravel 0.55s cubic-bezier(0.25, 1, 0.4, 1) forwards;
+}
+
+.theme-sweep-bar.to-dark {
+  background: linear-gradient(90deg, var(--accent-primary-dark, #344E68), var(--accent-primary, #7E9FBE), #FFFFFF, var(--accent-primary, #7E9FBE), var(--accent-primary-dark, #344E68));
+  box-shadow: 0 0 12px 2px rgba(82, 111, 140, 0.7),
+              0 0 32px 8px rgba(126, 159, 190, 0.35);
+}
+
+.theme-sweep-bar.to-light {
+  background: linear-gradient(90deg, var(--accent-warning, #A98245), #E8C97A, #FFFFFF, #E8C97A, var(--accent-warning, #A98245));
+  box-shadow: 0 0 12px 2px rgba(169, 130, 69, 0.7),
+              0 0 32px 8px rgba(194, 160, 97, 0.35);
+}
+
+.theme-sweep-bar::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  height: 60px;
+  pointer-events: none;
+}
+
+.theme-sweep-bar.to-dark::before {
+  background: linear-gradient(to top, rgba(82, 111, 140, 0.2), transparent);
+}
+
+.theme-sweep-bar.to-light::before {
+  background: linear-gradient(to top, rgba(169, 130, 69, 0.2), transparent);
+}
+
+@keyframes sweepBarTravel {
+  0% {
+    top: -6px;
+    opacity: 0;
+    transform: scaleX(0.96);
+  }
+  10% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+  90% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+  100% {
+    top: 100vh;
+    opacity: 0;
+    transform: scaleX(0.97);
+  }
+}
+
+/* ── Fallback Cascading Transition (Older Browsers) ── */
+html.theme-transitioning,
+html.theme-transitioning *,
+html.theme-transitioning *::before,
+html.theme-transitioning *::after {
+  transition: background-color 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              color 0.3s ease,
+              border-color 0.3s ease,
+              box-shadow 0.35s ease,
+              fill 0.3s ease,
+              stroke 0.3s ease !important;
+}
+
+html.theme-transitioning .navbar-wrapper {
+  transition-delay: 0ms !important;
+}
+html.theme-transitioning .mode-banner {
+  transition-delay: 60ms !important;
+}
+html.theme-transitioning .hero-section {
+  transition-delay: 120ms !important;
+}
+html.theme-transitioning .service-grid .action-card:nth-child(1) {
+  transition-delay: 180ms !important;
+}
+html.theme-transitioning .service-grid .action-card:nth-child(2) {
+  transition-delay: 220ms !important;
+}
+html.theme-transitioning .service-grid .action-card:nth-child(3) {
+  transition-delay: 260ms !important;
+}
+html.theme-transitioning .site-footer {
+  transition-delay: 340ms !important;
+}
+
+/* ============================================================================
+   REDUCED MOTION
+   ============================================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .theme-sweep-bar {
+    display: none !important;
+  }
+
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
+  }
+}

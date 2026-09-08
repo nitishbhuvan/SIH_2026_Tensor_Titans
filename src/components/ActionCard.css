@@ -1,0 +1,167 @@
+/* ============================================================================
+   ACTION CARD — Service module
+   ============================================================================ */
+
+.action-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: border-color 0.2s ease, transform 0.15s ease,
+              background-color 0.3s ease, box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+body.mode-elderly .action-card {
+  border-width: 2px;
+}
+
+.action-card:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-2px);
+  box-shadow: var(--card-shadow-hover);
+}
+
+.action-card:hover .action-card__icon-wrap {
+  color: var(--accent-primary);
+}
+
+/* ── Emergency Variant ── */
+.action-card--emergency {
+  border-color: var(--accent-emergency-border);
+}
+
+.action-card--emergency:hover {
+  border-color: var(--accent-emergency);
+}
+
+.action-card--emergency:hover .action-card__icon-wrap {
+  color: var(--accent-emergency);
+}
+
+/* ── Card Metadata ── */
+.action-card__meta {
+  padding: clamp(0.3rem, 0.8vw, 0.4rem) clamp(0.75rem, 2vw, 1rem);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.action-card__service-id {
+  font-family: var(--font-mono);
+  font-size: clamp(0.52rem, 1.2vw, 0.58rem);
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+body.mode-elderly .action-card__service-id {
+  font-size: clamp(0.6rem, 1.5vw, 0.68rem);
+}
+
+/* ── Card Body ── */
+.action-card__body {
+  padding: clamp(1rem, 3vw, 1.35rem);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.45rem, 1.2vw, 0.6rem);
+  flex: 1;
+}
+
+body.mode-elderly .action-card__body {
+  padding: clamp(1.25rem, 3.5vw, 1.75rem);
+  gap: clamp(0.6rem, 1.5vw, 0.75rem);
+}
+
+.action-card__icon-wrap {
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  transition: color 0.2s ease;
+}
+
+.action-card--emergency .action-card__icon-wrap {
+  color: var(--accent-emergency);
+}
+
+.action-card__title {
+  font-size: clamp(0.95rem, 2.5vw, 1.1rem);
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.25;
+}
+
+body.mode-elderly .action-card__title {
+  font-size: clamp(1.2rem, 3.2vw, 1.5rem);
+}
+
+.action-card__desc {
+  font-size: clamp(0.8rem, 2vw, 0.88rem);
+  color: var(--text-secondary);
+  line-height: 1.5;
+  flex: 1;
+}
+
+body.mode-elderly .action-card__desc {
+  font-size: clamp(0.98rem, 2.5vw, 1.15rem);
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+/* ── Card Button ── */
+.action-card__btn {
+  margin-top: clamp(0.5rem, 1.5vw, 0.75rem);
+  padding: clamp(0.55rem, 1.5vw, 0.65rem) clamp(0.85rem, 2vw, 1.1rem);
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: clamp(0.8rem, 2vw, 0.88rem);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  touch-action: manipulation;
+}
+
+body.mode-elderly .action-card__btn {
+  padding: clamp(0.75rem, 2.2vw, 0.95rem) clamp(1rem, 2.5vw, 1.35rem);
+  font-size: clamp(1rem, 2.5vw, 1.2rem);
+  min-height: 52px;
+}
+
+.action-card__btn:hover {
+  background: var(--btn-primary-hover);
+}
+
+.action-card__btn:active {
+  transform: scale(0.98);
+}
+
+.action-card__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Emergency Button ── */
+.action-card__btn--emergency {
+  background: var(--accent-emergency);
+}
+
+.action-card__btn--emergency:hover {
+  background: var(--accent-emergency-hover);
+}
+
+/* ── Service Grid ── */
+.service-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: clamp(0.75rem, 2vw, 1rem);
+  margin-top: clamp(0.75rem, 2vw, 1rem);
+  width: 100%;
+}

@@ -1,13 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { flushSync } from 'react-dom';
+import { Stethoscope, FileText, Phone } from 'lucide-react';
 import Navbar from './components/Navbar.jsx';
 import ModeSelectionModal from './components/ModeSelectionModal.jsx';
+import Hero from './components/Hero.jsx';
+import VoiceIntake from './components/VoiceIntake.jsx';
+import ActionCard from './components/ActionCard.jsx';
+import ToastContainer from './components/Toast.jsx';
+import Footer from './components/Footer.jsx';
 import { translations } from './translations.js';
-import './App.css';
 
 const LANGUAGE_STORAGE_KEY = 'preconsult_user_language';
 const MODE_STORAGE_KEY = 'preconsult_user_mode';
 const THEME_STORAGE_KEY = 'preconsult_color_theme';
+
+let toastIdCounter = 0;
 
 export default function App() {
   // Language Preference
@@ -20,7 +27,7 @@ export default function App() {
     return localStorage.getItem(MODE_STORAGE_KEY) || 'modern';
   });
 
-  // Onboarding / Preference Modal State
+  // Onboarding / Preference Modal State (First Visit)
   const [showModeModal, setShowModeModal] = useState(() => {
     return !localStorage.getItem(LANGUAGE_STORAGE_KEY) || !localStorage.getItem(MODE_STORAGE_KEY);
   });
@@ -37,10 +44,13 @@ export default function App() {
     return 'light';
   });
 
-  // Top-to-bottom luminous sweep bar state
+  // Theme sweep bar
   const [sweepState, setSweepState] = useState({ active: false, targetTheme: 'light' });
 
-  // Synchronize document.body with accessibility mode
+  // Toasts
+  const [toasts, setToasts] = useState([]);
+
+  // ── Synchronize body classes with accessibility mode ──
   useEffect(() => {
     if (userMode === 'elderly') {
       document.body.classList.add('mode-elderly');
@@ -51,7 +61,7 @@ export default function App() {
     }
   }, [userMode]);
 
-  // Synchronize html and body with theme
+  // ── Synchronize html + body with theme ──
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     if (theme === 'dark') {
@@ -64,11 +74,9 @@ export default function App() {
     localStorage.setItem(THEME_STORAGE_KEY, theme);
   }, [theme]);
 
-  // Handle top-to-bottom animated theme toggle
+  // ── Theme toggle with top-to-bottom sweep ──
   const handleToggleTheme = () => {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';
-
-    // Trigger glowing sweep wave bar that travels from top to bottom
     setSweepState({ active: true, targetTheme: nextTheme });
 
     if (typeof document !== 'undefined' && 'startViewTransition' in document) {
@@ -77,7 +85,6 @@ export default function App() {
           setTheme(nextTheme);
         });
       });
-
       transition.finished.finally(() => {
         setSweepState((prev) => ({ ...prev, active: false }));
       });
@@ -87,10 +94,21 @@ export default function App() {
       setTimeout(() => {
         document.documentElement.classList.remove('theme-transitioning');
         setSweepState((prev) => ({ ...prev, active: false }));
-      }, 700);
+      }, 600);
     }
   };
 
+  // ── Toast helpers ──
+  const addToast = useCallback((message, type = 'info', duration = 3000) => {
+    const id = ++toastIdCounter;
+    setToasts((prev) => [...prev, { id, message, type, duration }]);
+  }, []);
+
+  const dismissToast = useCallback((id) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
+  // ── Language & Mode handlers ──
   const handleSelectLanguage = (lang) => {
     setUserLanguage(lang);
     localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
@@ -116,12 +134,19 @@ export default function App() {
     setShowModeModal(false);
   };
 
+  const scrollToVoiceIntake = () => {
+    const el = document.getElementById('voice-intake-section');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
   const isElderly = userMode === 'elderly';
   const t = translations[userLanguage] || translations.en;
 
   return (
     <div className={`app-wrapper ${isElderly ? 'is-elderly-theme' : 'is-modern-theme'} ${theme === 'dark' ? 'theme-dark' : 'theme-light'}`}>
-      {/* Top-to-bottom luminous laser sweep wave */}
+      {/* Theme sweep bar */}
       {sweepState.active && (
         <div
           className={`theme-sweep-bar to-${sweepState.targetTheme}`}
@@ -129,6 +154,7 @@ export default function App() {
         />
       )}
 
+      {/* Navbar with Direct Mode & Language Controls */}
       <Navbar
         currentMode={userMode}
         currentLanguage={userLanguage}
@@ -138,104 +164,88 @@ export default function App() {
         onToggleTheme={handleToggleTheme}
       />
 
+      {/* Main Content */}
       <main className="main-content">
         <div className="container">
-          {/* Active Mode Notice Banner */}
-          <div className="mode-banner-alert">
-            <div className="mode-banner-info">
-              <span className="mode-banner-symbol" aria-hidden="true">
-                {isElderly ? '🧓' : '⚡'}
-              </span>
-              <div>
-                <h2 className="mode-banner-heading">
-                  {isElderly ? t.bannerElderlyActive : t.bannerModernActive}
-                </h2>
-                <p className="mode-banner-sub">
-                  {isElderly ? t.bannerElderlyDesc : t.bannerModernDesc}
-                </p>
-              </div>
-            </div>
+          {/* Hero */}
+          <Hero
+            isElderly={isElderly}
+            t={t}
+            onVoiceIntake={scrollToVoiceIntake}
+            onFindDoctor={() => addToast(
+              isElderly
+                ? (t.cardDoctorDescElderly || 'Searching for doctors near you…')
+                : 'Searching for specialists in your area…',
+              'info'
+            )}
+          />
 
-            <button
-              type="button"
-              className="btn-banner-switch"
-              onClick={handleOpenModeModal}
-              aria-label={t.bannerChangeBtn}
-            >
-              {t.bannerChangeBtn}
-            </button>
-          </div>
+          {/* Multilingual Indic Voice Intake & Clinical Translation Section */}
+          <VoiceIntake
+            userLanguage={userLanguage}
+            isElderly={isElderly}
+            t={t}
+            onNotify={(msg, type) => addToast(msg, type)}
+          />
 
-          {/* Hero Presentation */}
-          <section className="hero-box">
-            <h1 className="hero-box-title">
-              {isElderly ? t.heroTitleElderly : t.heroTitleModern}
-              {userLanguage !== 'en' && isElderly && (
-                <div style={{ fontSize: '0.7em', color: 'var(--accent-elderly)', marginTop: '0.35rem' }}>
-                  {translations.en.heroTitleElderly}
-                </div>
+          {/* Service Modules Grid */}
+          <div className="service-grid">
+            <ActionCard
+              icon={Stethoscope}
+              title={t.cardDoctorTitle}
+              description={isElderly ? t.cardDoctorDescElderly : t.cardDoctorDescModern}
+              buttonLabel={isElderly ? t.cardDoctorBtnElderly : t.cardDoctorBtnModern}
+              serviceId="SVC-001"
+              isElderly={isElderly}
+              onClick={() => addToast(
+                isElderly
+                  ? (t.cardDoctorDescElderly || 'Finding doctors…')
+                  : 'Loading specialist directory…',
+                'info'
               )}
-            </h1>
-            <p className="hero-box-subtitle">
-              {isElderly ? t.heroSubElderly : t.heroSubModern}
-            </p>
-          </section>
+            />
 
-          {/* Quick Action Cards */}
-          <div className="cards-grid">
-            <div className="action-card">
-              <span className="action-card-icon" aria-hidden="true">👨‍⚕️</span>
-              <h3 className="action-card-title">
-                {t.cardDoctorTitle}
-              </h3>
-              <p className="action-card-desc">
-                {isElderly ? t.cardDoctorDescElderly : t.cardDoctorDescModern}
-              </p>
-              <button type="button" className="action-card-btn">
-                {isElderly ? t.cardDoctorBtnElderly : t.cardDoctorBtnModern}
-              </button>
-            </div>
+            <ActionCard
+              icon={FileText}
+              title={t.cardRecordsTitle}
+              description={isElderly ? t.cardRecordsDescElderly : t.cardRecordsDescModern}
+              buttonLabel={isElderly ? t.cardRecordsBtnElderly : t.cardRecordsBtnModern}
+              serviceId="SVC-002"
+              isElderly={isElderly}
+              onClick={() => addToast(
+                isElderly
+                  ? (t.cardRecordsBtnElderly || 'Opening records…')
+                  : 'Loading health records…',
+                'success'
+              )}
+            />
 
-            <div className="action-card">
-              <span className="action-card-icon" aria-hidden="true">📋</span>
-              <h3 className="action-card-title">
-                {t.cardRecordsTitle}
-              </h3>
-              <p className="action-card-desc">
-                {isElderly ? t.cardRecordsDescElderly : t.cardRecordsDescModern}
-              </p>
-              <button type="button" className="action-card-btn">
-                {isElderly ? t.cardRecordsBtnElderly : t.cardRecordsBtnModern}
-              </button>
-            </div>
-
-            <div className="action-card">
-              <span className="action-card-icon" aria-hidden="true">🚨</span>
-              <h3 className="action-card-title">
-                {t.cardEmergencyTitle}
-              </h3>
-              <p className="action-card-desc">
-                {isElderly ? t.cardEmergencyDescElderly : t.cardEmergencyDescModern}
-              </p>
-              <button
-                type="button"
-                className="action-card-btn"
-                style={isElderly ? { backgroundColor: '#DC2626', color: '#FFFFFF' } : {}}
-              >
-                {isElderly ? t.cardEmergencyBtnElderly : t.cardEmergencyBtnModern}
-              </button>
-            </div>
+            <ActionCard
+              icon={Phone}
+              title={t.cardEmergencyTitle}
+              description={isElderly ? t.cardEmergencyDescElderly : t.cardEmergencyDescModern}
+              buttonLabel={isElderly ? t.cardEmergencyBtnElderly : t.cardEmergencyBtnModern}
+              variant="emergency"
+              serviceId="SVC-003"
+              isElderly={isElderly}
+              onClick={() => addToast(
+                isElderly
+                  ? (t.cardEmergencyBtnElderly || 'Contacting helpline…')
+                  : 'Connecting to emergency response…',
+                'warning'
+              )}
+            />
           </div>
         </div>
       </main>
 
-      <footer className="simple-footer">
-        <div className="container">
-          <p>&copy; {new Date().getFullYear()} {t.footerTagline}</p>
-        </div>
-      </footer>
+      {/* Footer */}
+      <Footer t={t} />
 
-      {/* Pop-up Preference Modal: Step 1 (Language) -> Step 2 (Elderly vs Modern Mode) */}
+      {/* Toast Notifications */}
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+
+      {/* Onboarding / Language & Mode Preference Modal */}
       <ModeSelectionModal
         isOpen={showModeModal}
         step={modalStep}

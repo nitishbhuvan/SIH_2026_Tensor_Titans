@@ -1,6 +1,8 @@
 import React from 'react';
+import { Globe, Accessibility, Zap } from 'lucide-react';
 import ThemeToggle from './ThemeToggle.jsx';
 import { SUPPORTED_LANGUAGES, translations } from '../translations.js';
+import './Navbar.css';
 
 export default function Navbar({
   currentMode,
@@ -17,54 +19,55 @@ export default function Navbar({
   return (
     <header className="navbar-wrapper">
       <div className="container-wide">
-        <nav className="navbar-content">
+        <nav className="navbar-content" aria-label="Main navigation">
+          {/* Brand */}
           <a
             href="#"
-            className="brand-logo"
+            className="navbar-brand"
             onClick={(e) => {
               e.preventDefault();
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
+            aria-label="PreConsult — Go to top"
           >
-            PreConsult
+            <span className="brand-name">PreConsult</span>
+            <span className="brand-sublabel" aria-hidden="true">Digital Health Services</span>
           </a>
 
-          {/* Actions in Navbar: Language Switcher, Mode Switcher Button & Animated Theme Toggle */}
+          {/* Actions */}
           <div className="navbar-actions">
-            {/* Language Selector Button */}
+            {/* Language */}
             <button
               type="button"
-              className="navbar-lang-btn"
+              className="navbar-btn"
               onClick={onOpenLanguageModal}
-              title="Click to change language / भाषा बदलने के लिए क्लिक करें"
-              aria-label={`Current language: ${currentLangObj.nativeLabel} (${currentLangObj.label}). Click to change.`}
+              title="Change language"
+              aria-label={`Current language: ${currentLangObj.nativeLabel}. Click to change.`}
             >
-              <span className="navbar-lang-icon" aria-hidden="true">🌐</span>
+              <Globe className="navbar-btn-icon" aria-hidden="true" />
               <span className="navbar-lang-text">{currentLangObj.nativeLabel}</span>
             </button>
 
-            {/* Mode Switcher Button */}
+            {/* Mode */}
             <button
               type="button"
-              className={`navbar-mode-btn ${isElderly ? 'is-elderly' : 'is-modern'}`}
+              className={`navbar-btn ${isElderly ? 'mode-elderly-btn' : 'mode-modern-btn'}`}
               onClick={onOpenModeModal}
-              title="Click to change viewing mode / मोड बदलने के लिए क्लिक करें"
+              title="Change viewing mode"
               aria-label={`Current mode: ${isElderly ? t.elderlyLabel : t.modernLabel}. Click to switch.`}
             >
-              <span className="navbar-mode-icon" aria-hidden="true">
-                {isElderly ? '🧓' : '⚡'}
-              </span>
-              <span className="navbar-mode-text">
+              {isElderly
+                ? <Accessibility className="navbar-btn-icon" aria-hidden="true" />
+                : <Zap className="navbar-btn-icon" aria-hidden="true" />
+              }
+              <span className="navbar-mode-label">
                 <span className="navbar-mode-primary">
                   {isElderly ? t.elderlyLabel : t.modernLabel}
                 </span>
               </span>
-              <span className="navbar-mode-switch-tag">
-                {t.switchMode}
-              </span>
             </button>
 
-            {/* Pure logo, animated theme switch */}
+            {/* Theme Toggle */}
             <ThemeToggle
               theme={currentTheme}
               onToggle={onToggleTheme}

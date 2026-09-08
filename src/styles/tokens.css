@@ -1,0 +1,147 @@
+/* ============================================================================
+   PRECONSULT — DESIGN TOKENS
+   Institutional Government Healthcare Design System
+   ============================================================================ */
+
+:root {
+  /* ── Light Theme ── */
+  --bg-base: #F4F5F1;
+  --bg-surface: #FFFFFF;
+  --bg-surface-secondary: #ECEEE9;
+  --bg-surface-hover: #E8EAE4;
+  --navbar-bg: rgba(244, 245, 241, 0.92);
+  --navbar-btn-bg: #FFFFFF;
+
+  --border-default: #D7DAD3;
+  --border-strong: #B8BCB2;
+  --border-subtle: rgba(0, 0, 0, 0.06);
+
+  --text-primary: #181B18;
+  --text-secondary: #62665F;
+  --text-muted: #8A8E86;
+
+  --accent-primary: #526F8C;
+  --accent-primary-dark: #344E68;
+  --accent-primary-bg: #E8EEF4;
+  --accent-primary-border: #A8BFCF;
+
+  --accent-success: #667D59;
+  --accent-success-bg: #EDF2EA;
+
+  --accent-warning: #A98245;
+  --accent-warning-bg: #F5F0E5;
+  --accent-warning-border: #D4B87A;
+
+  --accent-emergency: #A5463F;
+  --accent-emergency-bg: #F5EAEA;
+  --accent-emergency-border: #D4817B;
+  --accent-emergency-hover: #8B3730;
+
+  --btn-primary-bg: #344E68;
+  --btn-primary-text: #FFFFFF;
+  --btn-primary-hover: #263B50;
+
+  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.07);
+
+  /* ── Typography ── */
+  --font-body: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Nirmala UI', 'Noto Sans', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
+
+  --base-font-size: clamp(15px, 0.9vw + 12px, 17px);
+
+  /* ── Spacing & Radii ── */
+  --radius-sm: 3px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+
+  --btn-padding: 0.65rem 1.25rem;
+  --btn-font-size: 0.9rem;
+
+  /* ── Safe Area Insets ── */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+
+/* ============================================================================
+   DARK THEME
+   ============================================================================ */
+[data-theme="dark"],
+body.dark-mode {
+  --bg-base: #101416;
+  --bg-surface: #181D20;
+  --bg-surface-secondary: #20262A;
+  --bg-surface-hover: #2A3138;
+  --navbar-bg: rgba(16, 20, 22, 0.92);
+  --navbar-btn-bg: #20262A;
+
+  --border-default: #343B3F;
+  --border-strong: #4A5258;
+  --border-subtle: rgba(255, 255, 255, 0.07);
+
+  --text-primary: #E8EBE7;
+  --text-secondary: #A4AAA5;
+  --text-muted: #6E756F;
+
+  --accent-primary: #7E9FBE;
+  --accent-primary-dark: #5D7F9F;
+  --accent-primary-bg: #1A252E;
+  --accent-primary-border: #4A6A82;
+
+  --accent-success: #8DA57D;
+  --accent-success-bg: #1A231A;
+
+  --accent-warning: #C2A061;
+  --accent-warning-bg: #231E14;
+  --accent-warning-border: #8A7242;
+
+  --accent-emergency: #D06A61;
+  --accent-emergency-bg: #261A18;
+  --accent-emergency-border: #9A4A42;
+  --accent-emergency-hover: #E07A72;
+
+  --btn-primary-bg: #5D7F9F;
+  --btn-primary-text: #FFFFFF;
+  --btn-primary-hover: #7E9FBE;
+
+  --card-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  --card-shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+/* ============================================================================
+   ELDERLY MODE OVERRIDES (LIGHT)
+   ============================================================================ */
+body.mode-elderly {
+  --base-font-size: clamp(17px, 1.6vw + 13px, 20px);
+  --text-primary: #0F110F;
+  --text-secondary: #3A3E38;
+  --border-default: #C0C4BA;
+  --border-strong: #9EA398;
+  --btn-padding: clamp(0.85rem, 2.5vw, 1.1rem) clamp(1.25rem, 3.5vw, 1.8rem);
+  --btn-font-size: clamp(1.05rem, 2vw, 1.2rem);
+  --radius-sm: 4px;
+  --radius-md: 5px;
+  --radius-lg: 8px;
+  line-height: 1.7;
+  letter-spacing: 0.01em;
+}
+
+/* Elderly + Dark */
+body.dark-mode.mode-elderly,
+[data-theme="dark"] body.mode-elderly {
+  --bg-base: #0C0E10;
+  --bg-surface: #141A1E;
+  --bg-surface-secondary: #1C2328;
+  --text-primary: #F2F4F1;
+  --text-secondary: #C4CAC5;
+  --border-default: #3E464A;
+  --border-strong: #566068;
+}
+
+/* Modern mode baseline */
+body.mode-modern {
+  --base-font-size: clamp(15px, 0.8vw + 12px, 16.5px);
+  line-height: 1.55;
+}

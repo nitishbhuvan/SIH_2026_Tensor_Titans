@@ -1,0 +1,25 @@
+/* ============================================================================
+   PRECONSULT — ACCESSIBILITY OVERRIDES
+   Elderly Mode transformations & high-contrast adjustments
+   ============================================================================ */
+
+/* ── Elderly Mode: Stronger focus rings ── */
+body.mode-elderly :focus-visible {
+  outline-width: 3px;
+  outline-offset: 3px;
+}
+
+/* ── Elderly Mode: All buttons minimum 48px touch target ── */
+body.mode-elderly button,
+body.mode-elderly a[role="button"],
+body.mode-elderly [role="button"] {
+  min-height: 48px;
+}
+
+/* ── Elderly Mode: Stronger borders globally ── */
+body.mode-elderly .action-card,
+body.mode-elderly .hero-section,
+body.mode-elderly .mode-banner,
+body.mode-elderly .modal-box {
+  border-width: 2px;
+}
