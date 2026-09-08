@@ -1,18 +1,18 @@
-/* Simple Mode Selection Modal - Fully Multi-Screen Responsive with Dark & Light Support */
+/* Mode & Language Selection Modal - Fully Responsive with Dark & Light Theme Support */
 
 .simple-modal-overlay {
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background-color: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background-color: rgba(0, 0, 0, 0.68);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: clamp(0.75rem, 3vw, 1.5rem);
   overscroll-behavior: contain;
-  animation: overlayFadeIn 0.25s ease-out forwards;
+  animation: overlayFadeIn 0.22s ease-out forwards;
 }
 
 @keyframes overlayFadeIn {
@@ -26,27 +26,27 @@
 
 .simple-modal-box {
   position: relative;
-  width: min(94vw, 460px);
-  max-height: min(90vh, 90dvh);
+  width: min(94vw, 540px);
+  max-height: min(92vh, 92dvh);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   background: var(--bg-card, #FFFFFF);
   border: 1px solid var(--border-medium, rgba(0, 0, 0, 0.12));
-  border-radius: clamp(14px, 3vw, 18px);
-  padding: clamp(1.75rem, 4.5vw, 2.25rem) clamp(1rem, 3.5vw, 2rem) clamp(1.75rem, 4.5vw, 2.5rem);
-  box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.35), 0 0 1px rgba(0, 0, 0, 0.1);
+  border-radius: clamp(16px, 3.5vw, 22px);
+  padding: clamp(1.5rem, 4vw, 2.25rem) clamp(1rem, 3.5vw, 2rem) clamp(1.5rem, 4vw, 2.25rem);
+  box-shadow: 0 28px 56px -12px rgba(0, 0, 0, 0.4), 0 0 1px rgba(0, 0, 0, 0.12);
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
   transition: background-color 0.35s ease, border-color 0.35s ease;
-  animation: modalPopIn 0.26s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: modalPopIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes modalPopIn {
   from {
     opacity: 0;
-    transform: translateY(14px) scale(0.96);
+    transform: translateY(16px) scale(0.96);
   }
   to {
     opacity: 1;
@@ -54,87 +54,315 @@
   }
 }
 
-/* Close Button (X) - 44px touch target */
+/* Close Button (X) */
 .simple-modal-close {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 12px;
+  right: 12px;
   background: transparent;
   border: none;
   font-size: 1.5rem;
   line-height: 1;
   color: var(--text-muted, #9CA3AF);
   cursor: pointer;
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s ease;
+  transition: all 0.18s ease;
   touch-action: manipulation;
+  z-index: 10;
 }
 
 .simple-modal-close:hover,
 .simple-modal-close:active {
   color: var(--text-primary, #1F2937);
-  background-color: var(--bg-card-hover, rgba(0, 0, 0, 0.05));
+  background-color: var(--bg-card-hover, rgba(0, 0, 0, 0.06));
 }
 
-/* Header Text */
+/* Step Progress Indicator Bar */
+.modal-step-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: clamp(1rem, 2.8vw, 1.35rem);
+  padding: 0.25rem 0.6rem;
+  background: var(--bg-card-hover, rgba(0, 0, 0, 0.04));
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08));
+}
+
+body.dark-mode .modal-step-indicator {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.step-pill {
+  font-size: clamp(0.72rem, 2vw, 0.8rem);
+  font-weight: 600;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  color: var(--text-muted, #6B7280);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all 0.2s ease;
+}
+
+.step-pill.is-active {
+  color: #FFFFFF;
+  background: #B81467;
+  box-shadow: 0 2px 6px rgba(184, 20, 103, 0.3);
+}
+
+body.dark-mode .step-pill.is-active {
+  background: #F43F5E;
+  color: #FFFFFF;
+  box-shadow: 0 2px 8px rgba(244, 63, 94, 0.35);
+}
+
+.step-pill.is-completed {
+  color: var(--text-primary, #111827);
+}
+
+.step-divider-arrow {
+  font-size: 0.72rem;
+  color: var(--text-muted, #9CA3AF);
+  user-select: none;
+}
+
+/* Header Text Area */
 .simple-modal-header {
-  margin-bottom: clamp(1.25rem, 3.5vw, 1.75rem);
+  margin-bottom: clamp(1.2rem, 3.2vw, 1.6rem);
   width: 100%;
   padding: 0 0.5rem;
+  position: relative;
+}
+
+.modal-header-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-bottom: 0.4rem;
+  min-height: 28px;
+}
+
+.modal-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: transparent;
+  border: none;
+  color: #B81467;
+  font-size: clamp(0.82rem, 2.2vw, 0.9rem);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  transition: all 0.18s ease;
+}
+
+body.dark-mode .modal-back-btn {
+  color: #FB7185;
+}
+
+.modal-back-btn:hover {
+  background: rgba(184, 20, 103, 0.08);
+  transform: translateX(-2px);
+}
+
+body.dark-mode .modal-back-btn:hover {
+  background: rgba(251, 113, 133, 0.12);
 }
 
 .simple-modal-title {
-  font-size: clamp(1.25rem, 4vw, 1.5rem);
+  font-size: clamp(1.25rem, 3.8vw, 1.55rem);
   font-weight: 800;
   color: var(--text-primary, #111827);
   margin-bottom: 0.35rem;
   line-height: 1.25;
+  letter-spacing: -0.015em;
 }
 
 .simple-modal-subtitle {
-  font-size: clamp(0.82rem, 2.5vw, 0.92rem);
+  font-size: clamp(0.84rem, 2.4vw, 0.94rem);
   color: var(--text-secondary, #6B7280);
-  line-height: 1.4;
+  line-height: 1.45;
+  max-width: 440px;
+  margin: 0 auto;
 }
 
-/* Square Buttons Container */
-.simple-squares-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: clamp(0.75rem, 3vw, 1.25rem);
+/* ==========================================================================
+   STEP 1: LANGUAGE SELECTION GRID (2-column on mobile, 3-column on tablet+)
+   ========================================================================== */
+.language-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(0.65rem, 2vw, 1rem);
   width: 100%;
 }
 
-/* The Square Choice Button */
-.simple-choice-square {
-  flex: 1 1 0;
-  min-width: 0;
-  max-width: 175px;
-  aspect-ratio: 1 / 1;
-  min-height: 110px;
+@media (max-width: 480px) {
+  .language-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.65rem;
+  }
+}
+
+.language-card {
+  position: relative;
   background: var(--bg-card, #FFFFFF);
   border: 1.5px solid var(--border-medium, #D1D5DB);
-  border-radius: clamp(10px, 2.5vw, 14px);
+  border-radius: clamp(12px, 2.5vw, 16px);
+  padding: clamp(0.85rem, 2.2vw, 1.15rem) clamp(0.6rem, 1.8vw, 0.9rem);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: clamp(0.4rem, 1.5vw, 0.75rem);
-  padding: clamp(0.75rem, 2vw, 1.25rem) clamp(0.35rem, 1.5vw, 0.75rem);
+  gap: 0.4rem;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  outline: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  touch-action: manipulation;
+  min-height: 100px;
+}
+
+body.dark-mode .language-card {
+  background: #1E293B;
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
+}
+
+.language-card:hover {
+  transform: translateY(-2px);
+  border-color: #B81467;
+  box-shadow: 0 8px 18px rgba(184, 20, 103, 0.16);
+}
+
+body.dark-mode .language-card:hover {
+  border-color: #F43F5E;
+  box-shadow: 0 8px 20px rgba(244, 63, 94, 0.26);
+}
+
+.language-card:focus-visible {
+  border-color: #B81467;
+  box-shadow: 0 0 0 3px rgba(184, 20, 103, 0.25);
+}
+
+/* Active / Selected Language State */
+.language-card.is-active {
+  border-color: #B81467;
+  border-width: 2px;
+  background: #FFF5F9;
+  box-shadow: 0 4px 14px rgba(184, 20, 103, 0.18);
+}
+
+body.dark-mode .language-card.is-active {
+  border-color: #FB7185;
+  border-width: 2px;
+  background: #2D1424;
+  box-shadow: 0 4px 18px rgba(251, 113, 133, 0.25);
+}
+
+/* Language Glyph Badge */
+.lang-glyph-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-card-hover, rgba(0, 0, 0, 0.05));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary, #111827);
+  transition: all 0.2s ease;
+  font-family: var(--font-body);
+}
+
+body.dark-mode .lang-glyph-badge {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.language-card:hover .lang-glyph-badge {
+  transform: scale(1.1);
+  color: #B81467;
+}
+
+body.dark-mode .language-card:hover .lang-glyph-badge {
+  color: #FB7185;
+}
+
+.language-card.is-active .lang-glyph-badge {
+  background: #B81467;
+  color: #FFFFFF;
+}
+
+body.dark-mode .language-card.is-active .lang-glyph-badge {
+  background: #FB7185;
+  color: #0F172A;
+}
+
+.lang-card-native {
+  font-size: clamp(1rem, 2.5vw, 1.15rem);
+  font-weight: 700;
+  color: var(--text-primary, #111827);
+  line-height: 1.2;
+}
+
+.language-card.is-active .lang-card-native {
+  color: #B81467;
+}
+
+body.dark-mode .language-card.is-active .lang-card-native {
+  color: #FB7185;
+}
+
+.lang-card-sub {
+  font-size: clamp(0.72rem, 1.8vw, 0.8rem);
+  font-weight: 500;
+  color: var(--text-muted, #6B7280);
+}
+
+/* ==========================================================================
+   STEP 2: MODE SELECTION SQUARES CONTAINER (Elderly vs Modern)
+   ========================================================================== */
+.simple-squares-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.75rem, 3vw, 1.35rem);
+  width: 100%;
+}
+
+.simple-choice-square {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 210px;
+  aspect-ratio: 1 / 1;
+  min-height: 130px;
+  background: var(--bg-card, #FFFFFF);
+  border: 1.5px solid var(--border-medium, #D1D5DB);
+  border-radius: clamp(12px, 2.5vw, 18px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.35rem, 1.2vw, 0.65rem);
+  padding: clamp(0.85rem, 2vw, 1.35rem) clamp(0.5rem, 1.8vw, 0.9rem);
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   outline: none;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   touch-action: manipulation;
 }
 
-/* Dark Mode Square button background */
 body.dark-mode .simple-choice-square {
   background: #1E293B;
   border-color: rgba(255, 255, 255, 0.16);
@@ -142,14 +370,14 @@ body.dark-mode .simple-choice-square {
 }
 
 .simple-choice-square:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px);
   border-color: #B81467;
-  box-shadow: 0 8px 18px rgba(184, 20, 103, 0.18);
+  box-shadow: 0 10px 22px rgba(184, 20, 103, 0.18);
 }
 
 body.dark-mode .simple-choice-square:hover {
   border-color: #F43F5E;
-  box-shadow: 0 8px 22px rgba(244, 63, 94, 0.28);
+  box-shadow: 0 10px 24px rgba(244, 63, 94, 0.28);
 }
 
 .simple-choice-square:focus-visible,
@@ -158,7 +386,6 @@ body.dark-mode .simple-choice-square:hover {
   box-shadow: 0 0 0 3px rgba(184, 20, 103, 0.25);
 }
 
-/* Active Selected state */
 .simple-choice-square.is-active {
   border-color: #B81467;
   border-width: 2px;
@@ -171,10 +398,9 @@ body.dark-mode .simple-choice-square.is-active {
   background: #2D1424;
 }
 
-/* Icon Wrap inside square */
 .square-icon-wrap {
-  width: clamp(46px, 12vw, 64px);
-  height: clamp(46px, 12vw, 64px);
+  width: clamp(48px, 12vw, 68px);
+  height: clamp(48px, 12vw, 68px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -193,7 +419,6 @@ body.dark-mode .simple-choice-square.is-active {
   display: block;
 }
 
-/* Active Icon Color */
 .simple-choice-square.is-active .square-icon-wrap {
   color: #B81467;
 }
@@ -202,10 +427,9 @@ body.dark-mode .simple-choice-square.is-active .square-icon-wrap {
   color: #FB7185;
 }
 
-/* Label text under icon */
 .square-label {
-  font-size: clamp(0.92rem, 2.5vw, 1.05rem);
-  font-weight: 600;
+  font-size: clamp(0.95rem, 2.4vw, 1.1rem);
+  font-weight: 700;
   color: var(--text-primary, #1F2937);
   letter-spacing: -0.01em;
   white-space: nowrap;
@@ -213,45 +437,83 @@ body.dark-mode .simple-choice-square.is-active .square-icon-wrap {
 
 .simple-choice-square.is-active .square-label {
   color: #B81467;
-  font-weight: 700;
 }
 
 body.dark-mode .simple-choice-square.is-active .square-label {
   color: #FB7185;
 }
 
-/* Extra Small Screens (< 360px) */
+.square-sublabel {
+  font-size: clamp(0.72rem, 1.8vw, 0.78rem);
+  color: var(--text-muted, #6B7280);
+  font-weight: 500;
+  max-width: 150px;
+  line-height: 1.3;
+}
+
+/* ==========================================================================
+   EXTRA RESPONSIVE RULES FOR SMALL MOBILE & LANDSCAPE
+   ========================================================================== */
 @media (max-width: 360px) {
   .simple-modal-box {
-    padding: 1.5rem 0.85rem 1.75rem;
+    padding: 1.25rem 0.75rem 1.5rem;
+  }
+  .language-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+  .language-card {
+    min-height: 85px;
+    padding: 0.65rem 0.4rem;
+  }
+  .lang-glyph-badge {
+    width: 30px;
+    height: 30px;
+    font-size: 0.95rem;
+  }
+  .lang-card-native {
+    font-size: 0.95rem;
   }
   .simple-squares-container {
-    gap: 0.6rem;
+    gap: 0.55rem;
   }
   .simple-choice-square {
-    min-height: 100px;
-    padding: 0.65rem 0.25rem;
+    min-height: 115px;
+    padding: 0.75rem 0.35rem;
   }
   .square-icon-wrap {
-    width: 42px;
-    height: 42px;
+    width: 44px;
+    height: 44px;
   }
   .square-label {
-    font-size: 0.88rem;
+    font-size: 0.9rem;
   }
 }
 
-/* Landscape Mode on Phones (short viewport height) */
-@media (max-height: 520px) {
+@media (max-height: 540px) {
   .simple-modal-box {
-    padding: 1.25rem 1.5rem;
+    padding: 1rem 1.25rem;
+  }
+  .modal-step-indicator {
+    margin-bottom: 0.65rem;
   }
   .simple-modal-header {
-    margin-bottom: 0.85rem;
+    margin-bottom: 0.75rem;
+  }
+  .language-card {
+    min-height: 75px;
+    padding: 0.45rem 0.5rem;
+    gap: 0.2rem;
+  }
+  .lang-glyph-badge {
+    width: 28px;
+    height: 28px;
+    font-size: 0.85rem;
   }
   .simple-choice-square {
-    min-height: 90px;
+    min-height: 95px;
     max-height: 120px;
+    padding: 0.5rem;
   }
   .square-icon-wrap {
     width: 38px;

@@ -85,6 +85,58 @@ body.mode-elderly .brand-logo {
   flex-shrink: 0;
 }
 
+/* Navbar Language Switcher Button */
+.navbar-lang-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: clamp(0.35rem, 1.2vw, 0.5rem);
+  padding: clamp(0.4rem, 1.5vw, 0.52rem) clamp(0.6rem, 1.8vw, 0.85rem);
+  border-radius: 999px;
+  border: 1.5px solid var(--border-medium, rgba(0, 0, 0, 0.15));
+  background: var(--navbar-btn-bg, #FFFFFF);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: clamp(0.8rem, 2.2vw, 0.88rem);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  min-height: 42px;
+  touch-action: manipulation;
+  white-space: nowrap;
+}
+
+body.dark-mode .navbar-lang-btn {
+  background: #1E293B;
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.navbar-lang-btn:hover {
+  transform: translateY(-2px);
+  border-color: #B81467;
+  color: #B81467;
+  box-shadow: 0 6px 14px rgba(184, 20, 103, 0.15);
+}
+
+body.dark-mode .navbar-lang-btn:hover {
+  border-color: #FB7185;
+  color: #FB7185;
+  box-shadow: 0 6px 16px rgba(251, 113, 133, 0.2);
+}
+
+.navbar-lang-icon {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+body.mode-elderly .navbar-lang-btn {
+  min-height: 48px;
+  font-size: clamp(0.92rem, 2.5vw, 1.05rem);
+  padding: clamp(0.5rem, 2vw, 0.75rem) clamp(0.8rem, 2.2vw, 1.1rem);
+  border-width: 2px;
+}
+
 .navbar-mode-btn {
   display: inline-flex;
   align-items: center;

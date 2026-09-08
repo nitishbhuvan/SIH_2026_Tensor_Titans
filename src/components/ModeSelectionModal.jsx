@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { SUPPORTED_LANGUAGES, translations } from '../translations.js';
 import './ModeSelectionModal.css';
 
 /**
@@ -66,7 +67,17 @@ function ModernPersonIcon({ className = "" }) {
   );
 }
 
-export default function ModeSelectionModal({ isOpen, onSelectMode, currentMode, onClose }) {
+export default function ModeSelectionModal({
+  isOpen,
+  step = 'language',
+  onStepChange,
+  currentLanguage = 'en',
+  onSelectLanguage,
+  currentMode,
+  onSelectMode,
+  onClose
+}) {
+  // Lock scroll & handle Escape key
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' && onClose) {
@@ -87,6 +98,30 @@ export default function ModeSelectionModal({ isOpen, onSelectMode, currentMode, 
 
   if (!isOpen) return null;
 
+  const t = translations[currentLanguage] || translations.en;
+
+  const handleLanguageClick = (langId) => {
+    if (onSelectLanguage) {
+      onSelectLanguage(langId);
+    }
+    // Advance to mode selection step
+    if (onStepChange) {
+      onStepChange('mode');
+    }
+  };
+
+  const handleModeClick = (mode) => {
+    if (onSelectMode) {
+      onSelectMode(mode);
+    }
+  };
+
+  const handleGoToStep = (newStep) => {
+    if (onStepChange) {
+      onStepChange(newStep);
+    }
+  };
+
   return (
     <div className="simple-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="simple-modal-title">
       <div className="simple-modal-box">
@@ -102,44 +137,119 @@ export default function ModeSelectionModal({ isOpen, onSelectMode, currentMode, 
           </button>
         )}
 
-        {/* Modal Header */}
-        <div className="simple-modal-header">
-          <h2 id="simple-modal-title" className="simple-modal-title">
-            Welcome / स्वागत है
-          </h2>
-          <p className="simple-modal-subtitle">
-            Please select your preferred mode / कृपया अपना विकल्प चुनें
-          </p>
-        </div>
-
-        {/* The Two Simple Square Choices */}
-        <div className="simple-squares-container">
-          {/* Elderly Square */}
+        {/* Step Progress Pills */}
+        <div className="modal-step-indicator" role="tablist" aria-label="Setup steps">
           <button
             type="button"
-            className={`simple-choice-square ${currentMode === 'elderly' ? 'is-active' : ''}`}
-            onClick={() => onSelectMode('elderly')}
-            aria-label="Elderly Mode"
+            className={`step-pill ${step === 'language' ? 'is-active' : 'is-completed'}`}
+            onClick={() => handleGoToStep('language')}
+            aria-selected={step === 'language'}
           >
-            <div className="square-icon-wrap">
-              <ElderlyWalkerIcon />
-            </div>
-            <span className="square-label">Elderly</span>
+            {t.step1Pill || '1. Language'}
           </button>
-
-          {/* Modern Square */}
+          <span className="step-divider-arrow" aria-hidden="true">&rarr;</span>
           <button
             type="button"
-            className={`simple-choice-square ${currentMode === 'modern' ? 'is-active' : ''}`}
-            onClick={() => onSelectMode('modern')}
-            aria-label="Modern Mode"
+            className={`step-pill ${step === 'mode' ? 'is-active' : ''}`}
+            onClick={() => handleGoToStep('mode')}
+            aria-selected={step === 'mode'}
           >
-            <div className="square-icon-wrap">
-              <ModernPersonIcon />
-            </div>
-            <span className="square-label">Modern</span>
+            {t.step2Pill || '2. Mode'}
           </button>
         </div>
+
+        {/* ================================================================
+            STEP 1: LANGUAGE SELECTION
+            ================================================================ */}
+        {step === 'language' && (
+          <>
+            <div className="simple-modal-header">
+              <h2 id="simple-modal-title" className="simple-modal-title">
+                {t.langModalTitle}
+              </h2>
+              <p className="simple-modal-subtitle">
+                {t.langModalSubtitle}
+              </p>
+            </div>
+
+            <div className="language-grid" role="group" aria-label="Select Language">
+              {SUPPORTED_LANGUAGES.map((lang) => {
+                const isSelected = currentLanguage === lang.id;
+                return (
+                  <button
+                    key={lang.id}
+                    type="button"
+                    className={`language-card ${isSelected ? 'is-active' : ''}`}
+                    onClick={() => handleLanguageClick(lang.id)}
+                    aria-label={`${lang.nativeLabel} (${lang.label})`}
+                  >
+                    <span className="lang-glyph-badge" aria-hidden="true">
+                      {lang.glyph}
+                    </span>
+                    <span className="lang-card-native">{lang.nativeLabel}</span>
+                    <span className="lang-card-sub">{lang.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {/* ================================================================
+            STEP 2: MODE SELECTION (Elderly vs Modern)
+            ================================================================ */}
+        {step === 'mode' && (
+          <>
+            <div className="simple-modal-header">
+              <div className="modal-header-top-row">
+                <button
+                  type="button"
+                  className="modal-back-btn"
+                  onClick={() => handleGoToStep('language')}
+                  aria-label="Back to language selection"
+                >
+                  {t.backBtn}
+                </button>
+              </div>
+              <h2 id="simple-modal-title" className="simple-modal-title">
+                {t.modeModalTitle}
+              </h2>
+              <p className="simple-modal-subtitle">
+                {t.modeModalSubtitle}
+              </p>
+            </div>
+
+            <div className="simple-squares-container" role="group" aria-label="Select Mode">
+              {/* Elderly Square */}
+              <button
+                type="button"
+                className={`simple-choice-square ${currentMode === 'elderly' ? 'is-active' : ''}`}
+                onClick={() => handleModeClick('elderly')}
+                aria-label={`Elderly Mode: ${t.elderlyLabel}`}
+              >
+                <div className="square-icon-wrap">
+                  <ElderlyWalkerIcon />
+                </div>
+                <span className="square-label">{t.elderlyLabel}</span>
+                <span className="square-sublabel">{t.elderlyTagline}</span>
+              </button>
+
+              {/* Modern Square */}
+              <button
+                type="button"
+                className={`simple-choice-square ${currentMode === 'modern' ? 'is-active' : ''}`}
+                onClick={() => handleModeClick('modern')}
+                aria-label={`Modern Mode: ${t.modernLabel}`}
+              >
+                <div className="square-icon-wrap">
+                  <ModernPersonIcon />
+                </div>
+                <span className="square-label">{t.modernLabel}</span>
+                <span className="square-sublabel">{t.modernTagline}</span>
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

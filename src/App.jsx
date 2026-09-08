@@ -2,19 +2,32 @@ import React, { useState, useEffect } from 'react';
 import { flushSync } from 'react-dom';
 import Navbar from './components/Navbar.jsx';
 import ModeSelectionModal from './components/ModeSelectionModal.jsx';
+import { translations } from './translations.js';
 import './App.css';
 
+const LANGUAGE_STORAGE_KEY = 'preconsult_user_language';
 const MODE_STORAGE_KEY = 'preconsult_user_mode';
 const THEME_STORAGE_KEY = 'preconsult_color_theme';
 
 export default function App() {
-  // Accessibility Mode: Elderly vs Modern
-  const [userMode, setUserMode] = useState(() => {
-    return localStorage.getItem(MODE_STORAGE_KEY) || null;
+  // Language Preference
+  const [userLanguage, setUserLanguage] = useState(() => {
+    return localStorage.getItem(LANGUAGE_STORAGE_KEY) || 'en';
   });
 
+  // Accessibility Mode: Elderly vs Modern
+  const [userMode, setUserMode] = useState(() => {
+    return localStorage.getItem(MODE_STORAGE_KEY) || 'modern';
+  });
+
+  // Onboarding / Preference Modal State
   const [showModeModal, setShowModeModal] = useState(() => {
-    return !localStorage.getItem(MODE_STORAGE_KEY);
+    return !localStorage.getItem(LANGUAGE_STORAGE_KEY) || !localStorage.getItem(MODE_STORAGE_KEY);
+  });
+
+  // Modal Step ('language' | 'mode')
+  const [modalStep, setModalStep] = useState(() => {
+    return !localStorage.getItem(LANGUAGE_STORAGE_KEY) ? 'language' : 'mode';
   });
 
   // Dark vs Light Mode (Defaults to Light)
@@ -55,10 +68,9 @@ export default function App() {
   const handleToggleTheme = () => {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';
 
-    // Trigger the glowing sweep wave bar that travels from top to bottom
+    // Trigger glowing sweep wave bar that travels from top to bottom
     setSweepState({ active: true, targetTheme: nextTheme });
 
-    // If browser supports native View Transitions API (Chrome, Edge, Safari 18+)
     if (typeof document !== 'undefined' && 'startViewTransition' in document) {
       const transition = document.startViewTransition(() => {
         flushSync(() => {
@@ -70,8 +82,6 @@ export default function App() {
         setSweepState((prev) => ({ ...prev, active: false }));
       });
     } else {
-      // Fallback for browsers without View Transitions:
-      // Cascades colors sequentially from top to bottom
       document.documentElement.classList.add('theme-transitioning');
       setTheme(nextTheme);
       setTimeout(() => {
@@ -81,13 +91,24 @@ export default function App() {
     }
   };
 
+  const handleSelectLanguage = (lang) => {
+    setUserLanguage(lang);
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
+  };
+
   const handleSelectMode = (mode) => {
     setUserMode(mode);
     localStorage.setItem(MODE_STORAGE_KEY, mode);
     setShowModeModal(false);
   };
 
-  const handleOpenModal = () => {
+  const handleOpenLanguageModal = () => {
+    setModalStep('language');
+    setShowModeModal(true);
+  };
+
+  const handleOpenModeModal = () => {
+    setModalStep('mode');
     setShowModeModal(true);
   };
 
@@ -96,6 +117,7 @@ export default function App() {
   };
 
   const isElderly = userMode === 'elderly';
+  const t = translations[userLanguage] || translations.en;
 
   return (
     <div className={`app-wrapper ${isElderly ? 'is-elderly-theme' : 'is-modern-theme'} ${theme === 'dark' ? 'theme-dark' : 'theme-light'}`}>
@@ -109,7 +131,9 @@ export default function App() {
 
       <Navbar
         currentMode={userMode}
-        onOpenModeModal={handleOpenModal}
+        currentLanguage={userLanguage}
+        onOpenModeModal={handleOpenModeModal}
+        onOpenLanguageModal={handleOpenLanguageModal}
         currentTheme={theme}
         onToggleTheme={handleToggleTheme}
       />
@@ -124,15 +148,10 @@ export default function App() {
               </span>
               <div>
                 <h2 className="mode-banner-heading">
-                  {isElderly ? 'Senior / Elderly Mode Active' : 'Modern Mode Active'}
-                  <span style={{ fontSize: '0.88em', fontWeight: 600, color: 'inherit', marginLeft: '0.5rem' }}>
-                    {isElderly ? '(वरिष्ठ मोड सक्रिय)' : '(आधुनिक मोड सक्रिय)'}
-                  </span>
+                  {isElderly ? t.bannerElderlyActive : t.bannerModernActive}
                 </h2>
                 <p className="mode-banner-sub">
-                  {isElderly
-                    ? 'Simplified view with large text & high contrast for easy reading • बड़े अक्षर और आसान दृश्य'
-                    : 'Standard modern layout with full interactive features • मानक आधुनिक लेआउट'}
+                  {isElderly ? t.bannerElderlyDesc : t.bannerModernDesc}
                 </p>
               </div>
             </div>
@@ -140,32 +159,25 @@ export default function App() {
             <button
               type="button"
               className="btn-banner-switch"
-              onClick={handleOpenModal}
-              aria-label="Change Mode / मोड बदलें"
+              onClick={handleOpenModeModal}
+              aria-label={t.bannerChangeBtn}
             >
-              Change Mode • मोड बदलें
+              {t.bannerChangeBtn}
             </button>
           </div>
 
           {/* Hero Presentation */}
           <section className="hero-box">
             <h1 className="hero-box-title">
-              {isElderly ? 'Welcome to PreConsult' : 'Smart Healthcare Pre-Consultation'}
-              {isElderly && (
+              {isElderly ? t.heroTitleElderly : t.heroTitleModern}
+              {userLanguage !== 'en' && isElderly && (
                 <div style={{ fontSize: '0.7em', color: 'var(--accent-elderly)', marginTop: '0.35rem' }}>
-                  प्री-कंसल्ट में आपका स्वागत है
+                  {translations.en.heroTitleElderly}
                 </div>
               )}
             </h1>
             <p className="hero-box-subtitle">
-              {isElderly
-                ? 'Doctor consultations made simple, comfortable, and easy to understand for everyone.'
-                : 'Empowering seamless pre-consultation diagnostics, scheduling, and patient history aggregation.'}
-              {isElderly && (
-                <span style={{ display: 'block', marginTop: '0.35rem', color: 'var(--text-secondary)' }}>
-                  डॉक्टर परामर्श को सभी के लिए सरल, आरामदायक और समझने में आसान बनाया गया है।
-                </span>
-              )}
+              {isElderly ? t.heroSubElderly : t.heroSubModern}
             </p>
           </section>
 
@@ -174,67 +186,43 @@ export default function App() {
             <div className="action-card">
               <span className="action-card-icon" aria-hidden="true">👨‍⚕️</span>
               <h3 className="action-card-title">
-                Find a Doctor
-                {isElderly && <span style={{ display: 'block', fontSize: '0.85em', color: 'var(--text-secondary)' }}>डॉक्टर खोजें</span>}
+                {t.cardDoctorTitle}
               </h3>
               <p className="action-card-desc">
-                {isElderly
-                  ? 'Connect with verified specialists near you with simple 1-click booking.'
-                  : 'Search by specialty, location, availability, and user reviews.'}
-                {isElderly && (
-                  <span style={{ display: 'block', marginTop: '0.25rem' }}>
-                    आसान 1-क्लिक बुकिंग के साथ अपने नजदीकी विशेषज्ञ से जुड़ें।
-                  </span>
-                )}
+                {isElderly ? t.cardDoctorDescElderly : t.cardDoctorDescModern}
               </p>
               <button type="button" className="action-card-btn">
-                {isElderly ? 'Book Doctor • डॉक्टर चुनें' : 'Find Specialists'}
+                {isElderly ? t.cardDoctorBtnElderly : t.cardDoctorBtnModern}
               </button>
             </div>
 
             <div className="action-card">
               <span className="action-card-icon" aria-hidden="true">📋</span>
               <h3 className="action-card-title">
-                Health Records
-                {isElderly && <span style={{ display: 'block', fontSize: '0.85em', color: 'var(--text-secondary)' }}>स्वास्थ्य रिपोर्ट</span>}
+                {t.cardRecordsTitle}
               </h3>
               <p className="action-card-desc">
-                {isElderly
-                  ? 'View your prescriptions, tests, and medical history in large, clear format.'
-                  : 'Encrypted storage for lab reports, previous vitals, and longitudinal insights.'}
-                {isElderly && (
-                  <span style={{ display: 'block', marginTop: '0.25rem' }}>
-                    अपने नुस्खे, जांच और चिकित्सा इतिहास को बड़े, स्पष्ट रूप में देखें।
-                  </span>
-                )}
+                {isElderly ? t.cardRecordsDescElderly : t.cardRecordsDescModern}
               </p>
               <button type="button" className="action-card-btn">
-                {isElderly ? 'View Records • रिपोर्ट देखें' : 'Manage Records'}
+                {isElderly ? t.cardRecordsBtnElderly : t.cardRecordsBtnModern}
               </button>
             </div>
 
             <div className="action-card">
               <span className="action-card-icon" aria-hidden="true">🚨</span>
               <h3 className="action-card-title">
-                Emergency Help
-                {isElderly && <span style={{ display: 'block', fontSize: '0.85em', color: '#EF4444' }}>आपातकालीन सहायता</span>}
+                {t.cardEmergencyTitle}
               </h3>
               <p className="action-card-desc">
-                {isElderly
-                  ? 'Instant access to emergency helpline, ambulance, and hospital support.'
-                  : 'Direct link to rapid emergency response teams and nearest trauma centers.'}
-                {isElderly && (
-                  <span style={{ display: 'block', marginTop: '0.25rem' }}>
-                    आपातकालीन हेल्पलाइन, एम्बुलेंस और अस्पताल सहायता तक त्वरित पहुंच।
-                  </span>
-                )}
+                {isElderly ? t.cardEmergencyDescElderly : t.cardEmergencyDescModern}
               </p>
               <button
                 type="button"
                 className="action-card-btn"
                 style={isElderly ? { backgroundColor: '#DC2626', color: '#FFFFFF' } : {}}
               >
-                {isElderly ? 'Call Helpline • कॉल करें (108)' : 'Emergency Response'}
+                {isElderly ? t.cardEmergencyBtnElderly : t.cardEmergencyBtnModern}
               </button>
             </div>
           </div>
@@ -243,15 +231,19 @@ export default function App() {
 
       <footer className="simple-footer">
         <div className="container">
-          <p>&copy; {new Date().getFullYear()} PreConsult &bull; Tensor Titans. Accessibility First Design.</p>
+          <p>&copy; {new Date().getFullYear()} {t.footerTagline}</p>
         </div>
       </footer>
 
-      {/* Pop-up Modal */}
+      {/* Pop-up Preference Modal: Step 1 (Language) -> Step 2 (Elderly vs Modern Mode) */}
       <ModeSelectionModal
         isOpen={showModeModal}
-        onSelectMode={handleSelectMode}
+        step={modalStep}
+        onStepChange={setModalStep}
+        currentLanguage={userLanguage}
+        onSelectLanguage={handleSelectLanguage}
         currentMode={userMode}
+        onSelectMode={handleSelectMode}
         onClose={handleCloseModal}
       />
     </div>
