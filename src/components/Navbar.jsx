@@ -1,5 +1,5 @@
 import React from 'react';
-import { Globe, Accessibility, Zap } from 'lucide-react';
+import { Globe, Accessibility, Zap, Stethoscope } from 'lucide-react';
 import ThemeToggle from './ThemeToggle.jsx';
 import { SUPPORTED_LANGUAGES, translations } from '../translations.js';
 import './Navbar.css';
@@ -9,6 +9,7 @@ export default function Navbar({
   currentLanguage = 'en',
   onOpenModeModal,
   onOpenLanguageModal,
+  onSwitchRole,
   currentTheme,
   onToggleTheme
 }) {
@@ -66,6 +67,20 @@ export default function Navbar({
                 </span>
               </span>
             </button>
+
+            {/* Doctor Portal Link */}
+            {onSwitchRole && (
+              <button
+                type="button"
+                className="navbar-btn navbar-switch-role-btn"
+                onClick={() => onSwitchRole('role-select')}
+                title="Switch role"
+                aria-label="Switch role"
+              >
+                <Stethoscope className="navbar-btn-icon" aria-hidden="true" />
+                <span className="navbar-lang-text">Switch Role</span>
+              </button>
+            )}
 
             {/* Theme Toggle */}
             <ThemeToggle

@@ -8,15 +8,36 @@ import VoiceIntake from './components/VoiceIntake.jsx';
 import ActionCard from './components/ActionCard.jsx';
 import ToastContainer from './components/Toast.jsx';
 import Footer from './components/Footer.jsx';
+import RoleSelection from './components/RoleSelection.jsx';
+import DoctorPortal from './components/DoctorPortal.jsx';
+import DoctorLogin, { DEMO_DOCTOR_PROFILE } from './components/DoctorLogin.jsx';
 import { translations } from './translations.js';
 
+const ROLE_STORAGE_KEY = 'preconsult_user_role';
 const LANGUAGE_STORAGE_KEY = 'preconsult_user_language';
 const MODE_STORAGE_KEY = 'preconsult_user_mode';
 const THEME_STORAGE_KEY = 'preconsult_color_theme';
+const DOCTOR_SESSION_KEY = 'preconsult_doctor_session';
 
 let toastIdCounter = 0;
 
+function getInitialRole() {
+  const hash = window.location.hash.toLowerCase();
+  if (hash === '#/doctor' || hash === '#doctor') return 'doctor';
+  if (hash === '#/patient' || hash === '#patient') return 'patient';
+  if (hash === '#/role-select' || hash === '#role-select') return 'role-select';
+  
+  const savedRole = localStorage.getItem(ROLE_STORAGE_KEY);
+  if (savedRole === 'doctor' || savedRole === 'patient') {
+    return savedRole;
+  }
+  return 'role-select';
+}
+
 export default function App() {
+  // Current active view / role: 'role-select' | 'patient' | 'doctor'
+  const [currentRole, setCurrentRole] = useState(getInitialRole);
+
   // Language Preference
   const [userLanguage, setUserLanguage] = useState(() => {
     return localStorage.getItem(LANGUAGE_STORAGE_KEY) || 'en';
@@ -27,7 +48,7 @@ export default function App() {
     return localStorage.getItem(MODE_STORAGE_KEY) || 'modern';
   });
 
-  // Onboarding / Preference Modal State (First Visit)
+  // Onboarding / Preference Modal State (First Visit in Patient Portal)
   const [showModeModal, setShowModeModal] = useState(() => {
     return !localStorage.getItem(LANGUAGE_STORAGE_KEY) || !localStorage.getItem(MODE_STORAGE_KEY);
   });
@@ -44,11 +65,56 @@ export default function App() {
     return 'light';
   });
 
+  const [doctorSession, setDoctorSession] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(DOCTOR_SESSION_KEY)) || null;
+    } catch {
+      return null;
+    }
+  });
+
   // Theme sweep bar
   const [sweepState, setSweepState] = useState({ active: false, targetTheme: 'light' });
 
   // Toasts
   const [toasts, setToasts] = useState([]);
+
+  // ── Sync URL hash on hashchange ──
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.toLowerCase();
+      if (hash === '#/doctor' || hash === '#doctor') {
+        setCurrentRole('doctor');
+      } else if (hash === '#/patient' || hash === '#patient') {
+        setCurrentRole('patient');
+      } else if (hash === '#/role-select' || hash === '#role-select' || hash === '' || hash === '#/') {
+        setCurrentRole('role-select');
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  // ── Navigation handler ──
+  const navigateToRole = (role) => {
+    if (role === 'doctor') {
+      window.location.hash = '#/doctor';
+      localStorage.setItem(ROLE_STORAGE_KEY, 'doctor');
+      setCurrentRole('doctor');
+    } else if (role === 'patient') {
+      window.location.hash = '#/patient';
+      localStorage.setItem(ROLE_STORAGE_KEY, 'patient');
+      setCurrentRole('patient');
+    } else {
+      window.location.hash = '#/role-select';
+      localStorage.removeItem(ROLE_STORAGE_KEY);
+      localStorage.removeItem(DOCTOR_SESSION_KEY);
+      setDoctorSession(null);
+      setCurrentRole('role-select');
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   // ── Synchronize body classes with accessibility mode ──
   useEffect(() => {
@@ -144,6 +210,55 @@ export default function App() {
   const isElderly = userMode === 'elderly';
   const t = translations[userLanguage] || translations.en;
 
+  // ── Render Role Gate View ──
+  if (currentRole === 'role-select') {
+    return (
+      <div className={`app-wrapper ${theme === 'dark' ? 'theme-dark' : 'theme-light'}`}>
+        <RoleSelection
+          theme={theme}
+          onToggleTheme={handleToggleTheme}
+          onSelectRole={navigateToRole}
+        />
+        <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+      </div>
+    );
+  }
+
+  // ── Render Doctor Clinical Portal ──
+  if (currentRole === 'doctor') {
+    if (!doctorSession) {
+      return (
+        <div className={`app-wrapper ${theme === 'dark' ? 'theme-dark' : 'theme-light'}`}>
+          <DoctorLogin
+            onLogin={(profile) => {
+              localStorage.setItem(DOCTOR_SESSION_KEY, JSON.stringify(profile));
+              setDoctorSession(profile);
+            }}
+            onBack={() => navigateToRole('role-select')}
+          />
+          <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+        </div>
+      );
+    }
+
+    return (
+      <div className={`app-wrapper ${theme === 'dark' ? 'theme-dark' : 'theme-light'}`}>
+        <DoctorPortal
+          theme={theme}
+          onToggleTheme={handleToggleTheme}
+          onSwitchRole={navigateToRole}
+          doctorProfile={doctorSession || DEMO_DOCTOR_PROFILE}
+          onLogout={() => {
+            localStorage.removeItem(DOCTOR_SESSION_KEY);
+            setDoctorSession(null);
+          }}
+        />
+        <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+      </div>
+    );
+  }
+
+  // ── Render Patient Portal (Default) ──
   return (
     <div className={`app-wrapper ${isElderly ? 'is-elderly-theme' : 'is-modern-theme'} ${theme === 'dark' ? 'theme-dark' : 'theme-light'}`}>
       {/* Theme sweep bar */}
@@ -154,12 +269,13 @@ export default function App() {
         />
       )}
 
-      {/* Navbar with Direct Mode & Language Controls */}
+      {/* Navbar with Direct Mode, Language Controls & Switch Role */}
       <Navbar
         currentMode={userMode}
         currentLanguage={userLanguage}
         onOpenModeModal={handleOpenModeModal}
         onOpenLanguageModal={handleOpenLanguageModal}
+        onSwitchRole={navigateToRole}
         currentTheme={theme}
         onToggleTheme={handleToggleTheme}
       />

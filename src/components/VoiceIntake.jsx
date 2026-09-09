@@ -23,6 +23,7 @@ import {
   HelpCircle
 } from 'lucide-react';
 import { VOICE_LANGUAGES } from '../translations.js';
+import { addClinicalRecord } from '../services/clinicalRecordsService.js';
 import './VoiceIntake.css';
 
 const CLINICAL_PRESETS = [
@@ -297,8 +298,17 @@ export default function VoiceIntake({
       if (resData.success && resData.data) {
         setClinicalData(resData.data);
         setRecordingState('success');
+        // ── Persist to shared Doctor Portal queue ──
+        addClinicalRecord(resData.data, {
+          language: selectedVoiceLang,
+          languageLabel: (() => {
+            const LANG_MAP = { hi: 'Hindi', kn: 'Kannada', ta: 'Tamil', te: 'Telugu', ml: 'Malayalam', mr: 'Marathi', bn: 'Bengali', sa: 'Sanskrit', en: 'English' };
+            return LANG_MAP[selectedVoiceLang] || selectedVoiceLang;
+          })(),
+          isElderly: isElderly,
+        });
         if (onNotify) {
-          onNotify('Clinical Intake & Ayurvedic extraction completed.', 'success');
+          onNotify('Clinical Intake & Ayurvedic extraction completed. Record sent to Doctor Queue.', 'success');
         }
       } else {
         throw new Error(resData.error || 'Failed to parse clinical intake');

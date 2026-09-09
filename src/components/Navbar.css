@@ -198,3 +198,16 @@ body.mode-elderly .navbar-mode-secondary {
     gap: 0.2rem;
   }
 }
+
+/* ── Switch role button variant ── */
+.navbar-switch-role-btn {
+  margin-left: auto;
+  color: var(--accent-success);
+  border-color: var(--border-default);
+}
+
+.navbar-switch-role-btn:hover {
+  background: var(--accent-success-bg);
+  border-color: var(--accent-success);
+  color: var(--accent-success);
+}
