@@ -29,12 +29,13 @@ function getInitialRole() {
   const hash = window.location.hash.toLowerCase();
   if (hash === '#/doctor' || hash === '#doctor') return 'doctor';
   if (hash === '#/patient' || hash === '#patient') return 'patient';
-  // Default to Role Selection entry page on link open / root URL
-  return 'role-select';
+  if (hash === '#/role-select' || hash === '#role-select') return 'role-select';
+  // Default to animated intro screen on root / start
+  return 'intro';
 }
 
 export default function App() {
-  // Current active view / role: 'role-select' | 'patient' | 'doctor'
+  // Current active view / role: 'intro' | 'role-select' | 'patient' | 'doctor'
   const [currentRole, setCurrentRole] = useState(getInitialRole);
 
   // Active intake module in Patient portal: 'voice' | 'ocr' | 'all'
@@ -75,10 +76,6 @@ export default function App() {
     }
   });
 
-  const [showMedicalIntro, setShowMedicalIntro] = useState(() => (
-    (window.location.hash === '' && !localStorage.getItem(INTRO_SEEN_KEY)) || isIntroPreview
-  ));
-
   // Theme sweep bar
   const [sweepState, setSweepState] = useState({ active: false, targetTheme: 'light' });
 
@@ -93,8 +90,10 @@ export default function App() {
         setCurrentRole('doctor');
       } else if (hash === '#/patient' || hash === '#patient') {
         setCurrentRole('patient');
-      } else if (hash === '#/role-select' || hash === '#role-select' || hash === '' || hash === '#/') {
+      } else if (hash === '#/role-select' || hash === '#role-select') {
         setCurrentRole('role-select');
+      } else if (hash === '#/intro' || hash === '#intro' || hash === '' || hash === '#/') {
+        setCurrentRole('intro');
       }
     };
 
@@ -112,6 +111,9 @@ export default function App() {
       window.location.hash = '#/patient';
       localStorage.setItem(ROLE_STORAGE_KEY, 'patient');
       setCurrentRole('patient');
+    } else if (role === 'intro') {
+      window.location.hash = '#/intro';
+      setCurrentRole('intro');
     } else {
       window.location.hash = '#/role-select';
       localStorage.removeItem(ROLE_STORAGE_KEY);
@@ -229,21 +231,13 @@ export default function App() {
   const isElderly = userMode === 'elderly';
   const t = translations[userLanguage] || translations.en;
 
-  const enterFromIntro = (role) => {
-    localStorage.setItem(INTRO_SEEN_KEY, 'true');
-    setShowMedicalIntro(false);
-    navigateToRole(role);
-  };
-
-  if (showMedicalIntro) {
+  // ── Render Medical Intro Animation (Default Initial Screen) ──
+  if (currentRole === 'intro') {
     return (
       <MedicalIntro
-        onEnterPatient={() => enterFromIntro('patient')}
-        onEnterDoctor={() => enterFromIntro('doctor')}
-        onSkip={() => {
-          localStorage.setItem(INTRO_SEEN_KEY, 'true');
-          setShowMedicalIntro(false);
-        }}
+        onEnterPatient={() => navigateToRole('patient')}
+        onEnterDoctor={() => navigateToRole('doctor')}
+        onSkip={() => navigateToRole('role-select')}
       />
     );
   }

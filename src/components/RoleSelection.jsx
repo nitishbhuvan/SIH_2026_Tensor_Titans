@@ -8,8 +8,25 @@ export default function RoleSelection({ theme, onToggleTheme, onSelectRole }) {
     <div className="role-selection-page">
       {/* Fixed Top Bar */}
       <header className="rs-topbar">
-        <span className="rs-topbar-brand">PreConsult</span>
-        <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+        <button
+          type="button"
+          className="rs-topbar-brand rs-brand-btn"
+          onClick={() => onSelectRole('intro')}
+          title="Return to Intro Animation"
+        >
+          PreConsult
+        </button>
+        <div className="rs-topbar-actions">
+          <button
+            type="button"
+            className="rs-topbar-intro-btn"
+            onClick={() => onSelectRole('intro')}
+            title="Play Intro Animation"
+          >
+            ✨ Intro Animation
+          </button>
+          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+        </div>
       </header>
 
       <div className="rs-topbar-spacer" />
@@ -17,9 +34,14 @@ export default function RoleSelection({ theme, onToggleTheme, onSelectRole }) {
       <div className="role-selection-inner">
         {/* Brand / Logo */}
         <div className="rs-brand-area">
-          <div className="rs-brand-logo">
+          <button
+            type="button"
+            className="rs-brand-logo rs-brand-btn"
+            onClick={() => onSelectRole('intro')}
+            title="Return to Intro Animation"
+          >
             Pre<span>Consult</span>
-          </div>
+          </button>
           <p className="rs-brand-tagline">
             Integrated Digital Pre-Consultation Platform • SIH 2026 — Tensor Titans
           </p>
