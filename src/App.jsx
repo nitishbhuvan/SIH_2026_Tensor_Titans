@@ -21,6 +21,8 @@ const THEME_STORAGE_KEY = 'preconsult_color_theme';
 const DOCTOR_SESSION_KEY = 'preconsult_doctor_session';
 const INTRO_SEEN_KEY = 'preconsult_intro_seen';
 
+const isIntroPreview = new URLSearchParams(window.location.search).get('intro') === '1';
+
 let toastIdCounter = 0;
 
 function getInitialRole() {
@@ -71,7 +73,7 @@ export default function App() {
   });
 
   const [showMedicalIntro, setShowMedicalIntro] = useState(() => (
-    window.location.hash === '' && !localStorage.getItem(INTRO_SEEN_KEY)
+    (window.location.hash === '' && !localStorage.getItem(INTRO_SEEN_KEY)) || isIntroPreview
   ));
 
   // Theme sweep bar

@@ -13,6 +13,8 @@ export default function MedicalIntro({ onEnterPatient, onEnterDoctor, onSkip }) 
   return (
     <main className="medical-intro">
       <div className="medical-intro-grid" aria-hidden="true" />
+      <div className="medical-pulse-backdrop" aria-hidden="true"><HeartPulse size={440} /></div>
+      <div className="medical-particle-field" aria-hidden="true" />
       <div className="medical-intro-glow medical-intro-glow-one" aria-hidden="true" />
       <div className="medical-intro-glow medical-intro-glow-two" aria-hidden="true" />
 
@@ -21,7 +23,8 @@ export default function MedicalIntro({ onEnterPatient, onEnterDoctor, onSkip }) 
         <span className="medical-intro-status"><i /> Clinical access system online</span>
       </header>
 
-      <section className="medical-intro-stage" aria-label="PreConsult introduction">
+      <section className="medical-intro-stage" aria-label="Ayusetu introduction">
+        <div className="medical-document medical-document-back-left" aria-hidden="true"><FileText size={18} /><span>VITALS</span><b /><b /><small>01</small></div>
         <div className="medical-document medical-document-left" aria-hidden="true">
           <FileText size={22} />
           <span>Patient History</span>
@@ -30,6 +33,7 @@ export default function MedicalIntro({ onEnterPatient, onEnterDoctor, onSkip }) 
           <b />
           <small>OPD / PC-2048</small>
         </div>
+        <div className="medical-document medical-document-back-right" aria-hidden="true"><FileText size={18} /><span>REPORT</span><b /><b /><small>03</small></div>
         <div className="medical-document medical-document-right" aria-hidden="true">
           <FileText size={22} />
           <span>Clinical Note</span>
@@ -48,8 +52,13 @@ export default function MedicalIntro({ onEnterPatient, onEnterDoctor, onSkip }) 
 
       <section className="medical-intro-copy">
         <span className="medical-intro-eyebrow"><ShieldCheck size={15} /> ACCESSIBLE DIGITAL HEALTHCARE</span>
-        <h1>Your health story,<br /><em>understood better.</em></h1>
-        <p>Begin a calmer, clearer pre-consultation journey with multilingual voice intake and clinical support.</p>
+        <div className="medical-title-lockup">
+          <span className="medical-title-line" />
+          <h1>AYUSETU</h1>
+          <span className="medical-title-subtitle">A new way to begin care</span>
+          <span className="medical-title-line" />
+        </div>
+        <p className="medical-intro-message">Your health story, understood better. Begin a calmer, clearer pre-consultation journey with multilingual voice intake and clinical support.</p>
         <div className="medical-intro-actions">
           <button type="button" className="medical-intro-primary" onClick={onEnterPatient}>
             Enter Patient Portal <ArrowRight size={18} />
