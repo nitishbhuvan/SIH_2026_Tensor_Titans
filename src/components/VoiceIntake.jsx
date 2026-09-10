@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Mic,
-  MicOff,
   Activity,
   CheckCircle2,
   AlertTriangle,
@@ -18,12 +17,13 @@ import {
   Clock,
   ChevronRight,
   FileText,
-  Lock,
-  X,
-  HelpCircle
+  Zap,
+  Layers,
+  ShieldCheck
 } from 'lucide-react';
 import { VOICE_LANGUAGES } from '../translations.js';
 import { addClinicalRecord } from '../services/clinicalRecordsService.js';
+import VoiceRecorder from './VoiceRecorder.jsx';
 import './VoiceIntake.css';
 
 const CLINICAL_PRESETS = [
@@ -46,7 +46,7 @@ const CLINICAL_PRESETS = [
     lang: 'ta',
     badge: 'Sandhivata / Urgent',
     label: 'Tamil: மூட்டு வலி, வாதம் & அஸ்வகந்தா',
-    transcript: 'எனக்கு இரண்டு வாரங்களாக மூட்டு வலி மற்றும் முழங்கால் வீக்கம் உள்ளது. வாத பிரச்சனை அதிகம் உள்ளது. அஸ்வகந்தா மற்றும் தಶಮೂಲಾರಿಷ್ಟ சாப்பிடுகிறேன்.'
+    transcript: 'எனக்கு இரண்டு வாரங்களாக மூட்டு வலி மற்றும் முழங்கால் வீக்கம் உள்ளது. வாத பிரச்சனை அதிகம் உள்ளது. அஸ்வகந்தா மாத்திரை சாப்பிடுகிறேன்.'
   },
   {
     id: 'preset-sa-ayush',
@@ -67,28 +67,19 @@ export default function VoiceIntake({
     return userLanguage === 'en' ? 'hi' : userLanguage;
   });
 
-  const [recordingState, setRecordingState] = useState('idle'); // 'idle' | 'recording' | 'transcribing' | 'analyzing' | 'success' | 'error'
-  const [recordDuration, setRecordDuration] = useState(0);
-  const [audioLevel, setAudioLevel] = useState(0);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [clinicalData, setClinicalData] = useState(null);
   const [activeTab, setActiveTab] = useState('clinical'); // 'clinical' | 'original'
   const [errorMessage, setErrorMessage] = useState('');
   const [showSettings, setShowSettings] = useState(false);
-  
-  // Microphone permission modal states
-  const [showPermissionModal, setShowPermissionModal] = useState(false);
-  const [permissionBlocked, setPermissionBlocked] = useState(false);
 
   const [groqApiKey, setGroqApiKey] = useState(() => {
     return localStorage.getItem('preconsult_groq_api_key') || '';
   });
 
-  const mediaRecorderRef = useRef(null);
-  const audioChunksRef = useRef([]);
-  const timerRef = useRef(null);
-  const audioContextRef = useRef(null);
-  const analyserRef = useRef(null);
-  const animationFrameRef = useRef(null);
+  const [geminiApiKey, setGeminiApiKey] = useState(() => {
+    return localStorage.getItem('preconsult_gemini_api_key') || '';
+  });
 
   // Sync voice language when user changes global language
   useEffect(() => {
@@ -97,241 +88,97 @@ export default function VoiceIntake({
     }
   }, [userLanguage]);
 
-  // Clean up Web Audio and Timer on unmount
-  useEffect(() => {
-    return () => {
-      stopRecordingCleanup();
-    };
-  }, []);
-
-  const stopRecordingCleanup = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
-    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-      audioContextRef.current.close().catch(() => {});
-    }
-    setAudioLevel(0);
+  // ── Handle Recorded 16kHz Base64 Audio from VoiceRecorder ──
+  const handleRecordingComplete = async (audioBase64, durationSeconds) => {
+    await processVoiceIntakePayload({
+      audioBase64,
+      language: selectedVoiceLang,
+      duration: durationSeconds
+    });
   };
 
-  // ── Handle Mic Click: Check Permission First or Open Modal ──
-  const handleMicButtonClick = async () => {
-    if (recordingState === 'recording') {
-      stopRecording();
-      return;
-    }
-
-    // Check if browser permission was already granted in Permissions API
-    if (navigator.permissions && navigator.permissions.query) {
-      try {
-        const status = await navigator.permissions.query({ name: 'microphone' });
-        if (status.state === 'granted') {
-          startRecordingDirect();
-          return;
-        } else if (status.state === 'denied') {
-          setPermissionBlocked(true);
-          setShowPermissionModal(true);
-          return;
-        }
-      } catch (_) {
-        // Fallback for browsers that don't support query for microphone
-      }
-    }
-
-    // Open explicit pre-permission modal to guide user
-    setPermissionBlocked(false);
-    setShowPermissionModal(true);
-  };
-
-  // ── Start Audio Recording Direct (Calls getUserMedia) ──
-  const startRecordingDirect = async () => {
+  // ── Unified API Intake Processor ──
+  const processVoiceIntakePayload = async ({ audioBase64, transcript, language }) => {
     try {
-      setShowPermissionModal(false);
-      setPermissionBlocked(false);
+      setIsProcessing(true);
       setErrorMessage('');
-      audioChunksRef.current = [];
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          channelCount: 1,
-          sampleRate: 16000,
-          echoCancellation: true,
-          noiseSuppression: true
-        }
+      const payload = {
+        language: language || selectedVoiceLang,
+        apiKey: groqApiKey.trim() || undefined,
+        geminiKey: geminiApiKey.trim() || undefined
+      };
+
+      if (audioBase64) {
+        payload.audioBase64 = audioBase64;
+      }
+      if (transcript) {
+        payload.transcript = transcript;
+      }
+
+      const response = await fetch('/api/voice-intake', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(groqApiKey ? { 'x-groq-api-key': groqApiKey.trim() } : {}),
+          ...(geminiApiKey ? { 'x-gemini-api-key': geminiApiKey.trim() } : {})
+        },
+        body: JSON.stringify(payload)
       });
 
-      // Web Audio Analyser for real-time waveform level
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (AudioCtx) {
-        const audioCtx = new AudioCtx();
-        audioContextRef.current = audioCtx;
-        const source = audioCtx.createMediaStreamSource(stream);
-        const analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 64;
-        source.connect(analyser);
-        analyserRef.current = analyser;
-
-        const dataArray = new Uint8Array(analyser.frequencyBinCount);
-        const updateLevel = () => {
-          if (analyserRef.current) {
-            analyserRef.current.getByteFrequencyData(dataArray);
-            let sum = 0;
-            for (let i = 0; i < dataArray.length; i++) {
-              sum += dataArray[i];
-            }
-            const avg = sum / dataArray.length;
-            setAudioLevel(Math.min(100, Math.round((avg / 128) * 100)));
-            animationFrameRef.current = requestAnimationFrame(updateLevel);
-          }
-        };
-        updateLevel();
-      }
-
-      // MediaRecorder
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : 'audio/webm';
-
-      const mediaRecorder = new MediaRecorder(stream, { mimeType });
-      mediaRecorderRef.current = mediaRecorder;
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data && event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorder.onstop = async () => {
-        stream.getTracks().forEach((track) => track.stop());
-        stopRecordingCleanup();
-
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        await processAudioIntake(audioBlob, null);
-      };
-
-      mediaRecorder.start(250);
-      setRecordingState('recording');
-      setRecordDuration(0);
-
-      timerRef.current = setInterval(() => {
-        setRecordDuration((prev) => prev + 1);
-      }, 1000);
-
-      if (onNotify) {
-        onNotify(isElderly ? 'माइक चालू है, बोलिए…' : 'Microphone recording active. Speak your symptoms.', 'info');
-      }
-    } catch (err) {
-      console.warn('Microphone permission error:', err);
-      setRecordingState('idle');
-      stopRecordingCleanup();
-      
-      // If user denied in browser prompt, show the blocked guidance modal
-      setPermissionBlocked(true);
-      setShowPermissionModal(true);
-
-      setErrorMessage(
-        'Microphone permission is required to record voice. You can also test clinical intake with the sample presets below.'
-      );
-      if (onNotify) {
-        onNotify('Microphone permission blocked or dismissed.', 'warning');
-      }
-    }
-  };
-
-  // ── Stop Audio Recording ──
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      mediaRecorderRef.current.stop();
-      setRecordingState('transcribing');
-    }
-  };
-
-  // ── Process Audio or Direct Transcript with API ──
-  const processAudioIntake = async (audioBlob, presetTranscript) => {
-    try {
-      setRecordingState('transcribing');
-      setErrorMessage('');
-
-      // Send to /api/voice-intake
-      let response;
-
-      if (audioBlob) {
-        const formData = new FormData();
-        formData.append('audio', audioBlob, 'intake.webm');
-        formData.append('language', selectedVoiceLang);
-        if (groqApiKey) {
-          formData.append('apiKey', groqApiKey);
-        }
-
-        setTimeout(() => {
-          setRecordingState('analyzing');
-        }, 800);
-
-        response = await fetch('/api/voice-intake', {
-          method: 'POST',
-          headers: groqApiKey ? { 'x-groq-api-key': groqApiKey } : {},
-          body: formData
-        });
-      } else {
-        setTimeout(() => {
-          setRecordingState('analyzing');
-        }, 500);
-
-        response = await fetch('/api/voice-intake', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(groqApiKey ? { 'x-groq-api-key': groqApiKey } : {})
-          },
-          body: JSON.stringify({
-            language: selectedVoiceLang,
-            transcript: presetTranscript,
-            apiKey: groqApiKey
-          })
-        });
-      }
-
       if (!response.ok) {
-        throw new Error(`Server returned ${response.status}`);
+        const errJson = await response.json().catch(() => ({}));
+        throw new Error(errJson.error || `Server responded with status ${response.status}`);
       }
 
       const resData = await response.json();
-      if (resData.success && resData.data) {
-        setClinicalData(resData.data);
-        setRecordingState('success');
-        // ── Persist to shared Doctor Portal queue ──
-        addClinicalRecord(resData.data, {
+      const parsedRecord = resData.data || resData;
+
+      if (parsedRecord && (parsedRecord.clinical_english_summary || parsedRecord.translated_clinical_english)) {
+        setClinicalData(parsedRecord);
+        setIsProcessing(false);
+
+        // Push to shared Doctor Portal queue
+        addClinicalRecord(parsedRecord, {
           language: selectedVoiceLang,
-          languageLabel: (() => {
-            const LANG_MAP = { hi: 'Hindi', kn: 'Kannada', ta: 'Tamil', te: 'Telugu', ml: 'Malayalam', mr: 'Marathi', bn: 'Bengali', sa: 'Sanskrit', en: 'English' };
-            return LANG_MAP[selectedVoiceLang] || selectedVoiceLang;
-          })(),
-          isElderly: isElderly,
+          languageLabel: getLanguageLabel(selectedVoiceLang),
+          isElderly: isElderly
         });
+
         if (onNotify) {
-          onNotify('Clinical Intake & Ayurvedic extraction completed. Record sent to Doctor Queue.', 'success');
+          const engineLabel = parsedRecord.asr_engine_used === 'bhashini_ai4bharat'
+            ? 'Bhashini ULCA Primary'
+            : parsedRecord.asr_engine_used === 'groq_whisper_fallback'
+            ? 'Groq Whisper Fallback'
+            : 'Clinical Engine';
+
+          onNotify(`Voice intake transcribed via ${engineLabel} and normalized with Gemini 1.5 Flash.`, 'success');
         }
       } else {
-        throw new Error(resData.error || 'Failed to parse clinical intake');
+        throw new Error(resData.error || 'Failed to extract clinical consultation note.');
       }
     } catch (err) {
-      console.error('Intake pipeline error:', err);
-      setRecordingState('error');
-      setErrorMessage(err.message || 'Error processing clinical voice intake. Please try again.');
+      console.error('Voice Intake processing error:', err);
+      setIsProcessing(false);
+      setErrorMessage(err.message || 'Clinical intake processing error. Please try again.');
+      if (onNotify) {
+        onNotify('Processing failed: ' + (err.message || 'Unknown error'), 'error');
+      }
     }
   };
 
-  // ── Execute Preset Scenario ──
+  // ── Preset Trigger ──
   const handleSelectPreset = (preset) => {
-    setShowPermissionModal(false);
     setSelectedVoiceLang(preset.lang);
-    processAudioIntake(null, preset.transcript);
+    processVoiceIntakePayload({
+      transcript: preset.transcript,
+      language: preset.lang
+    });
   };
 
-  // ── Reset Intake ──
   const handleReset = () => {
     setClinicalData(null);
-    setRecordingState('idle');
-    setRecordDuration(0);
+    setIsProcessing(false);
     setErrorMessage('');
   };
 
@@ -340,8 +187,8 @@ export default function VoiceIntake({
     if (!clinicalData) return;
     const textToSpeak =
       activeTab === 'clinical'
-        ? `Chief complaint: ${clinicalData.chief_complaint}. Duration: ${clinicalData.duration}. Summary: ${clinicalData.translated_clinical_english}`
-        : clinicalData.original_transcript;
+        ? `Chief complaint: ${clinicalData.chief_complaint}. Duration: ${clinicalData.duration}. Summary: ${clinicalData.clinical_english_summary || clinicalData.translated_clinical_english}`
+        : (clinicalData.raw_transcript || clinicalData.original_transcript);
 
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
@@ -355,32 +202,33 @@ export default function VoiceIntake({
     }
   };
 
-  // ── Copy Clinical SOAP Note ──
+  // ── Copy Note ──
   const handleCopyNote = () => {
     if (!clinicalData) return;
     const note = `PRECONSULT CLINICAL INTAKE (OPD SLIP)
 =====================================
-Detected Language: ${clinicalData.detected_language}
-Triage Level: ${clinicalData.triage_urgency} (${clinicalData.triage_reason})
+Detected Language: ${clinicalData.detected_language || getLanguageLabel(selectedVoiceLang)}
+ASR Engine: ${clinicalData.asr_engine_used || 'Dual-Engine Indic ASR'}
+Triage Urgency: ${clinicalData.triage_urgency} (${clinicalData.triage_reason})
 
 CHIEF COMPLAINT:
 ${clinicalData.chief_complaint} (${clinicalData.duration})
 
 PHYSICIAN SOAP CLINICAL SUMMARY:
-${clinicalData.translated_clinical_english}
+${clinicalData.clinical_english_summary || clinicalData.translated_clinical_english}
 
 ASSOCIATED SYMPTOMS:
-${(clinicalData.associated_symptoms || []).join(', ')}
+${(clinicalData.associated_symptoms || []).join(', ') || 'None reported'}
 
-CURRENT MEDICATIONS:
-${(clinicalData.medications_mentioned || []).join(', ')}
+MEDICATIONS PRESERVED:
+${(clinicalData.medications_detected || clinicalData.medications_mentioned || []).join(', ') || 'None'}
 
-AYURVEDIC / AYUSH FACTORS:
-- Dosha Imbalance: ${clinicalData.ayurvedic_factors?.dosha_imbalance || 'N/A'}
-- Agni Status: ${clinicalData.ayurvedic_factors?.agni_status || 'N/A'}
+AYURVEDIC / AYUSH PARAMETERS:
+- Dosha Imbalance: ${(clinicalData.ayush_parameters || clinicalData.ayurvedic_factors)?.dosha_imbalance || 'N/A'}
+- Agni Status: ${(clinicalData.ayush_parameters || clinicalData.ayurvedic_factors)?.agni_status || 'N/A'}
 
-RAW NATIVE PATIENT TRANSCRIPT:
-"${clinicalData.original_transcript}"
+RAW PATIENT TRANSCRIPT:
+"${clinicalData.raw_transcript || clinicalData.original_transcript}"
 `;
     navigator.clipboard.writeText(note);
     if (onNotify) {
@@ -388,26 +236,26 @@ RAW NATIVE PATIENT TRANSCRIPT:
     }
   };
 
-  // ── Print Slip ──
   const handlePrint = () => {
     window.print();
   };
 
-  // ── Save API Key ──
-  const handleSaveApiKey = (e) => {
+  const handleSaveApiKeys = (e) => {
     e.preventDefault();
     localStorage.setItem('preconsult_groq_api_key', groqApiKey.trim());
+    localStorage.setItem('preconsult_gemini_api_key', geminiApiKey.trim());
     setShowSettings(false);
     if (onNotify) {
-      onNotify('Groq API Key configuration saved.', 'success');
+      onNotify('API credentials updated successfully.', 'success');
     }
   };
 
-  const formatTimer = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  const getLanguageLabel = (code) => {
+    const found = VOICE_LANGUAGES.find((l) => l.id === code);
+    return found ? `${found.nativeLabel} (${found.label})` : code;
   };
+
+  const currentVoiceLangObj = VOICE_LANGUAGES.find((l) => l.id === selectedVoiceLang) || VOICE_LANGUAGES[0];
 
   const getTriageBadge = (urgency) => {
     switch (urgency) {
@@ -432,18 +280,39 @@ RAW NATIVE PATIENT TRANSCRIPT:
     }
   };
 
-  const currentVoiceLangObj = VOICE_LANGUAGES.find((l) => l.id === selectedVoiceLang) || VOICE_LANGUAGES[0];
+  const getEngineBadge = (engineKey) => {
+    switch (engineKey) {
+      case 'bhashini_ai4bharat':
+        return {
+          icon: <Zap size={14} className="engine-icon bhashini" />,
+          label: 'Bhashini AI4Bharat ULCA (Primary ASR)',
+          colorClass: 'engine-bhashini'
+        };
+      case 'groq_whisper_fallback':
+        return {
+          icon: <Layers size={14} className="engine-icon groq" />,
+          label: 'Groq Whisper-large-v3 (Fallback ASR)',
+          colorClass: 'engine-groq'
+        };
+      default:
+        return {
+          icon: <ShieldCheck size={14} className="engine-icon local" />,
+          label: 'Local Clinical Rules Engine',
+          colorClass: 'engine-local'
+        };
+    }
+  };
 
   return (
     <section className={`voice-intake-container ${isElderly ? 'is-elderly' : ''}`} id="voice-intake-section">
-      {/* Institutional Section Header */}
+      {/* Institutional Header Bar */}
       <div className="voice-header-bar">
         <div className="voice-header-meta">
           <span className="voice-badge-mono">
-            <Activity size={14} /> NIDAN-AI // VOICE CLINICAL INTAKE
+            <Activity size={14} /> NIDAN-AI // DUAL-ENGINE INDIC VOICE INTAKE
           </span>
           <span className="voice-badge-status">
-            <span className="status-dot"></span> ASR & TERM PRESERVATION
+            <span className="status-dot"></span> BHASHINI ULCA + GROQ WHISPER + GEMINI 1.5 FLASH
           </span>
         </div>
         <button
@@ -451,58 +320,78 @@ RAW NATIVE PATIENT TRANSCRIPT:
           className="voice-settings-btn"
           onClick={() => setShowSettings(!showSettings)}
           aria-label="API Key Settings"
-          title="Configure Groq API Key"
+          title="Configure API Keys"
         >
           <Settings size={16} />
-          <span>{groqApiKey ? 'API Key Active' : 'API Settings'}</span>
+          <span>{(groqApiKey || geminiApiKey) ? 'Custom Keys Active' : 'API Settings'}</span>
         </button>
       </div>
 
-      {/* Optional API Key Configuration Drawer */}
+      {/* Settings Drawer */}
       {showSettings && (
         <div className="voice-settings-drawer">
-          <form onSubmit={handleSaveApiKey} className="voice-settings-form">
-            <label htmlFor="groq-key-input">
-              <strong>Groq API Key (Optional for live Cloud Whisper & Llama 3.1):</strong>
-            </label>
-            <div className="settings-input-group">
-              <input
-                id="groq-key-input"
-                type="password"
-                placeholder="gsk_..."
-                value={groqApiKey}
-                onChange={(e) => setGroqApiKey(e.target.value)}
-              />
-              <button type="submit" className="settings-save-btn">Save Key</button>
-              {groqApiKey && (
+          <form onSubmit={handleSaveApiKeys} className="voice-settings-form">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+              <div>
+                <label htmlFor="groq-key-input" style={{ fontSize: '0.85rem', fontWeight: '600', display: 'block', marginBottom: '6px' }}>
+                  Groq API Key (Optional for Whisper Fallback):
+                </label>
+                <input
+                  id="groq-key-input"
+                  type="password"
+                  placeholder="gsk_..."
+                  value={groqApiKey}
+                  onChange={(e) => setGroqApiKey(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color, #cbd5e1)' }}
+                />
+              </div>
+              <div>
+                <label htmlFor="gemini-key-input" style={{ fontSize: '0.85rem', fontWeight: '600', display: 'block', marginBottom: '6px' }}>
+                  Gemini API Key (Optional for Clinical Scribe):
+                </label>
+                <input
+                  id="gemini-key-input"
+                  type="password"
+                  placeholder="AIzaSy..."
+                  value={geminiApiKey}
+                  onChange={(e) => setGeminiApiKey(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color, #cbd5e1)' }}
+                />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
+              <button type="submit" className="settings-save-btn">Save Credentials</button>
+              {(groqApiKey || geminiApiKey) && (
                 <button
                   type="button"
                   className="settings-clear-btn"
                   onClick={() => {
                     setGroqApiKey('');
+                    setGeminiApiKey('');
                     localStorage.removeItem('preconsult_groq_api_key');
+                    localStorage.removeItem('preconsult_gemini_api_key');
                   }}
                 >
-                  Clear
+                  Clear All
                 </button>
               )}
             </div>
-            <p className="settings-help">
-              If left blank, the system automatically uses the embedded high-fidelity clinical and Ayurvedic normalizer fallback.
+            <p className="settings-help" style={{ marginTop: '8px', fontSize: '0.8rem', color: 'var(--text-muted, #64748b)' }}>
+              Server environment variables (`BHASHINI_API_KEY`, `GROQ_API_KEY`, `GEMINI_API_KEY`) are utilized by default on Cloudflare Pages.
             </p>
           </form>
         </div>
       )}
 
-      {/* Main Interactive Stage */}
+      {/* Main Stage */}
       <div className="voice-stage">
-        {/* Title & Patient Instructions */}
+        {/* Title & Instructions */}
         <div className="voice-intro">
-          <h2 className="voice-title">{t.voiceIntakeTitle || 'Multilingual Clinical Voice Intake'}</h2>
+          <h2 className="voice-title">{t.voiceIntakeTitle || 'Multilingual Indic Voice Intake'}</h2>
           <p className="voice-subtitle">
             {isElderly
               ? (t.voiceIntakeElderlyPrompt || 'Tap the big microphone and speak your symptoms')
-              : (t.voiceIntakeSubtitle || 'Speak naturally in your native language. Our clinical pipeline preserves medical & Ayurvedic formulations.')}
+              : (t.voiceIntakeSubtitle || 'Speak in your native Indian language. Our dual-engine pipeline transcribes and normalizes symptoms with term preservation.')}
           </p>
         </div>
 
@@ -529,101 +418,36 @@ RAW NATIVE PATIENT TRANSCRIPT:
           </div>
         </div>
 
-        {/* Microphone Recording Console */}
-        <div className="voice-recording-console">
-          {recordingState === 'idle' && (
-            <div className="mic-action-box">
-              <button
-                type="button"
-                className="big-mic-button mic-idle"
-                onClick={handleMicButtonClick}
-                aria-label={t.voiceStartRecording || 'Tap to Speak'}
-              >
-                <div className="mic-icon-wrap">
-                  <Mic size={isElderly ? 52 : 44} />
-                </div>
-                <span className="mic-cta-text">{t.voiceStartRecording || 'Tap to Speak'}</span>
-              </button>
-              <p className="mic-subtext">
-                Spoken language: <strong>{currentVoiceLangObj.nativeLabel} ({currentVoiceLangObj.label})</strong> • Tap microphone to begin
-              </p>
-            </div>
-          )}
-
-          {recordingState === 'recording' && (
-            <div className="mic-action-box is-active-recording">
-              <div className="recording-visualizer">
-                <div className="audio-wave-bars">
-                  <span className="wave-bar" style={{ height: `${Math.max(15, audioLevel * 0.9)}%` }}></span>
-                  <span className="wave-bar" style={{ height: `${Math.max(25, audioLevel * 1.3)}%` }}></span>
-                  <span className="wave-bar" style={{ height: `${Math.max(10, audioLevel * 0.7)}%` }}></span>
-                  <span className="wave-bar" style={{ height: `${Math.max(30, audioLevel * 1.5)}%` }}></span>
-                  <span className="wave-bar" style={{ height: `${Math.max(18, audioLevel * 1.0)}%` }}></span>
-                </div>
-                <div className="recording-timer">
-                  <span className="recording-pulse-dot"></span>
-                  <Clock size={16} />
-                  <span>{formatTimer(recordDuration)}</span>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                className="big-mic-button mic-recording"
-                onClick={stopRecording}
-                aria-label={t.voiceStopRecording || 'Tap to Stop'}
-              >
-                <div className="mic-icon-wrap stop-pulse">
-                  <MicOff size={isElderly ? 52 : 44} />
-                </div>
-                <span className="mic-cta-text">{t.voiceStopRecording || 'Tap to Finish'}</span>
-              </button>
-
-              <p className="recording-instruction">
-                {t.voiceStatusRecording || 'Listening… Speak clearly into the microphone'}
-              </p>
-            </div>
-          )}
-
-          {(recordingState === 'transcribing' || recordingState === 'analyzing') && (
-            <div className="processing-indicator">
-              <div className="spinner-orbit">
-                <Sparkles size={36} className="spin-icon" />
-              </div>
-              <h3 className="processing-heading">
-                {recordingState === 'transcribing'
-                  ? (t.voiceStatusTranscribing || 'Transcribing Indic Speech (Whisper v3)…')
-                  : (t.voiceStatusAnalyzing || 'Extracting Clinical Entities & Ayurvedic Dosha Factors…')}
-              </h3>
-              <p className="processing-sub">
-                Ensuring Sanskrit formulations (*Triphala, Ashwagandha, Mandagni*) and modern medications (*Metformin, Pantoprazole*) are preserved.
-              </p>
-            </div>
-          )}
-
-          {errorMessage && (
-            <div className="voice-error-box">
-              <AlertTriangle size={20} />
-              <div className="error-text-wrap">
-                <span>{errorMessage}</span>
-                <button
-                  type="button"
-                  className="error-action-link"
-                  onClick={() => setShowPermissionModal(true)}
-                >
-                  View Permission Guide
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Quick Clinical Test Presets (For instant demonstration) */}
+        {/* 16kHz High-Clarity Voice Recorder Component */}
         {!clinicalData && (
+          <div style={{ marginTop: '16px', marginBottom: '24px' }}>
+            <VoiceRecorder
+              onRecordingComplete={handleRecordingComplete}
+              isProcessing={isProcessing}
+              isElderly={isElderly}
+              language={selectedVoiceLang}
+              languageName={currentVoiceLangObj.nativeLabel || currentVoiceLangObj.label}
+              onNotify={onNotify}
+            />
+          </div>
+        )}
+
+        {/* Error message */}
+        {errorMessage && (
+          <div className="voice-error-box" style={{ margin: '16px 0' }}>
+            <AlertTriangle size={20} />
+            <div className="error-text-wrap">
+              <span>{errorMessage}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Preset clinical scenarios */}
+        {!clinicalData && !isProcessing && (
           <div className="presets-container">
             <div className="presets-header">
               <span className="presets-title">
-                <Sparkles size={16} /> {t.voicePresetLabel || 'Quick Clinical Test Scenarios (Instant Demo):'}
+                <Sparkles size={16} /> {t.voicePresetLabel || 'Quick Clinical Presets (Instant Demonstration):'}
               </span>
             </div>
             <div className="presets-grid">
@@ -646,18 +470,42 @@ RAW NATIVE PATIENT TRANSCRIPT:
           </div>
         )}
 
-        {/* ── CLINICAL INTAKE RESULT CARD ── */}
+        {/* ── CLINICAL RESULT CARD ── */}
         {clinicalData && (
           <div className="clinical-result-card" id="clinical-slip">
-            {/* Slip Header & Triage Badge */}
+            {/* Header & Badges */}
             <div className="result-header">
               <div className="result-title-group">
-                <span className="slip-meta-tag">OPD CLINICAL INTAKE RECORD // PC-MED-09</span>
+                <span className="slip-meta-tag">OPD INTAKE RECORD // PC-MED-09</span>
                 <h3 className="result-heading">Clinical Intake Summary</h3>
               </div>
 
-              {/* Triage Badge */}
-              <div className="triage-wrapper">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                {/* Engine Badge */}
+                {(() => {
+                  const engine = getEngineBadge(clinicalData.asr_engine_used);
+                  return (
+                    <div
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '6px 12px',
+                        borderRadius: '9999px',
+                        fontSize: '0.78rem',
+                        fontWeight: '700',
+                        background: 'rgba(2, 132, 199, 0.1)',
+                        color: '#0284c7',
+                        border: '1px solid rgba(2, 132, 199, 0.2)'
+                      }}
+                    >
+                      {engine.icon}
+                      <span>{engine.label}</span>
+                    </div>
+                  );
+                })()}
+
+                {/* Triage Urgency Badge */}
                 {(() => {
                   const badge = getTriageBadge(clinicalData.triage_urgency);
                   return (
@@ -670,14 +518,14 @@ RAW NATIVE PATIENT TRANSCRIPT:
               </div>
             </div>
 
-            {/* Triage Reason Bar */}
+            {/* Triage Reason */}
             {clinicalData.triage_reason && (
               <div className="triage-reason-box">
                 <strong>Triage Assessment:</strong> {clinicalData.triage_reason}
               </div>
             )}
 
-            {/* Chief Complaint & Duration Banner */}
+            {/* Chief Complaint & Duration */}
             <div className="chief-complaint-banner">
               <div className="cc-item">
                 <span className="cc-label">
@@ -721,21 +569,23 @@ RAW NATIVE PATIENT TRANSCRIPT:
             <div className="result-tab-content">
               {activeTab === 'clinical' ? (
                 <div className="clinical-soap-view">
-                  <p className="soap-narrative">{clinicalData.translated_clinical_english}</p>
+                  <p className="soap-narrative">
+                    {clinicalData.clinical_english_summary || clinicalData.translated_clinical_english}
+                  </p>
                 </div>
               ) : (
                 <div className="original-transcript-view">
                   <span className="transcript-lang-tag">
-                    Detected Language: <strong>{clinicalData.detected_language}</strong>
+                    Detected Language: <strong>{clinicalData.detected_language || getLanguageLabel(selectedVoiceLang)}</strong>
                   </span>
                   <blockquote className="raw-transcript-quote">
-                    "{clinicalData.original_transcript}"
+                    "{clinicalData.raw_transcript || clinicalData.original_transcript}"
                   </blockquote>
                 </div>
               )}
             </div>
 
-            {/* Entities & Clinical Factors Grid */}
+            {/* Entities & Clinical Factors */}
             <div className="entities-grid">
               {/* Associated Symptoms */}
               {clinicalData.associated_symptoms && clinicalData.associated_symptoms.length > 0 && (
@@ -751,37 +601,38 @@ RAW NATIVE PATIENT TRANSCRIPT:
                 </div>
               )}
 
-              {/* Medications Mentioned */}
-              {clinicalData.medications_mentioned && clinicalData.medications_mentioned.length > 0 && (
+              {/* Medications Detected */}
+              {(clinicalData.medications_detected || clinicalData.medications_mentioned) &&
+                (clinicalData.medications_detected || clinicalData.medications_mentioned).length > 0 && (
                 <div className="entity-card">
                   <span className="entity-card-title">
-                    <Pill size={16} /> {t.voiceMedications || 'Medications Mentioned'}
+                    <Pill size={16} /> {t.voiceMedications || 'Medications Preserved'}
                   </span>
                   <div className="entity-tags-wrap">
-                    {clinicalData.medications_mentioned.map((med, idx) => (
+                    {(clinicalData.medications_detected || clinicalData.medications_mentioned).map((med, idx) => (
                       <span key={idx} className="entity-tag medication-tag">{med}</span>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Ayurvedic & AYUSH Factors */}
-              {clinicalData.ayurvedic_factors && (
+              {/* Ayurvedic & AYUSH Parameters */}
+              {(clinicalData.ayush_parameters || clinicalData.ayurvedic_factors) && (
                 <div className="entity-card ayurvedic-card">
                   <span className="entity-card-title">
-                    <Leaf size={16} /> {t.voiceAyurvedicFactors || 'Ayurvedic & AYUSH Factors'}
+                    <Leaf size={16} /> {t.voiceAyurvedicFactors || 'Ayurvedic & AYUSH Parameters'}
                   </span>
                   <div className="ayurvedic-factors-list">
                     <div className="ayur-factor-row">
                       <span className="ayur-key">{t.voiceDosha || 'Dosha Imbalance'}:</span>
                       <span className="ayur-val">
-                        {clinicalData.ayurvedic_factors.dosha_imbalance || 'None specifically indicated'}
+                        {(clinicalData.ayush_parameters || clinicalData.ayurvedic_factors).dosha_imbalance || 'None specifically indicated'}
                       </span>
                     </div>
                     <div className="ayur-factor-row">
                       <span className="ayur-key">{t.voiceAgni || 'Agni Status'}:</span>
                       <span className="ayur-val">
-                        {clinicalData.ayurvedic_factors.agni_status || 'Samagni (balanced)'}
+                        {(clinicalData.ayush_parameters || clinicalData.ayurvedic_factors).agni_status || 'Samagni (balanced)'}
                       </span>
                     </div>
                   </div>
@@ -835,103 +686,6 @@ RAW NATIVE PATIENT TRANSCRIPT:
           </div>
         )}
       </div>
-
-      {/* ── EXPLICIT MICROPHONE PERMISSION POPUP MODAL ── */}
-      {showPermissionModal && (
-        <div className="mic-perm-overlay" role="dialog" aria-modal="true" aria-labelledby="mic-perm-title">
-          <div className="mic-perm-modal-box">
-            <button
-              type="button"
-              className="mic-perm-close-btn"
-              onClick={() => setShowPermissionModal(false)}
-              aria-label="Close"
-            >
-              <X size={18} />
-            </button>
-
-            <div className="mic-perm-header">
-              <div className={`mic-perm-icon-bubble ${permissionBlocked ? 'is-blocked' : ''}`}>
-                {permissionBlocked ? <AlertTriangle size={32} /> : <Mic size={32} />}
-              </div>
-              <h3 id="mic-perm-title" className="mic-perm-title">
-                {permissionBlocked
-                  ? (t.micPermBlockedTitle || 'Microphone Permission Blocked')
-                  : (t.micPermModalTitle || 'Microphone Permission Needed')}
-              </h3>
-              <p className="mic-perm-subtitle">
-                {permissionBlocked
-                  ? (t.micPermBlockedHelp || 'Your browser is currently blocking microphone access. Please allow microphone in your address bar.')
-                  : (t.micPermModalSubtitle || 'PreConsult needs access to your microphone so you can speak your symptoms naturally.')}
-              </p>
-            </div>
-
-            {/* Browser Permission Visual Guide Box */}
-            <div className="mic-perm-guide-card">
-              <div className="guide-card-header">
-                <Lock size={14} />
-                <span>Browser Address Bar Permission Guide</span>
-              </div>
-              <div className="guide-steps-list">
-                <div className="guide-step-item">
-                  <span className="guide-step-num">1</span>
-                  <span>{t.micPermStep1 || 'Click "Allow Microphone" below to initiate the request.'}</span>
-                </div>
-                <div className="guide-step-item">
-                  <span className="guide-step-num">2</span>
-                  <span>{t.micPermStep2 || 'When your browser shows a popup at the top, select "Allow".'}</span>
-                </div>
-                <div className="guide-step-item">
-                  <span className="guide-step-num">3</span>
-                  <span>{t.micPermStep3 || 'Speak your symptoms naturally in your chosen language.'}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Modal Actions */}
-            <div className="mic-perm-actions">
-              {!permissionBlocked ? (
-                <button
-                  type="button"
-                  className="mic-perm-btn primary-grant-btn"
-                  onClick={startRecordingDirect}
-                >
-                  <Mic size={18} />
-                  <span>{t.micPermAllowBtn || 'Allow Microphone & Speak'}</span>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="mic-perm-btn primary-grant-btn"
-                  onClick={startRecordingDirect}
-                >
-                  <RotateCcw size={18} />
-                  <span>Try Microphone Again</span>
-                </button>
-              )}
-
-              <button
-                type="button"
-                className="mic-perm-btn secondary-preset-btn"
-                onClick={() => {
-                  setShowPermissionModal(false);
-                  handleSelectPreset(CLINICAL_PRESETS[0]);
-                }}
-              >
-                <Sparkles size={16} />
-                <span>{t.micPermPresetBtn || 'Use Test Presets Instead'}</span>
-              </button>
-
-              <button
-                type="button"
-                className="mic-perm-btn text-cancel-btn"
-                onClick={() => setShowPermissionModal(false)}
-              >
-                {t.micPermCancelBtn || 'Cancel'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </section>
   );
 }

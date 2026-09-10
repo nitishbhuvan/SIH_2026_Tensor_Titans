@@ -151,8 +151,12 @@ export const translations = {
     cardEmergencyBtnElderly: 'Call Helpline (108)',
     cardEmergencyBtnModern: 'Emergency Response',
 
-    // Footer
-    footerTagline: 'PreConsult • Tensor Titans. Accessibility First Design.'
+    // Footer & Legal
+    footerTagline: 'PreConsult • Tensor Titans. Accessibility First Design.',
+    termsOfService: 'Terms & Conditions',
+    privacyPolicy: 'Privacy Policy',
+    githubRepo: 'GitHub Repository',
+    medicalDisclaimerShort: 'Academic prototype for SIH 2026. Not a substitute for licensed clinical diagnosis.'
   },
 
   hi: {
@@ -245,8 +249,12 @@ export const translations = {
     cardEmergencyBtnElderly: 'कॉल करें (108)',
     cardEmergencyBtnModern: 'आपातकालीन प्रतिक्रिया',
 
-    // Footer
-    footerTagline: 'प्री-कंसल्ट • टेन्सर टाइटन्स। सुगमता प्रथम डिज़ाइन।'
+    // Footer & Legal
+    footerTagline: 'प्री-कंसल्ट • टेन्सर टाइटन्स। सुगमता प्रथम डिज़ाइन।',
+    termsOfService: 'नियम और शर्तें',
+    privacyPolicy: 'गोपनीयता नीति',
+    githubRepo: 'गिटहब रिपॉजिटरी',
+    medicalDisclaimerShort: 'SIH 2026 हेतु प्रोटोटाइप। यह पेशेवर चिकित्सीय सलाह का विकल्प नहीं है।'
   },
 
   kn: {
@@ -339,8 +347,12 @@ export const translations = {
     cardEmergencyBtnElderly: 'ಕರೆ ಮಾಡಿ (108)',
     cardEmergencyBtnModern: 'ತುರ್ತು ಪ್ರತಿಕ್ರಿಯೆ',
 
-    // Footer
-    footerTagline: 'ಪ್ರಿ-ಕನ್ಸಲ್ಟ್ • ಟೆನ್ಸರ್ ಟೈಟಾನ್ಸ್. ಎಲ್ಲರಿಗೂ ಸುಲಭವಾದ ವಿನ್ಯಾಸ.'
+    // Footer & Legal
+    footerTagline: 'ಪ್ರಿ-ಕನ್ಸಲ್ಟ್ • ಟೆನ್ಸರ್ ಟೈಟಾನ್ಸ್. ಎಲ್ಲರಿಗೂ ಸುಲಭವಾದ ವಿನ್ಯಾಸ.',
+    termsOfService: 'ನಿಯಮಗಳು ಮತ್ತು ಷರತ್ತುಗಳು',
+    privacyPolicy: 'ಗೌಪ್ಯತಾ ನೀತಿ',
+    githubRepo: 'ಗಿಟ್‌ಹಬ್ ರೆಪೊಸಿಟರಿ',
+    medicalDisclaimerShort: 'SIH 2026 ಪ್ರೋಟೋಟೈಪ್. ಇದು ವೈದ್ಯಕೀಯ ಚಿಕಿತ್ಸೆಗೆ ಪರ್ಯಾಯವಲ್ಲ.'
   },
 
   ta: {
@@ -433,8 +445,12 @@ export const translations = {
     cardEmergencyBtnElderly: 'அழைக்கவும் (108)',
     cardEmergencyBtnModern: 'அவசர சிகிச்சை',
 
-    // Footer
-    footerTagline: 'ப்ரீ-கன்சல்ட் • டென்சர் டைட்டன்ஸ். எளிமையான அணுகல் வடிவமைப்பு.'
+    // Footer & Legal
+    footerTagline: 'ப்ரீ-கன்சல்ட் • டென்சர் டைட்டன்ஸ். எளிமையான அணுகல் வடிவமைப்பு.',
+    termsOfService: 'விதிமுறைகள் மற்றும் நிபந்தனைகள்',
+    privacyPolicy: 'தனியுரிமைக் கொள்கை',
+    githubRepo: 'கிட்ஹப் களஞ்சியம்',
+    medicalDisclaimerShort: 'SIH 2026 முன்மாதிரி. இது மருத்துவ சிகிச்சைக்கு மாற்றாகாது.'
   },
 
   te: {
@@ -527,8 +543,12 @@ export const translations = {
     cardEmergencyBtnElderly: 'కాల్ చేయండి (108)',
     cardEmergencyBtnModern: 'అత్యవసర స్పందన',
 
-    // Footer
-    footerTagline: 'ప్రీ-కన్సల్ట్ • టెన్సర్ టైటాన్స్. అందరికీ అనుకూలమైన డిజైన్.'
+    // Footer & Legal
+    footerTagline: 'ప్రీ-కన్సల్ట్ • టెన్సర్ టైటాన్స్. అందరికీ అనుకూలమైన డిజైన్.',
+    termsOfService: 'నిబంధనలు & షరతులు',
+    privacyPolicy: 'గోప్యతా విధానం',
+    githubRepo: 'గిట్‌హబ్ రిపోజిటరీ',
+    medicalDisclaimerShort: 'SIH 2026 ప్రోటోటైప్. ఇది వైద్య సంరక్షణకు ప్రత్యామ్నాయం కాదు.'
   },
 
   ml: {
@@ -621,7 +641,11 @@ export const translations = {
     cardEmergencyBtnElderly: 'വിളിക്കുക (108)',
     cardEmergencyBtnModern: 'എമർജൻസി റെസ്‌പോൺസ്',
 
-    // Footer
-    footerTagline: 'പ്രീ-കൺസൾട്ട് • ടെൻസർ ടൈറ്റാൻസ്. എല്ലാവർക്കും പ്രാപ്യമായ ഡിസൈൻ.'
+    // Footer & Legal
+    footerTagline: 'പ്രീ-കൺസൾട്ട് • ടെൻസർ ടൈറ്റാൻസ്. എല്ലാവർക്കും പ്രാപ്യമായ ഡിസൈൻ.',
+    termsOfService: 'നിബന്ധനകളും വ്യവസ്ഥകളും',
+    privacyPolicy: 'സ്വകാര്യതാ നയം',
+    githubRepo: 'ഗിറ്റ്‌ഹബ് ശേഖരം',
+    medicalDisclaimerShort: 'SIH 2026 പ്രോട്ടോടൈപ്പ്. ഇത് ചികിത്സയ്ക്ക് പകരമല്ല.'
   }
 };

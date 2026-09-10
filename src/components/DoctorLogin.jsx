@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, LockKeyhole, Stethoscope, UserRound } from 'lucide-react';
+import { Eye, EyeOff, LockKeyhole, UserRound } from 'lucide-react';
 import { authenticateDoctor, registerDoctor } from '../services/doctorAuthService.js';
+import nidanLogo from '../assets/NIDAN_logo.png';
 import './DoctorLogin.css';
 
 const DEMO_DOCTOR = {
@@ -29,11 +30,30 @@ export default function DoctorLogin({ onLogin, onBack }) {
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError('');
+
+    if (!username.trim() || !password) {
+      setError('Please enter your doctor credentials.');
+      return;
+    }
+
+    if (isRegistering) {
+      if (!name.trim() || !specialty.trim() || !registration.trim()) {
+        setError('Please fill in all profile fields.');
+        return;
+      }
+      if (password.length < 6) {
+        setError('Password must be at least 6 characters.');
+        return;
+      }
+      if (password !== confirmPassword) {
+        setError('Passwords do not match.');
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     try {
       if (isRegistering) {
-        if (password.length < 8) throw new Error('Password must contain at least 8 characters.');
-        if (password !== confirmPassword) throw new Error('Passwords do not match.');
         await registerDoctor({ username, password, name: name.trim(), specialty, registration });
         setIsRegistering(false);
         setPassword('');
@@ -55,8 +75,11 @@ export default function DoctorLogin({ onLogin, onBack }) {
     <main className="doctor-login-page">
       <section className="doctor-login-card" aria-labelledby="doctor-login-title">
         <div className="doctor-login-brand">
-          <div className="doctor-login-icon"><Stethoscope size={24} /></div>
-          <span>PreConsult / Clinical Access</span>
+          <img src={nidanLogo} alt="NIDAN Logo" className="doctor-login-logo-img" />
+          <div className="doctor-login-brand-copy">
+            <span className="doctor-login-brand-title">NIDAN</span>
+            <span className="doctor-login-brand-sub">Clinical Access • OPD Portal</span>
+          </div>
         </div>
         <h1 id="doctor-login-title">{isRegistering ? 'Create Doctor Account' : 'Doctor Portal'}</h1>
         <p className="doctor-login-subtitle">

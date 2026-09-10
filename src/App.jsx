@@ -3,6 +3,7 @@ import { flushSync } from 'react-dom';
 import { Stethoscope, FileText, Phone } from 'lucide-react';
 import Navbar from './components/Navbar.jsx';
 import ModeSelectionModal from './components/ModeSelectionModal.jsx';
+import LegalPage from './components/LegalPage.jsx';
 import Hero from './components/Hero.jsx';
 import VoiceIntake from './components/VoiceIntake.jsx';
 import ActionCard from './components/ActionCard.jsx';
@@ -23,6 +24,8 @@ let toastIdCounter = 0;
 
 function getInitialRole() {
   const hash = window.location.hash.toLowerCase();
+  if (hash === '#/terms' || hash === '#terms') return 'terms';
+  if (hash === '#/privacy' || hash === '#privacy') return 'privacy';
   if (hash === '#/doctor' || hash === '#doctor') return 'doctor';
   if (hash === '#/patient' || hash === '#patient') return 'patient';
   if (hash === '#/role-select' || hash === '#role-select') return 'role-select';
@@ -35,7 +38,7 @@ function getInitialRole() {
 }
 
 export default function App() {
-  // Current active view / role: 'role-select' | 'patient' | 'doctor'
+  // Current active view / role: 'role-select' | 'patient' | 'doctor' | 'terms' | 'privacy'
   const [currentRole, setCurrentRole] = useState(getInitialRole);
 
   // Language Preference
@@ -83,7 +86,11 @@ export default function App() {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.toLowerCase();
-      if (hash === '#/doctor' || hash === '#doctor') {
+      if (hash === '#/terms' || hash === '#terms') {
+        setCurrentRole('terms');
+      } else if (hash === '#/privacy' || hash === '#privacy') {
+        setCurrentRole('privacy');
+      } else if (hash === '#/doctor' || hash === '#doctor') {
         setCurrentRole('doctor');
       } else if (hash === '#/patient' || hash === '#patient') {
         setCurrentRole('patient');
@@ -98,7 +105,13 @@ export default function App() {
 
   // ── Navigation handler ──
   const navigateToRole = (role) => {
-    if (role === 'doctor') {
+    if (role === 'terms') {
+      window.location.hash = '#/terms';
+      setCurrentRole('terms');
+    } else if (role === 'privacy') {
+      window.location.hash = '#/privacy';
+      setCurrentRole('privacy');
+    } else if (role === 'doctor') {
       window.location.hash = '#/doctor';
       localStorage.setItem(ROLE_STORAGE_KEY, 'doctor');
       setCurrentRole('doctor');
@@ -209,6 +222,30 @@ export default function App() {
 
   const isElderly = userMode === 'elderly';
   const t = translations[userLanguage] || translations.en;
+
+  // ── Dedicated Standalone Full Page: Terms and Conditions ──
+  if (currentRole === 'terms') {
+    return (
+      <LegalPage
+        type="terms"
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
+        onNavigate={navigateToRole}
+      />
+    );
+  }
+
+  // ── Dedicated Standalone Full Page: Privacy Policy ──
+  if (currentRole === 'privacy') {
+    return (
+      <LegalPage
+        type="privacy"
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
+        onNavigate={navigateToRole}
+      />
+    );
+  }
 
   // ── Render Role Gate View ──
   if (currentRole === 'role-select') {
@@ -355,8 +392,11 @@ export default function App() {
         </div>
       </main>
 
-      {/* Footer */}
-      <Footer t={t} />
+      {/* Footer with New-Tab Links */}
+      <Footer
+        t={t}
+        isElderly={isElderly}
+      />
 
       {/* Toast Notifications */}
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />

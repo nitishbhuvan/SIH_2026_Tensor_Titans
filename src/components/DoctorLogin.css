@@ -27,14 +27,36 @@
   text-transform: uppercase;
 }
 
-.doctor-login-icon {
-  display: grid;
-  width: 42px;
-  height: 42px;
-  place-items: center;
+.doctor-login-logo-img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
   border-radius: var(--radius-md);
-  color: var(--accent-primary);
-  background: var(--accent-primary-bg);
+  background: #ffffff;
+  padding: 3px;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.12);
+  border: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.doctor-login-brand-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.doctor-login-brand-title {
+  font: 800 1.15rem var(--font-mono);
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+
+.doctor-login-brand-sub {
+  font: 500 0.72rem var(--font-mono);
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .doctor-login-card h1 {

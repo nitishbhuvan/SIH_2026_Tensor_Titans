@@ -25,6 +25,7 @@ import {
   getTriageSummary,
 } from '../services/clinicalRecordsService.js';
 import { changeDoctorPassword } from '../services/doctorAuthService.js';
+import nidanLogo from '../assets/NIDAN_logo.png';
 import './DoctorPortal.css';
 
 const TRIAGE_ICONS = {
@@ -193,12 +194,10 @@ export default function DoctorPortal({ theme, onToggleTheme, onSwitchRole, docto
       <header className="dp-header">
         <div className="dp-header-inner">
           <div className="dp-header-left">
-            <div className="dp-header-icon">
-              <Stethoscope size={18} strokeWidth={1.8} />
-            </div>
+            <img src={nidanLogo} alt="NIDAN Logo" className="dp-header-logo-img" />
             <div className="dp-header-title">
               <h1>Hi, {doctorProfile?.name || 'Doctor'}</h1>
-              <span>{doctorProfile?.specialty || 'Clinical Practice'} • PreConsult OPD</span>
+              <span>{doctorProfile?.specialty || 'Clinical Practice'} • NIDAN OPD</span>
             </div>
           </div>
           <div className="dp-header-actions">

@@ -1,260 +1,425 @@
 /**
  * Cloudflare Pages Function: /api/voice-intake
  * 
- * Multilingual Indic Voice-to-Text with Clinical & Ayurvedic Term-Preserving Translation
+ * Dual-Engine Indic Voice Intake with Bhashini Primary, Groq Whisper Fallback,
+ * and Gemini 1.5 Flash Clinical & Ayurvedic Term-Preserving Normalization.
  * 
- * Pipeline:
- * 1. Audio ingestion (WAV/WebM)
- * 2. Indic-aware ASR via Groq Whisper-large-v3 with Ayurvedic/Allopathic domain bias prompt
- * 3. Clinical Entity & Term-Preserving Normalization via Llama 3.1
- * 4. Resilient fallback parsing engine for offline/demo scenarios
+ * Flow:
+ * 1. Client sends 16kHz mono audio Base64 string + language code.
+ * 2. Primary Engine: Bhashini ULCA API (2-step: Config Discovery + Inference Compute)
+ *    raced against a 5000ms timeout via AbortController.
+ * 3. Fallback Engine: Groq Whisper-large-v3 with Ayurvedic/Allopathic domain bias prompt.
+ * 4. Normalization Engine: Gemini 1.5 Flash translates colloquial symptoms to clinical English
+ *    while strictly preserving Sanskrit/Ayurvedic terms and modern drug formulations.
+ * 5. Resilient offline/demo rules engine if live keys or networks are unavailable.
  */
 
-const MEDICAL_SYSTEM_PROMPT = `You are an expert bilingual medical interpreter and clinical documentation specialist trained in both Modern Allopathic Medicine and Traditional Indian Medicine (Ayurveda/AYUSH).
-
-Your Objectives:
-1. Translate the patient's conversational narrative into professional clinical English suitable for a physician's SOAP note.
-2. CLINICAL TERM PRESERVATION MANDATE:
-   - NEVER translate proper drug names, active pharmaceutical ingredients, or Ayurvedic botanical/compound names (e.g., keep "Ashwagandha", "Triphala Churna", "Dashamularishta", "Metformin", "Pantoprazole" intact).
-   - NEVER translate classical Ayurvedic clinical parameters into generic English (e.g., keep "Vata", "Pitta", "Kapha", "Mandagni", "Krura Koshtha", "Prakriti", "Ama").
-   - Accurately translate colloquial descriptions of symptoms (e.g., "chhati me jalan" -> "retrosternal burning / pyrosis", "pet saaf nahi hota" -> "chronic constipation / irregular bowel movements", "chakkar aana" -> "vertigo / presyncope").
-3. Extract triage urgency: "RED_FLAG" (acute cardiac, neurological, severe respiratory distress), "URGENT", or "ROUTINE".
-
-Respond strictly with valid JSON conforming to this schema:
-{
-  "detected_language": "string",
-  "original_transcript": "string",
-  "translated_clinical_english": "string",
-  "chief_complaint": "string",
-  "duration": "string",
-  "associated_symptoms": ["string"],
-  "medications_mentioned": ["string"],
-  "ayurvedic_factors": {
-    "dosha_imbalance": "string or null",
-    "agni_status": "string or null"
-  },
-  "triage_urgency": "RED_FLAG" | "URGENT" | "ROUTINE",
-  "triage_reason": "string"
-}`;
-
-const ASR_DOMAIN_PROMPT = "Ayurvedic and Allopathic clinical intake: Vata, Pitta, Kapha, Agni, Koshtha, Dashamula, Triphala, Ashwagandha, Kwatha, Churna, Bhasma, Rasayana, Paracetamol, Metformin, Amlodipine, chest pain, fever, duration.";
+export async function onRequestOptions() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization, x-groq-api-key, x-gemini-api-key, x-bhashini-key"
+    }
+  });
+}
 
 export async function onRequestPost(context) {
+  const { request, env = {} } = context;
+
+  const corsHeaders = {
+    "Content-Type": "application/json",
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, x-groq-api-key, x-gemini-api-key, x-bhashini-key"
+  };
+
   try {
-    const { request, env } = context;
-    const contentType = request.headers.get('content-type') || '';
-
-    let audioBlob = null;
-    let language = 'hi';
-    let customApiKey = request.headers.get('x-groq-api-key') || '';
+    const contentType = request.headers.get("content-type") || "";
+    let audioBase64 = "";
+    let language = "hi";
     let directTranscript = null;
+    let customApiKey = request.headers.get("x-groq-api-key") || "";
+    let customGeminiKey = request.headers.get("x-gemini-api-key") || "";
 
-    if (contentType.includes('multipart/form-data')) {
-      const formData = await request.formData();
-      audioBlob = formData.get('audio');
-      language = formData.get('language') || language;
-      if (!customApiKey) {
-        customApiKey = formData.get('apiKey') || '';
-      }
-      directTranscript = formData.get('transcript');
-    } else if (contentType.includes('application/json')) {
+    if (contentType.includes("application/json")) {
       const json = await request.json();
+      audioBase64 = json.audioBase64 || json.audio || "";
       language = json.language || language;
-      customApiKey = json.apiKey || customApiKey;
-      directTranscript = json.transcript;
-    }
-
-    const apiKey = customApiKey || (env && env.GROQ_API_KEY) || (typeof process !== 'undefined' && process.env && process.env.GROQ_API_KEY) || '';
-
-    let rawTranscript = directTranscript;
-
-    // ── STEP 1: Indic Speech-to-Text (ASR) via Groq Whisper ──
-    if (!rawTranscript && audioBlob && apiKey) {
-      try {
-        const whisperFormData = new FormData();
-        whisperFormData.append('file', audioBlob, 'audio.webm');
-        whisperFormData.append('model', 'whisper-large-v3');
-        whisperFormData.append('prompt', ASR_DOMAIN_PROMPT);
-        whisperFormData.append('response_format', 'json');
-        if (language && language !== 'auto' && language !== 'sa') {
-          whisperFormData.append('language', language);
+      directTranscript = json.transcript || null;
+      if (json.apiKey) customApiKey = json.apiKey;
+      if (json.geminiKey) customGeminiKey = json.geminiKey;
+    } else if (contentType.includes("multipart/form-data")) {
+      const formData = await request.formData();
+      const file = formData.get("audio") || formData.get("file");
+      if (file && typeof file !== "string") {
+        const arrayBuf = await file.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuf);
+        let binary = "";
+        for (let i = 0; i < bytes.byteLength; i++) {
+          binary += String.fromCharCode(bytes[i]);
         }
-
-        const whisperRes = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${apiKey}`
-          },
-          body: whisperFormData
-        });
-
-        if (whisperRes.ok) {
-          const whisperData = await whisperRes.json();
-          rawTranscript = whisperData.text || '';
-        } else {
-          console.warn('Groq Whisper API returned non-200:', await whisperRes.text());
-        }
-      } catch (err) {
-        console.warn('Groq Whisper call error:', err);
+        audioBase64 = btoa(binary);
+      } else if (typeof file === "string") {
+        audioBase64 = file;
       }
+      audioBase64 = formData.get("audioBase64") || audioBase64;
+      language = formData.get("language") || language;
+      directTranscript = formData.get("transcript") || null;
+      customApiKey = formData.get("apiKey") || customApiKey;
+      customGeminiKey = formData.get("geminiKey") || customGeminiKey;
     }
 
-    // ── Fallback Transcript Generator if audio could not be transcribed online ──
-    if (!rawTranscript) {
-      rawTranscript = generateFallbackTranscript(language);
+    // Merge environment variables and request overrides
+    const effectiveEnv = {
+      ...env,
+      GROQ_API_KEY: customApiKey || (env && env.GROQ_API_KEY) || "",
+      GEMINI_API_KEY: customGeminiKey || (env && env.GEMINI_API_KEY) || ""
+    };
+
+    let transcript = directTranscript || "";
+    let asrEngineUsed = directTranscript ? "preset_input" : "bhashini_ai4bharat";
+
+    // Strip data URL prefix if present in base64 string
+    if (audioBase64 && audioBase64.includes(",")) {
+      audioBase64 = audioBase64.split(",")[1];
     }
 
-    // ── STEP 2: Clinical Normalization & Term-Preservation Engine ──
-    let clinicalResult = null;
-
-    if (apiKey) {
+    // If audio is provided and no direct transcript was sent:
+    if (!transcript && audioBase64) {
+      // 1. PRIMARY ENGINE: Bhashini ULCA API with a 5000ms AbortController race
       try {
-        const userPrompt = `Input:
-- Source Language: ${language}
-- Raw Transcript: "${rawTranscript}"
-
-Produce the structured JSON clinical intake output following all term preservation rules.`;
-
-        const groqChatRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            model: 'llama-3.1-8b-instant',
-            messages: [
-              { role: 'system', content: MEDICAL_SYSTEM_PROMPT },
-              { role: 'user', content: userPrompt }
-            ],
-            response_format: { type: 'json_object' },
-            temperature: 0.1
-          })
-        });
-
-        if (groqChatRes.ok) {
-          const chatData = await groqChatRes.json();
-          const content = chatData.choices[0]?.message?.content;
-          clinicalResult = JSON.parse(content);
+        if (effectiveEnv.BHASHINI_USER_ID && (effectiveEnv.BHASHINI_API_KEY || effectiveEnv.BHASHINI_INFERENCE_KEY)) {
+          transcript = await callBhashiniWithTimeout(audioBase64, language, effectiveEnv, 5000);
+          if (transcript && transcript.trim().length > 0) {
+            asrEngineUsed = "bhashini_ai4bharat";
+          }
         }
-      } catch (err) {
-        console.warn('Groq Llama 3.1 translation error:', err);
+      } catch (bhashiniErr) {
+        console.warn("Bhashini ASR timed out or failed. Activating Groq Whisper fallback:", bhashiniErr.message);
       }
+
+      // 2. FALLBACK ENGINE: Groq Whisper (whisper-large-v3)
+      if (!transcript || transcript.trim().length === 0) {
+        try {
+          if (effectiveEnv.GROQ_API_KEY) {
+            asrEngineUsed = "groq_whisper_fallback";
+            transcript = await callGroqWhisper(audioBase64, language, effectiveEnv);
+          }
+        } catch (groqErr) {
+          console.warn("Groq Whisper fallback error:", groqErr.message);
+        }
+      }
+
+      // 3. Fallback mock transcript if all online engines are unconfigured / unreachable
+      if (!transcript || transcript.trim().length === 0) {
+        transcript = generateFallbackTranscript(language);
+        asrEngineUsed = "offline_clinical_engine";
+      }
+    } else if (!transcript && !audioBase64) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: "Missing audioBase64 or transcript parameter"
+      }), {
+        status: 400,
+        headers: corsHeaders
+      });
     }
 
-    // If clinicalResult is not ready, execute resilient clinical rule-based normalizer
-    if (!clinicalResult) {
-      clinicalResult = executeClinicalFallbackEngine(rawTranscript, language);
+    // 3. CLINICAL TRANSLATION & ENTITY NORMALIZATION: Gemini 1.5 Flash (with resilient fallback)
+    let clinicalSummary = null;
+    try {
+      if (effectiveEnv.GEMINI_API_KEY) {
+        clinicalSummary = await processWithGemini(transcript, language, effectiveEnv);
+      }
+    } catch (geminiErr) {
+      console.warn("Gemini 1.5 Flash normalization failed, using rule-based normalizer:", geminiErr.message);
     }
+
+    if (!clinicalSummary) {
+      clinicalSummary = executeClinicalFallbackEngine(transcript, language);
+    }
+
+    // Map schema for full backward & forward compatibility across UI & Doctor Portal
+    const responsePayload = {
+      success: true,
+      clinical_english_summary: clinicalSummary.clinical_english_summary || clinicalSummary.translated_clinical_english || "",
+      translated_clinical_english: clinicalSummary.translated_clinical_english || clinicalSummary.clinical_english_summary || "",
+      chief_complaint: clinicalSummary.chief_complaint || "General consultation",
+      duration: clinicalSummary.duration || "Not specified",
+      associated_symptoms: clinicalSummary.associated_symptoms || [],
+      medications_detected: clinicalSummary.medications_detected || clinicalSummary.medications_mentioned || [],
+      medications_mentioned: clinicalSummary.medications_detected || clinicalSummary.medications_mentioned || [],
+      ayush_parameters: clinicalSummary.ayush_parameters || clinicalSummary.ayurvedic_factors || { dosha_imbalance: null, agni_status: null },
+      ayurvedic_factors: clinicalSummary.ayush_parameters || clinicalSummary.ayurvedic_factors || { dosha_imbalance: null, agni_status: null },
+      triage_urgency: clinicalSummary.triage_urgency || "ROUTINE",
+      triage_reason: clinicalSummary.triage_reason || "Stable vitals and chronic presentation.",
+      raw_transcript: transcript,
+      original_transcript: transcript,
+      detected_language: getLanguageDisplayName(language),
+      asr_engine_used: asrEngineUsed
+    };
 
     return new Response(JSON.stringify({
-      success: true,
-      data: clinicalResult
+      ...responsePayload,
+      data: responsePayload
     }), {
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      }
+      status: 200,
+      headers: corsHeaders
     });
 
-  } catch (error) {
-    console.error('Error in /api/voice-intake:', error);
+  } catch (err) {
+    console.error("Error in /api/voice-intake:", err);
     return new Response(JSON.stringify({
       success: false,
-      error: error.message || 'Clinical intake processing failed'
+      error: err.message || "Internal server error"
     }), {
       status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      }
+      headers: corsHeaders
     });
   }
 }
 
-/**
- * High-fidelity domain normalizer fallback preserving Ayurvedic & Allopathic entities
- */
-function executeClinicalFallbackEngine(transcript, lang) {
-  const text = transcript.toLowerCase();
-  
-  let detected_language = lang === 'hi' ? 'Hindi' :
-    lang === 'kn' ? 'Kannada' :
-    lang === 'ta' ? 'Tamil' :
-    lang === 'te' ? 'Telugu' :
-    lang === 'mr' ? 'Marathi' :
-    lang === 'bn' ? 'Bengali' :
-    lang === 'sa' ? 'Sanskrit / AYUSH' : 'English';
+// ── Bhashini 2-Step Protocol: Config Discovery + Inference Compute ──
+async function callBhashiniWithTimeout(audioBase64, language, env, timeoutMs = 5000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const bhashiniLang = language === 'sa' ? 'hi' : language;
+
+    // Step A: Pipeline Config Discovery
+    const configRes = await fetch("https://meity-auth.ulcacontrib.org/ulca/apis/v0/model/getModelsPipeline", {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        "userID": env.BHASHINI_USER_ID,
+        "ulcaApiKey": env.BHASHINI_API_KEY, // UDYAT KEY
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        pipelineTasks: [{ taskType: "asr", config: { language: { sourceLanguage: bhashiniLang } } }],
+        pipelineRequestConfig: { pipelineId: "64392f96daac500b55c543d6" }
+      })
+    });
+
+    if (!configRes.ok) throw new Error(`Bhashini Config error HTTP ${configRes.status}`);
+    const configData = await configRes.json();
+
+    const asrTask = configData.pipelineResponseConfig?.[0];
+    const serviceId = asrTask?.config?.[0]?.serviceId;
+    const callbackUrl = configData.pipelineInferenceAPIEndPoint?.callbackUrl;
+    const dynamicApiKey = configData.pipelineInferenceAPIEndPoint?.inferenceApiKey?.value;
+    const authHeader = dynamicApiKey || env.BHASHINI_INFERENCE_KEY || env.BHASHINI_API_KEY;
+
+    if (!callbackUrl || !serviceId) throw new Error("Missing callbackUrl or serviceId from Bhashini");
+
+    // Step B: Inference Compute
+    const computeRes = await fetch(callbackUrl, {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        "Authorization": authHeader,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        pipelineTasks: [{
+          taskType: "asr",
+          config: {
+            language: { sourceLanguage: bhashiniLang },
+            serviceId: serviceId,
+            audioFormat: "wav",
+            samplingRate: 16000
+          }
+        }],
+        inputData: {
+          audio: [{ audioContent: audioBase64 }]
+        }
+      })
+    });
+
+    if (!computeRes.ok) throw new Error(`Bhashini Compute error HTTP ${computeRes.status}`);
+    const computeData = await computeRes.json();
+    return computeData.pipelineResponse?.[0]?.output?.[0]?.source || "";
+
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// ── Groq Whisper Fallback with Ayurvedic Domain Bias ──
+async function callGroqWhisper(audioBase64, language, env) {
+  const binaryString = atob(audioBase64);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  const audioBlob = new Blob([bytes], { type: "audio/wav" });
+
+  const formData = new FormData();
+  formData.append("file", audioBlob, "patient_intake.wav");
+  formData.append("model", "whisper-large-v3");
+  if (language && language !== "auto" && language !== "sa") {
+    formData.append("language", language);
+  } else if (language === "sa") {
+    formData.append("language", "hi");
+  }
+  formData.append("prompt", "Ayurvedic clinical intake: Vata, Pitta, Kapha, Agni, Koshtha, Triphala, Ashwagandha, Dashamula, Kwatha, Churna, Bhasma, Paracetamol, Metformin, chest pain, fever, duration.");
+
+  const res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${env.GROQ_API_KEY}` },
+    body: formData
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Groq Whisper error: ${errorText}`);
+  }
+
+  const groqJson = await res.json();
+  return groqJson.text || "";
+}
+
+// ── Gemini 1.5 Flash Medical Entity & Translation Normalizer ──
+async function processWithGemini(transcript, language, env) {
+  const prompt = `
+    You are an expert bilingual clinical scribe for Indian OPDs (Modern Medicine and Ayurveda/AYUSH).
+    Source Language: ${language}
+    Patient Speech: "${transcript}"
+
+    Instructions:
+    1. Translate the patient's conversational narrative into professional clinical English suitable for a doctor's SOAP note.
+    2. MANDATORY TERM PRESERVATION:
+       - DO NOT translate generic drug names or Ayurvedic botanical/compound names (e.g., keep "Triphala", "Ashwagandha", "Dashamularishta", "Metformin", "Paracetamol" verbatim).
+       - DO NOT translate classical Ayurvedic terms (e.g., keep "Vata", "Pitta", "Kapha", "Agni", "Koshtha").
+    3. Determine triage urgency:
+       - 'RED_FLAG': acute radiating chest pain, severe dyspnea, acute neurological deficit, severe trauma.
+       - 'URGENT': high fever, unmanageable acute pain, severe vomiting.
+       - 'ROUTINE': mild chronic complaints, regular refill, mild dermatitis.
+
+    Return STRICTLY a JSON object matching this schema:
+    {
+      "clinical_english_summary": "string",
+      "chief_complaint": "string",
+      "duration": "string",
+      "associated_symptoms": ["string"],
+      "medications_detected": ["string"],
+      "ayush_parameters": {
+        "dosha_imbalance": "string or null",
+        "agni_status": "string or null"
+      },
+      "triage_urgency": "RED_FLAG" | "URGENT" | "ROUTINE",
+      "triage_reason": "string"
+    }
+  `;
+
+  const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${env.GEMINI_API_KEY}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { response_mime_type: "application/json" }
+    })
+  });
+
+  if (!geminiRes.ok) {
+    const errText = await geminiRes.text();
+    throw new Error(`Gemini API HTTP ${geminiRes.status}: ${errText}`);
+  }
+
+  const geminiJson = await geminiRes.json();
+  const rawText = geminiJson.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!rawText) throw new Error("Empty response from Gemini 1.5 Flash");
+
+  return JSON.parse(rawText);
+}
+
+// ── Resilient Domain Rule-Based Fallback Engine ──
+function executeClinicalFallbackEngine(transcript, _lang) {
+  const text = (transcript || "").toLowerCase();
 
   let triage_urgency = "ROUTINE";
   let triage_reason = "Stable vitals and chronic symptom presentation without acute red-flag alerts.";
   let dosha_imbalance = null;
   let agni_status = null;
-  let medications_mentioned = [];
+  let medications_detected = [];
   let associated_symptoms = [];
   let chief_complaint = "General health evaluation";
   let duration = "3-4 days";
-  let translated_clinical_english = "";
+  let clinical_english_summary = "";
 
-  // Cardiac / Respiratory Red Flag Detection
-  if (text.includes('chhati') || text.includes('chest') || text.includes('dhadkan') || text.includes('jalan') || text.includes('dard') || text.includes('breath') || text.includes('saans')) {
-    if (text.includes('chhati') || text.includes('chest')) {
-      chief_complaint = "Retrosternal pyrosis and acute chest discomfort with radiating burning sensation";
-      duration = "2 days, worsening post-prandially";
-      associated_symptoms = ["Retrosternal burning / Pyrosis", "Epigastric fullness", "Diaphoresis", "Mild exertional dyspnea"];
-      medications_mentioned = ["Metformin 500mg", "Pantoprazole 40mg", "Amlodipine 5mg"];
-      dosha_imbalance = "Pitta-Vata aggravation with Amlapitta manifestation";
-      agni_status = "Tikshnagni (hyperactive digestive state)";
-      triage_urgency = "RED_FLAG";
-      triage_reason = "Acute chest discomfort / retrosternal burning in a diabetic patient on Metformin warrants immediate ECG and cardiac biomarker evaluation.";
-      translated_clinical_english = "Patient presents with a 2-day history of acute retrosternal burning (pyrosis) and chest heaviness radiating to epigastrium. Patient has preexisting Type 2 Diabetes Mellitus maintained on Metformin and hypertension on Amlodipine. Symptoms exacerbate after meals. Denies syncope but reports mild exertion intolerance.";
-    }
-  } 
-  // Ayurvedic Gastrointestinal / Mandagni Case (Kannada / Hindi / Sanskrit)
-  else if (text.includes('pet') || text.includes('koshtha') || text.includes('triphala') || text.includes('kabz') || text.includes('constipation') || text.includes('agni') || text.includes('otta')) {
+  // Red Flag / Cardiac / Severe Respiratory presentation
+  if (
+    text.includes('chhati') || text.includes('chest') || text.includes('dhadkan') || text.includes('jalan') || text.includes('dard') || text.includes('breath') || text.includes('saans') || text.includes('हृदय') ||
+    text.includes('छाती') || text.includes('जलन') || text.includes('मेटफॉर्मिन') || text.includes('पेंटोप्रजोल') || text.includes('भारीपन') || text.includes('दाहः') || text.includes('நெஞ்சு') || text.includes('గుండె')
+  ) {
+    chief_complaint = "Retrosternal pyrosis and acute chest discomfort with radiating burning sensation";
+    duration = "2 days, worsening post-prandially";
+    associated_symptoms = ["Retrosternal burning / Pyrosis", "Epigastric fullness", "Diaphoresis", "Mild exertional dyspnea"];
+    medications_detected = ["Metformin 500mg", "Pantoprazole 40mg", "Amlodipine 5mg"];
+    dosha_imbalance = "Pitta-Vata aggravation with Amlapitta manifestation";
+    agni_status = "Tikshnagni (hyperactive digestive state)";
+    triage_urgency = "RED_FLAG";
+    triage_reason = "Acute chest discomfort / retrosternal burning in a diabetic patient on Metformin warrants immediate ECG and cardiac biomarker evaluation.";
+    clinical_english_summary = "Patient presents with a 2-day history of acute retrosternal burning (pyrosis) and chest heaviness radiating to epigastrium. Patient has preexisting Type 2 Diabetes Mellitus maintained on Metformin and hypertension on Amlodipine. Symptoms exacerbate after meals. Denies syncope but reports mild exertion intolerance.";
+  }
+  // Ayurvedic Gastrointestinal / Mandagni / Constipation
+  else if (
+    text.includes('pet') || text.includes('koshtha') || text.includes('triphala') || text.includes('kabz') || text.includes('constipation') || text.includes('agni') || text.includes('otta') ||
+    text.includes('ಹೊಟ್ಟೆ') || text.includes('ಮಲಬದ್ಧತೆ') || text.includes('ತ್ರಿಫಲಾ') || text.includes('ಮಂದಾಗ್ನಿ') || text.includes('मन्दाग्नि') || text.includes('कब्ज') || text.includes('पोट') || text.includes('വയറ്') || text.includes('మలబద్ధకం')
+  ) {
     chief_complaint = "Chronic constipation (Krura Koshtha) with sluggish digestion and abdominal distension";
     duration = "3 weeks";
     associated_symptoms = ["Krura Koshtha (hard stools)", "Abdominal bloating / Anaha", "Mandagni (impaired digestive fire)", "Loss of appetite / Aruchi"];
-    medications_mentioned = ["Triphala Churna 5g HS", "Abhayarishta", "Isabgol husk"];
+    medications_detected = ["Triphala Churna 5g HS", "Abhayarishta", "Isabgol husk"];
     dosha_imbalance = "Apana Vata stagnation with Sama Pitta";
     agni_status = "Mandagni (hypoactive digestive fire)";
     triage_urgency = "ROUTINE";
     triage_reason = "Subacute gastrointestinal dysmotility responsive to Ayurvedic bowel regulation; no signs of acute obstruction.";
-    translated_clinical_english = "Patient reports persistent irregular bowel movements and Krura Koshtha for 3 weeks with post-meal bloating and Mandagni. Currently taking Triphala Churna at bedtime with lukewarm water with partial relief. Advised dietary fiber enhancement, hydration, and physician evaluation for gut motility optimization.";
+    clinical_english_summary = "Patient reports persistent irregular bowel movements and Krura Koshtha for 3 weeks with post-meal bloating and Mandagni. Currently taking Triphala Churna at bedtime with lukewarm water with partial relief. Advised dietary fiber enhancement, hydration, and physician evaluation for gut motility optimization.";
   }
-  // Musculoskeletal / Sandhivata Case (Tamil / Marathi / Telugu)
-  else if (text.includes('ghutne') || text.includes('dard') || text.includes('joint') || text.includes('sandhi') || text.includes('ashwagandha') || text.includes('vata') || text.includes('vali')) {
+  // Musculoskeletal / Sandhivata / Joint Pain
+  else if (
+    text.includes('ghutne') || text.includes('dard') || text.includes('joint') || text.includes('sandhi') || text.includes('ashwagandha') || text.includes('vata') || text.includes('vali') ||
+    text.includes('மூட்டு') || text.includes('முழங்கால்') || text.includes('வாத') || text.includes('அஸ்வகந்தா') || text.includes('మోకాలు') || text.includes('మోకాళ్ళ') || text.includes('ಸಂಧಿ') || text.includes('अश्वगन्धा')
+  ) {
     chief_complaint = "Bilateral knee joint pain and morning stiffness (Sandhivata / Osteoarthritis)";
     duration = "1 month";
     associated_symptoms = ["Crepitus in bilateral knee joints", "Early morning stiffness < 30 mins", "Sandhishoola (joint pain on weight-bearing)", "Mild peripheral swelling"];
-    medications_mentioned = ["Ashwagandha Churna 3g BD", "Dashamularishta", "Paracetamol 650mg SOS"];
+    medications_detected = ["Ashwagandha Churna 3g BD", "Dashamularishta", "Paracetamol 650mg SOS"];
     dosha_imbalance = "Vata aggravation localized in Sandhi (joints)";
     agni_status = "Vishamagni (variable digestive fire)";
     triage_urgency = "URGENT";
     triage_reason = "Progressive joint pain impairing ambulation; requires clinical orthopedic evaluation and joint mobility assessment.";
-    translated_clinical_english = "Elderly patient reports progressive bilateral knee pain (Sandhishoola) aggravated on stair climbing and prolonged standing for 1 month. Self-administering Ashwagandha Churna and Dashamularishta with occasional Paracetamol. No fever or erythema noted.";
+    clinical_english_summary = "Elderly patient reports progressive bilateral knee pain (Sandhishoola) aggravated on stair climbing and prolonged standing for 1 month. Self-administering Ashwagandha Churna and Dashamularishta with occasional Paracetamol. No fever or erythema noted.";
   }
-  // General / Fever / Respiratory
+  // General pyrexia / viral malaise
   else {
     chief_complaint = "Low-grade pyrexia with malaise and myalgia";
     duration = "4 days";
     associated_symptoms = ["Body aches / Angamarda", "Mild non-productive cough", "Fatigue"];
-    medications_mentioned = ["Paracetamol 650mg", "Sudarshana Ghanvati", "Tulsi Kwatha"];
+    medications_detected = ["Paracetamol 650mg", "Sudarshana Ghanvati", "Tulsi Kwatha"];
     dosha_imbalance = "Vata-Kapha Jvara presentation";
     agni_status = "Mandagni secondary to acute febrile illness";
     triage_urgency = "ROUTINE";
     triage_reason = "Uncomplicated low-grade viral febrile illness with stable hemodynamics.";
-    translated_clinical_english = "Patient reports a 4-day history of intermittent low-grade fever associated with generalized body aches and fatigue. Taking Paracetamol and Tulsi Kwatha with temporary symptom relief. No dyspnea, rash, or focal neurological deficits.";
+    clinical_english_summary = "Patient reports a 4-day history of intermittent low-grade fever associated with generalized body aches and fatigue. Taking Paracetamol and Tulsi Kwatha with temporary symptom relief. No dyspnea, rash, or focal neurological deficits.";
   }
 
   return {
-    detected_language,
-    original_transcript: transcript,
-    translated_clinical_english,
+    clinical_english_summary,
+    translated_clinical_english: clinical_english_summary,
     chief_complaint,
     duration,
     associated_symptoms,
-    medications_mentioned,
+    medications_detected,
+    medications_mentioned: medications_detected,
+    ayush_parameters: {
+      dosha_imbalance,
+      agni_status
+    },
     ayurvedic_factors: {
       dosha_imbalance,
       agni_status
@@ -283,4 +448,18 @@ function generateFallbackTranscript(lang) {
     default:
       return "Patient reports retrosternal burning and epigastric discomfort for 2 days. Currently taking Metformin and Pantoprazole.";
   }
+}
+
+function getLanguageDisplayName(lang) {
+  const map = {
+    hi: "Hindi",
+    kn: "Kannada",
+    ta: "Tamil",
+    te: "Telugu",
+    mr: "Marathi",
+    bn: "Bengali",
+    sa: "Sanskrit",
+    en: "English"
+  };
+  return map[lang] || lang;
 }
