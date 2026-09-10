@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Mic,
   MicOff,
@@ -19,8 +19,7 @@ import {
   ChevronRight,
   FileText,
   Lock,
-  X,
-  HelpCircle
+  X
 } from 'lucide-react';
 import { VOICE_LANGUAGES } from '../translations.js';
 import { addClinicalRecord } from '../services/clinicalRecordsService.js';
@@ -97,21 +96,21 @@ export default function VoiceIntake({
     }
   }, [userLanguage]);
 
-  // Clean up Web Audio and Timer on unmount
-  useEffect(() => {
-    return () => {
-      stopRecordingCleanup();
-    };
-  }, []);
-
-  const stopRecordingCleanup = () => {
+  function stopRecordingCleanup() {
     if (timerRef.current) clearInterval(timerRef.current);
     if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
     if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
       audioContextRef.current.close().catch(() => {});
     }
     setAudioLevel(0);
-  };
+  }
+
+  // Clean up Web Audio and Timer on unmount
+  useEffect(() => {
+    return () => {
+      stopRecordingCleanup();
+    };
+  }, []);
 
   // ── Handle Mic Click: Check Permission First or Open Modal ──
   const handleMicButtonClick = async () => {
