@@ -11,6 +11,7 @@ import Footer from './components/Footer.jsx';
 import RoleSelection from './components/RoleSelection.jsx';
 import DoctorPortal from './components/DoctorPortal.jsx';
 import DoctorLogin, { DEMO_DOCTOR_PROFILE } from './components/DoctorLogin.jsx';
+import MedicalIntro from './components/MedicalIntro.jsx';
 import { translations } from './translations.js';
 
 const ROLE_STORAGE_KEY = 'preconsult_user_role';
@@ -18,6 +19,7 @@ const LANGUAGE_STORAGE_KEY = 'preconsult_user_language';
 const MODE_STORAGE_KEY = 'preconsult_user_mode';
 const THEME_STORAGE_KEY = 'preconsult_color_theme';
 const DOCTOR_SESSION_KEY = 'preconsult_doctor_session';
+const INTRO_SEEN_KEY = 'preconsult_intro_seen';
 
 let toastIdCounter = 0;
 
@@ -25,12 +27,7 @@ function getInitialRole() {
   const hash = window.location.hash.toLowerCase();
   if (hash === '#/doctor' || hash === '#doctor') return 'doctor';
   if (hash === '#/patient' || hash === '#patient') return 'patient';
-  if (hash === '#/role-select' || hash === '#role-select') return 'role-select';
-  
-  const savedRole = localStorage.getItem(ROLE_STORAGE_KEY);
-  if (savedRole === 'doctor' || savedRole === 'patient') {
-    return savedRole;
-  }
+  // Default to Role Selection entry page on link open / root URL
   return 'role-select';
 }
 
@@ -72,6 +69,10 @@ export default function App() {
       return null;
     }
   });
+
+  const [showMedicalIntro, setShowMedicalIntro] = useState(() => (
+    window.location.hash === '' && !localStorage.getItem(INTRO_SEEN_KEY)
+  ));
 
   // Theme sweep bar
   const [sweepState, setSweepState] = useState({ active: false, targetTheme: 'light' });
@@ -209,6 +210,25 @@ export default function App() {
 
   const isElderly = userMode === 'elderly';
   const t = translations[userLanguage] || translations.en;
+
+  const enterFromIntro = (role) => {
+    localStorage.setItem(INTRO_SEEN_KEY, 'true');
+    setShowMedicalIntro(false);
+    navigateToRole(role);
+  };
+
+  if (showMedicalIntro) {
+    return (
+      <MedicalIntro
+        onEnterPatient={() => enterFromIntro('patient')}
+        onEnterDoctor={() => enterFromIntro('doctor')}
+        onSkip={() => {
+          localStorage.setItem(INTRO_SEEN_KEY, 'true');
+          setShowMedicalIntro(false);
+        }}
+      />
+    );
+  }
 
   // ── Render Role Gate View ──
   if (currentRole === 'role-select') {
