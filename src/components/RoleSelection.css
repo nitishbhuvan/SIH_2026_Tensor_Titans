@@ -129,10 +129,10 @@
   width: 100%;
 }
 
-@media (max-width: 580px) {
+@media (max-width: 720px) {
   .rs-cards-grid {
     grid-template-columns: 1fr;
-    max-width: 400px;
+    max-width: 460px;
   }
 }
 
@@ -193,6 +193,15 @@
   border-color: #5A7048;
 }
 
+/* AYUSETU card */
+.rs-role-card.role-ayusetu {
+  border-top: 3px solid #16A34A;
+}
+
+.rs-role-card.role-ayusetu:hover {
+  border-color: #15803D;
+}
+
 /* Icon */
 .rs-card-icon-wrap {
   width: clamp(44px, 10vw, 56px);
@@ -217,6 +226,11 @@
 .rs-role-card.role-doctor .rs-card-icon-wrap {
   background: var(--accent-success-bg);
   color: var(--accent-success);
+}
+
+.rs-role-card.role-ayusetu .rs-card-icon-wrap {
+  background: #DCFCE7;
+  color: #166534;
 }
 
 /* Title */
@@ -276,6 +290,10 @@
   background: var(--accent-success);
 }
 
+.rs-role-card.role-ayusetu .rs-feature-dot {
+  background: #16A34A;
+}
+
 /* CTA Button */
 .rs-card-cta {
   display: inline-flex;
@@ -311,6 +329,15 @@
 
 .rs-role-card.role-doctor .rs-card-cta:hover {
   background: #5A7048;
+}
+
+.rs-role-card.role-ayusetu .rs-card-cta {
+  background: #16A34A;
+  color: #FFFFFF;
+}
+
+.rs-role-card.role-ayusetu .rs-card-cta:hover {
+  background: #15803D;
 }
 
 /* Footer note */

@@ -128,6 +128,18 @@ body.mode-elderly .hero-subtitle {
   touch-action: manipulation;
 }
 
+.hero-cta-ayusetu {
+  background: #16A34A;
+  color: #ffffff;
+  border-color: #15803D;
+  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.25);
+}
+
+.hero-cta-ayusetu:hover {
+  background: #15803D;
+  color: #ffffff;
+}
+
 .hero-cta-voice {
   background: var(--accent-primary-dark);
   color: #ffffff;
