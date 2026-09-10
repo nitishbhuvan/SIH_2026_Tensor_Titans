@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Accessibility, User } from 'lucide-react';
 import { SUPPORTED_LANGUAGES, translations } from '../translations.js';
+import nidanLogo from '../assets/NIDAN_logo.png';
 import './ModeSelectionModal.css';
 
 export default function ModeSelectionModal({
@@ -59,6 +60,11 @@ export default function ModeSelectionModal({
       <div className="modal-box">
         {/* Header Strip */}
         <div className="modal-header-strip">
+          <div className="modal-header-brand">
+            <img src={nidanLogo} alt="NIDAN Logo" className="modal-header-logo-img" />
+            <span className="modal-header-brand-name">NIDAN</span>
+          </div>
+
           <div className="modal-step-indicator" role="tablist" aria-label="Setup steps">
             <button
               type="button"

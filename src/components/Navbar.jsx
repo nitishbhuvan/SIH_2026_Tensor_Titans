@@ -2,6 +2,7 @@ import React from 'react';
 import { Globe, Accessibility, Zap, Stethoscope } from 'lucide-react';
 import ThemeToggle from './ThemeToggle.jsx';
 import { SUPPORTED_LANGUAGES, translations } from '../translations.js';
+import nidanLogo from '../assets/NIDAN_logo.png';
 import './Navbar.css';
 
 export default function Navbar({
@@ -21,7 +22,7 @@ export default function Navbar({
     <header className="navbar-wrapper">
       <div className="container-wide">
         <nav className="navbar-content" aria-label="Main navigation">
-          {/* Brand */}
+          {/* Brand with NIDAN Logo */}
           <a
             href="#"
             className="navbar-brand"
@@ -29,10 +30,13 @@ export default function Navbar({
               e.preventDefault();
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
-            aria-label="PreConsult — Go to top"
+            aria-label="NIDAN PreConsult — Go to top"
           >
-            <span className="brand-name">PreConsult</span>
-            <span className="brand-sublabel" aria-hidden="true">Digital Health Services</span>
+            <img src={nidanLogo} alt="NIDAN Logo" className="navbar-logo-img" />
+            <div className="navbar-brand-text">
+              <span className="brand-name">NIDAN</span>
+              <span className="brand-sublabel" aria-hidden="true">PreConsult • Clinical Triage</span>
+            </div>
           </a>
 
           {/* Actions */}

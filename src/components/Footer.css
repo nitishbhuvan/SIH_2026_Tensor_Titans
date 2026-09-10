@@ -1,44 +1,154 @@
 /* ============================================================================
-   FOOTER — Minimal institutional
+   FOOTER — Institutional, accessible & responsive
    ============================================================================ */
 
 .site-footer {
-  border-top: 1px solid var(--border-default);
-  padding: clamp(1rem, 3vw, 1.5rem) 0 calc(clamp(1rem, 3vw, 1.5rem) + var(--safe-bottom));
+  border-top: 1px solid var(--border-default, #e2e8f0);
+  background: var(--bg-surface, #f8fafc);
+  padding: clamp(1.25rem, 3vw, 1.85rem) 0 calc(clamp(1.25rem, 3vw, 1.85rem) + var(--safe-bottom, 0px));
   transition: border-color 0.3s ease, background-color 0.3s ease;
   margin-top: auto;
 }
 
-body.mode-elderly .site-footer {
-  padding: clamp(1.35rem, 3.5vw, 2rem) 0 calc(clamp(1.35rem, 3.5vw, 2rem) + var(--safe-bottom));
-  border-top-width: 2px;
+[data-theme='dark'] .site-footer,
+.theme-dark .site-footer {
+  background: var(--bg-surface, #0f172a);
 }
 
 .footer-inner {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.85rem;
   text-align: center;
 }
 
-.footer-meta {
-  font-family: var(--font-mono);
-  font-size: clamp(0.52rem, 1.2vw, 0.6rem);
+/* ================= NAV LINKS (TERMS, PRIVACY, GITHUB) ================= */
+.footer-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+}
+
+.footer-nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary, #475569);
+  font-size: clamp(0.78rem, 1.8vw, 0.85rem);
   font-weight: 500;
-  color: var(--text-muted);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.footer-nav-link:hover {
+  color: var(--primary, #0284c7);
+  background: var(--bg-card, rgba(0, 0, 0, 0.04));
+  border-color: var(--border-default, #cbd5e1);
+}
+
+.footer-link-icon {
+  flex-shrink: 0;
+  color: var(--text-muted, #64748b);
+  transition: color 0.15s ease;
+}
+
+.footer-nav-link:hover .footer-link-icon {
+  color: var(--primary, #0284c7);
+}
+
+.footer-ext-icon {
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.footer-nav-divider {
+  color: var(--text-muted, #94a3b8);
+  font-size: 0.75rem;
+  user-select: none;
+}
+
+/* ================= MEDICAL DISCLAIMER ================= */
+.footer-disclaimer {
+  max-width: 680px;
+  font-size: clamp(0.72rem, 1.5vw, 0.78rem);
+  color: var(--text-muted, #64748b);
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* ================= COPYRIGHT & META ================= */
+.footer-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.footer-meta {
+  font-family: var(--font-mono, monospace);
+  font-size: clamp(0.52rem, 1.2vw, 0.62rem);
+  font-weight: 600;
+  color: var(--text-muted, #94a3b8);
   letter-spacing: 0.08em;
 }
 
-body.mode-elderly .footer-meta {
-  font-size: clamp(0.62rem, 1.5vw, 0.7rem);
-}
-
 .footer-text {
-  font-size: clamp(0.78rem, 2vw, 0.85rem);
-  color: var(--text-secondary);
+  font-size: clamp(0.75rem, 1.8vw, 0.82rem);
+  color: var(--text-secondary, #64748b);
+  margin: 0;
 }
 
-body.mode-elderly .footer-text {
-  font-size: clamp(0.92rem, 2.5vw, 1.08rem);
+/* ================= ELDERLY ACCESSIBILITY MODE ================= */
+body.mode-elderly .site-footer,
+.site-footer.is-elderly {
+  padding: clamp(1.5rem, 4vw, 2.25rem) 0 calc(clamp(1.5rem, 4vw, 2.25rem) + var(--safe-bottom, 0px));
+  border-top-width: 2px;
+}
+
+body.mode-elderly .footer-nav-link,
+.site-footer.is-elderly .footer-nav-link {
+  font-size: clamp(0.95rem, 2.2vw, 1.05rem);
+  padding: 0.45rem 0.85rem;
+}
+
+body.mode-elderly .footer-disclaimer,
+.site-footer.is-elderly .footer-disclaimer {
+  font-size: clamp(0.85rem, 2vw, 0.95rem);
+  max-width: 760px;
+}
+
+body.mode-elderly .footer-meta,
+.site-footer.is-elderly .footer-meta {
+  font-size: clamp(0.65rem, 1.5vw, 0.75rem);
+}
+
+body.mode-elderly .footer-text,
+.site-footer.is-elderly .footer-text {
+  font-size: clamp(0.92rem, 2.4vw, 1.05rem);
+}
+
+/* ================= MOBILE ADJUSTMENTS ================= */
+@media (max-width: 540px) {
+  .footer-nav {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .footer-nav-divider {
+    display: none;
+  }
+
+  .footer-nav-link {
+    width: 100%;
+    max-width: 260px;
+    justify-content: center;
+  }
 }

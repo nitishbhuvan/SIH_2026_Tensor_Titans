@@ -118,12 +118,12 @@ body.mode-elderly .hero-subtitle {
   background: var(--btn-primary-bg);
   color: var(--btn-primary-text);
   border: 1px solid transparent;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-full);
   font-family: var(--font-body);
   font-size: var(--btn-font-size);
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.15s ease, transform 0.1s ease, border-color 0.15s ease;
+  transition: background-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
   min-height: 44px;
   touch-action: manipulation;
 }
