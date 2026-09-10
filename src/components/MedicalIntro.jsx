@@ -55,15 +55,7 @@ export default function MedicalIntro({ onEnterPatient, onEnterDoctor, onSkip }) 
       className="medical-intro"
       onMouseMove={() => !isHovered && setIsHovered(true)}
     >
-      {/* AYUSETU Mountain & Bridge Scenery Artwork Backdrop */}
-      <div className="medical-mountain-backdrop" aria-hidden="true">
-        <div className="mountain-scenery-artwork" />
-        <div className="mountain-scenery-radiance" />
-        <div className="mountain-scenery-overlay" />
-      </div>
-
       {/* Background Ambience & Perspective Grid */}
-      <div className="medical-intro-grid" aria-hidden="true" />
       <div className="medical-pulse-backdrop" aria-hidden="true">
         <HeartPulse className="background-heart-outline" size={440} strokeWidth={1.2} />
         <span className="background-heart-core" />
