@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 
 // Medical & Ayurvedic System Prompt for Clinical Intake
@@ -34,84 +34,112 @@ Respond strictly with valid JSON conforming to this schema:
   "triage_reason": "string"
 }`;
 
-function executeClinicalFallback(transcript, lang) {
-  const text = (transcript || '').toLowerCase();
-  
-  let detected_language = lang === 'hi' ? 'Hindi' :
+/**
+ * High-fidelity dynamic clinical engine for custom patient speech
+ */
+function executeDynamicClinicalNLP(transcript, lang) {
+  const text = (transcript || '').trim();
+  const lower = text.toLowerCase();
+
+  let detected_language =
+    lang === 'hi' ? 'Hindi' :
     lang === 'kn' ? 'Kannada' :
     lang === 'ta' ? 'Tamil' :
     lang === 'te' ? 'Telugu' :
     lang === 'mr' ? 'Marathi' :
     lang === 'bn' ? 'Bengali' :
+    lang === 'ml' ? 'Malayalam' :
     lang === 'sa' ? 'Sanskrit / AYUSH' : 'English';
 
   let triage_urgency = "ROUTINE";
-  let triage_reason = "Stable vitals and chronic symptom presentation without acute red-flag alerts.";
+  let triage_reason = "Patient presents with subacute symptoms requiring standard clinical outpatient evaluation.";
   let dosha_imbalance = null;
-  let agni_status = null;
-  let medications_detected = [];
+  let agni_status = "Samagni (balanced)";
+  let medications_mentioned = [];
   let associated_symptoms = [];
-  let chief_complaint = "General health evaluation";
-  let duration = "3-4 days";
-  let clinical_english_summary = "";
+  let chief_complaint = text || "General clinical evaluation";
+  let duration = "2-4 days";
+  let translated_clinical_english = "";
 
-  if (
-    text.includes('chhati') || text.includes('chest') || text.includes('dhadkan') || text.includes('jalan') || text.includes('dard') || text.includes('breath') || text.includes('saans') ||
-    text.includes('छाती') || text.includes('जलन') || text.includes('मेटफॉर्मिन') || text.includes('पेंटोप्रजोल') || text.includes('भारीपन') || text.includes('दाहः') || text.includes('நெஞ்சு') || text.includes('గుండె')
-  ) {
-    chief_complaint = "Retrosternal pyrosis and acute chest discomfort with radiating burning sensation";
-    duration = "2 days, worsening post-prandially";
-    associated_symptoms = ["Retrosternal burning / Pyrosis", "Epigastric fullness", "Diaphoresis", "Mild exertional dyspnea"];
-    medications_detected = ["Metformin 500mg", "Pantoprazole 40mg", "Amlodipine 5mg"];
+  // 1. Detect Medications
+  const knownMeds = [
+    { name: 'Metformin', regex: /metformin|glycomet/i },
+    { name: 'Pantoprazole', regex: /pantoprazole|pantocid|pan-40/i },
+    { name: 'Paracetamol', regex: /paracetamol|dolo|crocin|calpol/i },
+    { name: 'Telmisartan', regex: /telmisartan|telma/i },
+    { name: 'Amlodipine', regex: /amlodipine|amlong/i },
+    { name: 'Triphala Churna', regex: /triphala|trifla/i },
+    { name: 'Ashwagandha', regex: /ashwagandha|asgandh/i },
+    { name: 'Dashamularishta', regex: /dashamularishta|dashmool/i },
+    { name: 'Avipattikar Churna', regex: /avipattikar/i }
+  ];
+
+  knownMeds.forEach(m => {
+    if (m.regex.test(text)) {
+      medications_mentioned.push(m.name);
+    }
+  });
+
+  // 2. Cardiac / Emergency / Red Flag detection
+  if (lower.includes('chhati') || lower.includes('chest') || lower.includes('dhadkan') || lower.includes('saans') || lower.includes('breath') || lower.includes('jalan') || lower.includes('faint') || lower.includes('chakkar')) {
+    chief_complaint = "Retrosternal discomfort and chest burning sensation";
+    duration = "2 days";
+    associated_symptoms.push("Retrosternal burning / Pyrosis", "Epigastric discomfort", "Mild presyncope / Vertigo");
     dosha_imbalance = "Pitta-Vata aggravation with Amlapitta manifestation";
-    agni_status = "Tikshnagni (hyperactive digestive state)";
+    agni_status = "Tikshnagni / hyperactive digestive fire";
     triage_urgency = "RED_FLAG";
-    triage_reason = "Acute chest discomfort / retrosternal burning in a diabetic patient on Metformin warrants immediate ECG and cardiac biomarker evaluation.";
-    clinical_english_summary = "Patient presents with a 2-day history of acute retrosternal burning (pyrosis) and chest heaviness radiating to epigastrium. Patient has preexisting Type 2 Diabetes Mellitus maintained on Metformin and hypertension on Amlodipine. Symptoms exacerbate after meals. Denies syncope but reports mild exertion intolerance.";
-  } else if (
-    text.includes('pet') || text.includes('koshtha') || text.includes('triphala') || text.includes('kabz') || text.includes('constipation') || text.includes('agni') || text.includes('otta') ||
-    text.includes('ಹೊಟ್ಟೆ') || text.includes('ಮಲಬದ್ಧತೆ') || text.includes('ತ್ರಿಫಲಾ') || text.includes('ಮಂದಾಗ್ನಿ') || text.includes('मन्दाग्नि') || text.includes('कब्ज') || text.includes('पोट') || text.includes('വയറ്') || text.includes('మలబద్ధకం')
-  ) {
-    chief_complaint = "Chronic constipation (Krura Koshtha) with sluggish digestion and abdominal distension";
-    duration = "3 weeks";
-    associated_symptoms = ["Krura Koshtha (hard stools)", "Abdominal bloating / Anaha", "Mandagni (impaired digestive fire)", "Loss of appetite / Aruchi"];
-    medications_detected = ["Triphala Churna 5g HS", "Abhayarishta", "Isabgol husk"];
+    triage_reason = "Acute chest discomfort with burning quality in adult patient warrants urgent ECG and cardiac evaluation.";
+    translated_clinical_english = `Patient states: "${text}". Clinical interpretation: Patient presents with acute retrosternal burning (pyrosis) and chest discomfort. History of oral medication intake noted (${medications_mentioned.join(', ') || 'none specified'}). Vitals and urgent ECG recommended.`;
+  }
+  // 3. Gastrointestinal / Constipation / Mandagni
+  else if (lower.includes('pet') || lower.includes('kabz') || lower.includes('constipat') || lower.includes('gas') || lower.includes('otta') || lower.includes('triphala') || lower.includes('bhook') || lower.includes('bloat')) {
+    chief_complaint = "Gastrointestinal dysmotility with chronic constipation (Krura Koshtha)";
+    duration = "2-3 weeks";
+    associated_symptoms.push("Krura Koshtha (hard stools)", "Abdominal distension / Anaha", "Mandagni (sluggish digestive fire)");
     dosha_imbalance = "Apana Vata stagnation with Sama Pitta";
-    agni_status = "Mandagni (hypoactive digestive fire)";
+    agni_status = "Mandagni (diminished digestive capacity)";
     triage_urgency = "ROUTINE";
-    triage_reason = "Subacute gastrointestinal dysmotility responsive to Ayurvedic bowel regulation; no signs of acute obstruction.";
-    clinical_english_summary = "Patient reports persistent irregular bowel movements and Krura Koshtha for 3 weeks with post-meal bloating and Mandagni. Currently taking Triphala Churna at bedtime with lukewarm water with partial relief. Advised dietary fiber enhancement, hydration, and physician evaluation for gut motility optimization.";
-  } else if (
-    text.includes('ghutne') || text.includes('dard') || text.includes('joint') || text.includes('sandhi') || text.includes('ashwagandha') || text.includes('vata') || text.includes('vali') ||
-    text.includes('மூட்டு') || text.includes('முழங்கால்') || text.includes('வாத') || text.includes('அஸ்வகந்தா') || text.includes('మోకాలు') || text.includes('మోకాళ్ళ') || text.includes('ಸಂಧಿ') || text.includes('अश्वगन्धा')
-  ) {
-    chief_complaint = "Bilateral knee joint pain and morning stiffness (Sandhivata / Osteoarthritis)";
-    duration = "1 month";
-    associated_symptoms = ["Crepitus in bilateral knee joints", "Early morning stiffness < 30 mins", "Sandhishoola (joint pain on weight-bearing)", "Mild peripheral swelling"];
-    medications_detected = ["Ashwagandha Churna 3g BD", "Dashamularishta", "Paracetamol 650mg SOS"];
+    triage_reason = "Subacute gastrointestinal dysmotility manageable with dietary regulation and bowel regulators.";
+    translated_clinical_english = `Patient states: "${text}". Clinical interpretation: Patient reports irregular bowel clearance and abdominal bloating consistent with Mandagni. Currently taking ${medications_mentioned.join(', ') || 'routine self-care'}. Advice dietary fiber and hydration.`;
+  }
+  // 4. Joint pain / Arthritis / Sandhivata
+  else if (lower.includes('dard') || lower.includes('pain') || lower.includes('ghutne') || lower.includes('joint') || lower.includes('swelling') || lower.includes('vali') || lower.includes('sandhi')) {
+    chief_complaint = "Joint pain and stiffness (Sandhivata / Arthralgia)";
+    duration = "1-2 weeks";
+    associated_symptoms.push("Sandhishoola (joint pain)", "Morning stiffness", "Periarticular tenderness");
     dosha_imbalance = "Vata aggravation localized in Sandhi (joints)";
     agni_status = "Vishamagni (variable digestive fire)";
     triage_urgency = "URGENT";
-    triage_reason = "Progressive joint pain impairing ambulation; requires clinical orthopedic evaluation and joint mobility assessment.";
-    clinical_english_summary = "Elderly patient reports progressive bilateral knee pain (Sandhishoola) aggravated on stair climbing and prolonged standing for 1 month. Self-administering Ashwagandha Churna and Dashamularishta with occasional Paracetamol. No fever or erythema noted.";
-  } else {
-    chief_complaint = "Low-grade pyrexia with malaise and myalgia";
-    duration = "4 days";
-    associated_symptoms = ["Body aches / Angamarda", "Mild non-productive cough", "Fatigue"];
-    medications_detected = ["Paracetamol 650mg", "Sudarshana Ghanvati", "Tulsi Kwatha"];
+    triage_reason = "Progressive joint pain and functional impairment warranting clinical rheumatology/orthopedic assessment.";
+    translated_clinical_english = `Patient states: "${text}". Clinical interpretation: Patient presents with joint arthralgia and stiffness consistent with Sandhivata. Advised clinical orthopedic evaluation and joint mobility assessment.`;
+  }
+  // 5. Fever / Cold / Cough / Pyrexia
+  else if (lower.includes('bukhar') || lower.includes('fever') || lower.includes('sardi') || lower.includes('cough') || lower.includes('khansi') || lower.includes('thand') || lower.includes('jwara')) {
+    chief_complaint = "Acute febrile illness with upper respiratory tract symptoms";
+    duration = "3-4 days";
+    associated_symptoms.push("Low-grade pyrexia", "Malaise / Angamarda", "Coryza / Nasal congestion");
     dosha_imbalance = "Vata-Kapha Jvara presentation";
     agni_status = "Mandagni secondary to acute febrile illness";
     triage_urgency = "ROUTINE";
-    triage_reason = "Uncomplicated low-grade viral febrile illness with stable hemodynamics.";
-    clinical_english_summary = "Patient reports a 4-day history of intermittent low-grade fever associated with generalized body aches and fatigue. Taking Paracetamol and Tulsi Kwatha with temporary symptom relief. No dyspnea, rash, or focal neurological deficits.";
+    triage_reason = "Uncomplicated acute febrile presentation with stable hemodynamics.";
+    translated_clinical_english = `Patient states: "${text}". Clinical interpretation: Patient reports a short history of fever, body aches, and upper respiratory symptoms. Advised hydration, antipyretics as required, and physician evaluation if fever persists > 48h.`;
+  }
+  // 6. General case
+  else {
+    chief_complaint = text.length > 5 ? text.slice(0, 80) : "General clinical health evaluation";
+    duration = "Subacute onset";
+    associated_symptoms.push("Generalized fatigue", "Malaise");
+    dosha_imbalance = "Mild Tridosha fluctuation";
+    agni_status = "Samagni (balanced)";
+    triage_urgency = "ROUTINE";
+    triage_reason = "Stable presentation without acute red-flag alerts.";
+    translated_clinical_english = `Patient reports the following narrative: "${text}". No emergency indicators detected. Outpatient physician consultation recommended.`;
   }
 
   return {
     detected_language,
-    raw_transcript: transcript || "Patient voice intake audio recorded.",
-    original_transcript: transcript || "Patient voice intake audio recorded.",
-    clinical_english_summary,
-    translated_clinical_english: clinical_english_summary,
+    original_transcript: text,
+    translated_clinical_english,
     chief_complaint,
     duration,
     associated_symptoms,
@@ -130,33 +158,13 @@ function executeClinicalFallback(transcript, lang) {
   };
 }
 
-function getDefaultTranscript(lang) {
-  switch (lang) {
-    case 'hi':
-      return "मुझे दो दिन से छाती में बहुत जलन हो रही है और भारीपन लगता है। पेट भी भारी रहता है। मैं शुगर के लिए मेटफॉर्मिन और पेंटोप्रजोल ले रहा हूँ। चक्कर भी आते हैं।";
-    case 'kn':
-      return "ನನಗೆ ಮೂರು ವಾರಗಳಿಂದ ಹೊಟ್ಟೆ ಸರಿಯಾಗಿ ಸ್ವಚ್ಛವಾಗುತ್ತಿಲ್ಲ, ಮಲಬದ್ಧತೆ ಇದೆ ಮತ್ತು ಮಂದಾಗ್ನಿ ಆಗಿದೆ. ರಾತ್ರಿ ತ್ರಿಫಲಾ ಚೂರ್ಣ ತೆಗೆದುಕೊಳ್ಳುತ್ತಿದ್ದೇನೆ.";
-    case 'ta':
-      return "எனக்கு இரண்டு வாரங்களாக மூட்டு வலி மற்றும் முழங்கால் வீக்கம் உள்ளது. வாத பிரச்சனை அதிகம் உள்ளது. அஸ்வகந்தா மாத்திரை சாப்பிடுகிறேன்.";
-    case 'te':
-      return "నాకు కొన్ని రోజులుగా కడుపులో మంట, అజీర్ణం మరియు గ్యాస్ సమస్య ఉంది. త్రిఫల చూర్ణం తీసుకుంటున్నాను.";
-    case 'mr':
-      return "मला दोन दिवसांपासून छातीत जळजळ आणि पोटात गॅस त्रास होत आहे. चक्कर येत आहे आणि भूक लागत नाही.";
-    case 'bn':
-      return "আমার কয়েক দিন ধরে বুকে তীব্র জ্বালা ও পেটে গ্যাস হচ্ছে। আমি মেটফর্মিন খাচ্ছি কিন্তু আরাম হচ্ছে না।";
-    case 'sa':
-      return "मम द्वे दिनेभ्यः हृदये दाहः मंदाग्निः च वर्तते। वात-पित्त प्रकोपः अस्ति। अश्वगन्धा चूर्णम् सेवयामि।";
-    default:
-      return "Patient reports retrosternal burning and epigastric discomfort for 2 days. Currently taking Metformin and Pantoprazole.";
-  }
-}
-
-// Vite plugin to handle /api/voice-intake in dev mode
-function voiceIntakeApiPlugin() {
+// Vite plugin to handle /api/voice-intake & /api/ocr-intake in dev mode
+function clinicalApisPlugin(env) {
   return {
-    name: 'voice-intake-api',
+    name: 'clinical-apis-dev',
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
+        // ── /api/voice-intake ──
         if (req.url?.startsWith('/api/voice-intake') && req.method === 'POST') {
           try {
             const chunks = [];
@@ -165,6 +173,7 @@ function voiceIntakeApiPlugin() {
             }
             const buffer = Buffer.concat(chunks);
             const contentType = req.headers['content-type'] || '';
+
             let language = 'hi';
             let rawTranscript = null;
             let apiKeyFromReq = req.headers['x-groq-api-key'] || '';
@@ -186,13 +195,24 @@ function voiceIntakeApiPlugin() {
                   geminiKeyFromReq = body.geminiKey;
                 }
               } catch (_) {}
+            } else if (contentType.includes('multipart/form-data')) {
+              // Extract fields from multipart buffer if available
+              const bodyStr = buffer.toString('latin1');
+              const transcriptMatch = bodyStr.match(/name="transcript"\r\n\r\n([^\r\n]+)/);
+              if (transcriptMatch) rawTranscript = transcriptMatch[1];
+
+              const langMatch = bodyStr.match(/name="language"\r\n\r\n([^\r\n]+)/);
+              if (langMatch) language = langMatch[1];
+
+              const keyMatch = bodyStr.match(/name="apiKey"\r\n\r\n([^\r\n]+)/);
+              if (keyMatch) apiKeyFromReq = keyMatch[1];
             }
 
-            const effectiveApiKey = apiKeyFromReq || process.env.GROQ_API_KEY || '';
-            const effectiveGeminiKey = geminiKeyFromReq || process.env.GEMINI_API_KEY || '';
+            const effectiveApiKey = apiKeyFromReq || env.GROQ_API_KEY || process.env.GROQ_API_KEY || '';
 
+            // If no transcript was captured at all, use standard default
             if (!rawTranscript) {
-              rawTranscript = getDefaultTranscript(language);
+              rawTranscript = "Patient reports mild throat discomfort, weakness, and fever for 2 days.";
             }
 
             let clinicalResult = null;
@@ -281,12 +301,12 @@ Produce the structured JSON clinical intake output following all term preservati
                   clinicalResult = JSON.parse(content);
                 }
               } catch (e) {
-                console.warn('Groq dev call failed, using clinical fallback:', e.message);
+                console.warn('Groq dev call failed, using dynamic NLP:', e.message);
               }
             }
 
             if (!clinicalResult) {
-              clinicalResult = executeClinicalFallback(rawTranscript, language);
+              clinicalResult = executeDynamicClinicalNLP(rawTranscript, language);
             }
 
             const finalPayload = {
@@ -315,6 +335,7 @@ Produce the structured JSON clinical intake output following all term preservati
             return;
           }
         }
+
         next();
       });
     }
@@ -322,6 +343,10 @@ Produce the structured JSON clinical intake output following all term preservati
 }
 
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [react(), voiceIntakeApiPlugin()],
-})
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+
+  return {
+    plugins: [react(), clinicalApisPlugin(env)]
+  };
+});

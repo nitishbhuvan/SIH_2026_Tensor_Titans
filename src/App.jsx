@@ -1,17 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { flushSync } from 'react-dom';
-import { Stethoscope, FileText, Phone } from 'lucide-react';
+import { Mic, FileText, Activity } from 'lucide-react';
 import Navbar from './components/Navbar.jsx';
 import ModeSelectionModal from './components/ModeSelectionModal.jsx';
 import LegalPage from './components/LegalPage.jsx';
 import Hero from './components/Hero.jsx';
 import VoiceIntake from './components/VoiceIntake.jsx';
-import ActionCard from './components/ActionCard.jsx';
+import MedicalOcr from './components/MedicalOcr.jsx';
 import ToastContainer from './components/Toast.jsx';
 import Footer from './components/Footer.jsx';
 import RoleSelection from './components/RoleSelection.jsx';
 import DoctorPortal from './components/DoctorPortal.jsx';
 import DoctorLogin, { DEMO_DOCTOR_PROFILE } from './components/DoctorLogin.jsx';
+import MedicalIntro from './components/MedicalIntro.jsx';
 import { translations } from './translations.js';
 
 const ROLE_STORAGE_KEY = 'preconsult_user_role';
@@ -19,6 +20,9 @@ const LANGUAGE_STORAGE_KEY = 'preconsult_user_language';
 const MODE_STORAGE_KEY = 'preconsult_user_mode';
 const THEME_STORAGE_KEY = 'preconsult_color_theme';
 const DOCTOR_SESSION_KEY = 'preconsult_doctor_session';
+const INTRO_SEEN_KEY = 'preconsult_intro_seen';
+
+const isIntroPreview = new URLSearchParams(window.location.search).get('intro') === '1';
 
 let toastIdCounter = 0;
 
@@ -28,18 +32,16 @@ function getInitialRole() {
   if (hash === '#/privacy' || hash === '#privacy') return 'privacy';
   if (hash === '#/doctor' || hash === '#doctor') return 'doctor';
   if (hash === '#/patient' || hash === '#patient') return 'patient';
-  if (hash === '#/role-select' || hash === '#role-select') return 'role-select';
-  
-  const savedRole = localStorage.getItem(ROLE_STORAGE_KEY);
-  if (savedRole === 'doctor' || savedRole === 'patient') {
-    return savedRole;
-  }
+  // Default to Role Selection entry page on link open / root URL
   return 'role-select';
 }
 
 export default function App() {
   // Current active view / role: 'role-select' | 'patient' | 'doctor' | 'terms' | 'privacy'
   const [currentRole, setCurrentRole] = useState(getInitialRole);
+
+  // Active intake module in Patient portal: 'voice' | 'ocr' | 'all'
+  const [activeIntakeModule, setActiveIntakeModule] = useState('voice');
 
   // Language Preference
   const [userLanguage, setUserLanguage] = useState(() => {
@@ -75,6 +77,10 @@ export default function App() {
       return null;
     }
   });
+
+  const [showMedicalIntro, setShowMedicalIntro] = useState(() => (
+    (window.location.hash === '' && !localStorage.getItem(INTRO_SEEN_KEY)) || isIntroPreview
+  ));
 
   // Theme sweep bar
   const [sweepState, setSweepState] = useState({ active: false, targetTheme: 'light' });
@@ -214,35 +220,43 @@ export default function App() {
   };
 
   const scrollToVoiceIntake = () => {
-    const el = document.getElementById('voice-intake-section');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    setActiveIntakeModule('voice');
+    setTimeout(() => {
+      const el = document.getElementById('voice-intake-section');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 50);
+  };
+
+  const scrollToOcrIntake = () => {
+    setActiveIntakeModule('ocr');
+    setTimeout(() => {
+      const el = document.getElementById('prescription-ocr-section');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 50);
   };
 
   const isElderly = userMode === 'elderly';
   const t = translations[userLanguage] || translations.en;
 
-  // ── Dedicated Standalone Full Page: Terms and Conditions ──
-  if (currentRole === 'terms') {
-    return (
-      <LegalPage
-        type="terms"
-        theme={theme}
-        onToggleTheme={handleToggleTheme}
-        onNavigate={navigateToRole}
-      />
-    );
-  }
+  const enterFromIntro = (role) => {
+    localStorage.setItem(INTRO_SEEN_KEY, 'true');
+    setShowMedicalIntro(false);
+    navigateToRole(role);
+  };
 
-  // ── Dedicated Standalone Full Page: Privacy Policy ──
-  if (currentRole === 'privacy') {
+  if (showMedicalIntro) {
     return (
-      <LegalPage
-        type="privacy"
-        theme={theme}
-        onToggleTheme={handleToggleTheme}
-        onNavigate={navigateToRole}
+      <MedicalIntro
+        onEnterPatient={() => enterFromIntro('patient')}
+        onEnterDoctor={() => enterFromIntro('doctor')}
+        onSkip={() => {
+          localStorage.setItem(INTRO_SEEN_KEY, 'true');
+          setShowMedicalIntro(false);
+        }}
       />
     );
   }
@@ -325,70 +339,55 @@ export default function App() {
             isElderly={isElderly}
             t={t}
             onVoiceIntake={scrollToVoiceIntake}
-            onFindDoctor={() => addToast(
-              isElderly
-                ? (t.cardDoctorDescElderly || 'Searching for doctors near you…')
-                : 'Searching for specialists in your area…',
-              'info'
-            )}
+            onOcrIntake={scrollToOcrIntake}
           />
 
-          {/* Multilingual Indic Voice Intake & Clinical Translation Section */}
-          <VoiceIntake
-            userLanguage={userLanguage}
-            isElderly={isElderly}
-            t={t}
-            onNotify={(msg, type) => addToast(msg, type)}
-          />
-
-          {/* Service Modules Grid */}
-          <div className="service-grid">
-            <ActionCard
-              icon={Stethoscope}
-              title={t.cardDoctorTitle}
-              description={isElderly ? t.cardDoctorDescElderly : t.cardDoctorDescModern}
-              buttonLabel={isElderly ? t.cardDoctorBtnElderly : t.cardDoctorBtnModern}
-              serviceId="SVC-001"
-              isElderly={isElderly}
-              onClick={() => addToast(
-                isElderly
-                  ? (t.cardDoctorDescElderly || 'Finding doctors…')
-                  : 'Loading specialist directory…',
-                'info'
-              )}
-            />
-
-            <ActionCard
-              icon={FileText}
-              title={t.cardRecordsTitle}
-              description={isElderly ? t.cardRecordsDescElderly : t.cardRecordsDescModern}
-              buttonLabel={isElderly ? t.cardRecordsBtnElderly : t.cardRecordsBtnModern}
-              serviceId="SVC-002"
-              isElderly={isElderly}
-              onClick={() => addToast(
-                isElderly
-                  ? (t.cardRecordsBtnElderly || 'Opening records…')
-                  : 'Loading health records…',
-                'success'
-              )}
-            />
-
-            <ActionCard
-              icon={Phone}
-              title={t.cardEmergencyTitle}
-              description={isElderly ? t.cardEmergencyDescElderly : t.cardEmergencyDescModern}
-              buttonLabel={isElderly ? t.cardEmergencyBtnElderly : t.cardEmergencyBtnModern}
-              variant="emergency"
-              serviceId="SVC-003"
-              isElderly={isElderly}
-              onClick={() => addToast(
-                isElderly
-                  ? (t.cardEmergencyBtnElderly || 'Contacting helpline…')
-                  : 'Connecting to emergency response…',
-                'warning'
-              )}
-            />
+          {/* Clinical Module Switcher */}
+          <div className="intake-module-switcher">
+            <button
+              type="button"
+              className={`module-switch-btn ${activeIntakeModule === 'voice' ? 'is-active' : ''}`}
+              onClick={() => setActiveIntakeModule('voice')}
+            >
+              <Mic size={18} />
+              <span>{isElderly ? 'माइक से लक्षण बताएं (Voice Intake)' : 'Multilingual Voice Intake'}</span>
+            </button>
+            <button
+              type="button"
+              className={`module-switch-btn ${activeIntakeModule === 'ocr' ? 'is-active' : ''}`}
+              onClick={() => setActiveIntakeModule('ocr')}
+            >
+              <FileText size={18} />
+              <span>{isElderly ? 'दवा पर्ची स्कैन करें (Prescription OCR)' : 'Prescription & Lab OCR Digitizer'}</span>
+            </button>
+            <button
+              type="button"
+              className={`module-switch-btn ${activeIntakeModule === 'all' ? 'is-active' : ''}`}
+              onClick={() => setActiveIntakeModule('all')}
+            >
+              <Activity size={18} />
+              <span>View All Clinical Tools</span>
+            </button>
           </div>
+
+          {/* Module 1: Multilingual Indic Voice Intake */}
+          {(activeIntakeModule === 'voice' || activeIntakeModule === 'all') && (
+            <VoiceIntake
+              userLanguage={userLanguage}
+              isElderly={isElderly}
+              t={t}
+              onNotify={(msg, type) => addToast(msg, type)}
+            />
+          )}
+
+          {/* Module 2: Medical Prescription & Lab Document OCR */}
+          {(activeIntakeModule === 'ocr' || activeIntakeModule === 'all') && (
+            <MedicalOcr
+              isElderly={isElderly}
+              t={t}
+              onNotify={(msg, type) => addToast(msg, type)}
+            />
+          )}
         </div>
       </main>
 

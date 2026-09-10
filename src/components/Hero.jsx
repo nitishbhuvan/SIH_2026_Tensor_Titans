@@ -1,8 +1,8 @@
 import React from 'react';
-import { ArrowRight, Mic } from 'lucide-react';
+import { Mic, FileText, Sparkles } from 'lucide-react';
 import './Hero.css';
 
-export default function Hero({ isElderly, t, onFindDoctor, onVoiceIntake }) {
+export default function Hero({ isElderly, t, onVoiceIntake, onOcrIntake }) {
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-GB', {
     day: '2-digit',
@@ -15,22 +15,24 @@ export default function Hero({ isElderly, t, onFindDoctor, onVoiceIntake }) {
       {/* Technical metadata strip */}
       <div className="hero-meta">
         <span className="hero-meta__label">
-          {'// CLINICAL OPD INTAKE & HEALTHCARE SERVICES'}
+          {'// NIDAN-AI CLINICAL INTAKE & TRIAGE SYSTEM'}
         </span>
         <span className="hero-meta__status">
           <span className="hero-status-dot" aria-hidden="true" />
-          SYSTEM OPERATIONAL
+          SYSTEM ONLINE • AYUSH & ALLOPATHIC READY
         </span>
       </div>
 
       {/* Hero Content */}
       <div className="hero-content">
         <h1 className="hero-title">
-          {isElderly ? t.heroTitleElderly : t.heroTitleModern}
+          {isElderly ? (t.heroTitleElderly || 'Welcome to PreConsult') : (t.heroTitleModern || 'Smart Healthcare Pre-Consultation')}
         </h1>
 
         <p className="hero-subtitle">
-          {isElderly ? t.heroSubElderly : t.heroSubModern}
+          {isElderly
+            ? (t.heroSubElderly || 'Doctor consultations made simple, comfortable, and easy to understand for everyone.')
+            : (t.heroSubModern || 'AI-assisted pre-consultation intake. Speak your symptoms naturally or upload medical prescriptions for instant clinical summarization.')}
         </p>
 
         <div className="hero-actions">
@@ -47,18 +49,19 @@ export default function Hero({ isElderly, t, onFindDoctor, onVoiceIntake }) {
           <button
             type="button"
             className="hero-cta hero-cta-secondary"
-            onClick={onFindDoctor}
+            onClick={onOcrIntake}
+            aria-label="Scan Prescription"
           >
-            {isElderly ? t.cardDoctorBtnElderly : t.cardDoctorBtnModern}
-            <ArrowRight size={isElderly ? 20 : 16} aria-hidden="true" />
+            <FileText size={isElderly ? 20 : 16} aria-hidden="true" />
+            <span>{isElderly ? 'दवा पर्ची स्कैन करें (Prescription OCR)' : 'Scan Prescription / Lab (OCR)'}</span>
           </button>
         </div>
       </div>
 
       {/* Bottom metadata */}
       <div className="hero-footer-meta">
-        <span>PRECONSULT / PATIENT SERVICES</span>
-        <span>LAST UPDATED {dateStr}</span>
+        <span>PRECONSULT CLINICAL SUITE</span>
+        <span>DATE: {dateStr}</span>
       </div>
     </section>
   );

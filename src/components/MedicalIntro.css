@@ -1,0 +1,215 @@
+.medical-intro {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  overflow: hidden;
+  isolation: isolate;
+  color: #eaf2f0;
+  background: #0a1518;
+  font-family: var(--font-body);
+}
+
+.medical-intro::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 35%, rgba(220, 247, 240, 0.08) 50%, transparent 65%);
+  transform: translateX(-100%);
+  animation: introLightSweep 1.4s 2.8s ease-out forwards;
+}
+
+.medical-intro-grid {
+  position: absolute;
+  inset: 0;
+  z-index: -3;
+  opacity: 0.22;
+  background-image: linear-gradient(rgba(137, 190, 184, 0.16) 1px, transparent 1px), linear-gradient(90deg, rgba(137, 190, 184, 0.16) 1px, transparent 1px);
+  background-size: 46px 46px;
+  transform: perspective(500px) rotateX(58deg) scale(1.7) translateY(30%);
+  transform-origin: center bottom;
+}
+
+.medical-intro-glow {
+  position: absolute;
+  z-index: -2;
+  width: 38vw;
+  height: 38vw;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.2;
+  pointer-events: none;
+}
+
+.medical-intro-glow-one { top: -15%; left: 8%; background: #367d7a; }
+.medical-intro-glow-two { right: -10%; bottom: 4%; background: #a98245; }
+
+.medical-pulse-backdrop {
+  position: absolute;
+  z-index: -1;
+  top: 22%;
+  left: 50%;
+  color: #8fc4bd;
+  opacity: 0.055;
+  filter: blur(0.4px);
+  transform: translateX(-50%);
+  animation: backgroundPulse 1.4s ease-in-out infinite;
+}
+
+.medical-particle-field {
+  position: absolute;
+  inset: 12% 18%;
+  z-index: -1;
+  opacity: 0.5;
+  background-image: radial-gradient(circle, rgba(237, 219, 172, 0.65) 1px, transparent 1.5px);
+  background-size: 74px 82px;
+  mask-image: radial-gradient(ellipse, #000 20%, transparent 70%);
+  animation: particleDrift 12s linear infinite;
+}
+
+.medical-intro-header,
+.medical-intro-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem clamp(1.25rem, 5vw, 4rem);
+  color: rgba(234, 242, 240, 0.65);
+  font: 0.68rem var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.medical-intro-brand { color: #f1f5ef; font-size: 1.05rem; font-weight: 700; letter-spacing: -0.03em; }
+.medical-intro-brand span { color: #8fc4bd; }
+.medical-intro-status { display: inline-flex; align-items: center; gap: 0.45rem; }
+.medical-intro-status i { width: 7px; height: 7px; border-radius: 50%; background: #8fc4bd; box-shadow: 0 0 12px #8fc4bd; }
+
+.medical-intro-stage {
+  position: relative;
+  width: min(100%, 700px);
+  min-height: 340px;
+  margin: 0 auto;
+  perspective: 900px;
+}
+
+.medical-stethoscope {
+  position: absolute;
+  z-index: 4;
+  top: 38px;
+  left: 50%;
+  color: #9ccbc4;
+  filter: drop-shadow(0 18px 20px rgba(0, 0, 0, 0.4));
+  transform: translateX(-50%) rotate(-10deg);
+  animation: stethoscopeFloat 5s ease-in-out infinite;
+}
+
+.medical-heart {
+  position: absolute;
+  z-index: 6;
+  top: 118px;
+  left: calc(50% - 35px);
+  display: grid;
+  place-items: center;
+  color: #e88b7d;
+  filter: drop-shadow(0 0 17px rgba(232, 139, 125, 0.55));
+  animation: heartBeat 1.4s ease-in-out infinite;
+}
+
+.medical-magnifier {
+  position: absolute;
+  z-index: 7;
+  top: 110px;
+  left: calc(50% - 30px);
+  display: grid;
+  width: 76px;
+  height: 76px;
+  place-items: center;
+  border: 1px solid rgba(235, 223, 188, 0.8);
+  border-radius: 50%;
+  color: #eddbac;
+  background: rgba(17, 39, 41, 0.35);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3), inset 0 0 18px rgba(255, 255, 255, 0.08);
+  animation: scanGlass 4.8s ease-in-out infinite;
+}
+
+.medical-magnifier::after { content: ''; position: absolute; right: -25px; bottom: -18px; width: 38px; height: 4px; border-radius: 4px; background: #eddbac; transform: rotate(48deg); transform-origin: left center; }
+
+.medical-document {
+  position: absolute;
+  z-index: 3;
+  top: 100px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  width: 172px;
+  height: 205px;
+  padding: 1rem;
+  border: 1px solid rgba(188, 218, 210, 0.3);
+  border-radius: 4px;
+  color: #c1d6d1;
+  background: linear-gradient(145deg, rgba(35, 67, 68, 0.9), rgba(19, 38, 41, 0.95));
+  box-shadow: 0 24px 40px rgba(0, 0, 0, 0.3);
+  font: 0.63rem var(--font-mono);
+  letter-spacing: 0.04em;
+}
+
+.medical-document-left { left: 0; transform: rotate(-9deg); animation: documentLeft 6s ease-in-out infinite; }
+.medical-document-right { right: 0; transform: rotate(9deg); animation: documentRight 6s ease-in-out infinite; }
+.medical-document-back-left { left: 55px; top: 115px; opacity: 0.42; transform: rotate(-19deg) translateX(-80px); animation: cardSpreadLeft 1.2s 0.5s ease-out both, documentBackFloat 6s 2s ease-in-out infinite; }
+.medical-document-back-right { right: 55px; top: 115px; opacity: 0.42; transform: rotate(19deg) translateX(80px); animation: cardSpreadRight 1.2s 0.7s ease-out both, documentBackFloat 6s 2.2s ease-in-out infinite; }
+.medical-document span { color: #f1f5ef; font-size: 0.72rem; font-weight: 600; }
+.medical-document b { display: block; width: 82%; height: 5px; border-radius: 4px; background: rgba(143, 196, 189, 0.35); }
+.medical-document b:nth-of-type(2) { width: 64%; }
+.medical-document b:nth-of-type(3) { width: 74%; }
+.medical-document small { margin-top: auto; color: #8fc4bd; }
+
+.medical-intro-orbit { position: absolute; z-index: 1; left: 50%; top: 144px; width: 390px; height: 150px; border: 1px solid rgba(143, 196, 189, 0.22); border-radius: 50%; transform: translateX(-50%) rotate(-18deg); }
+.medical-intro-orbit-two { width: 250px; height: 280px; transform: translateX(-50%) rotate(58deg); border-color: rgba(237, 219, 172, 0.16); }
+
+.medical-intro-copy { align-self: center; max-width: 620px; margin: -0.5rem auto 1rem; padding: 0 1.25rem; text-align: center; }
+.medical-intro-eyebrow { display: inline-flex; align-items: center; gap: 0.4rem; color: #8fc4bd; font: 0.67rem var(--font-mono); letter-spacing: 0.1em; opacity: 0; animation: introReveal 0.8s 3.2s ease-out forwards; }
+.medical-title-lockup { display: flex; flex-direction: column; align-items: center; gap: 0.55rem; margin-top: 0.8rem; }
+.medical-title-lockup h1 { color: #f1f5ef; font: 700 clamp(3.4rem, 11vw, 7.5rem)/0.86 var(--font-mono); letter-spacing: 0.16em; text-indent: 0.16em; opacity: 0; filter: blur(16px); transform: scale(1.15); animation: titleReveal 1.3s 2.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.medical-title-subtitle { color: #eddbac; font: 0.7rem var(--font-mono); letter-spacing: 0.28em; text-transform: uppercase; opacity: 0; animation: introReveal 0.8s 3s ease-out forwards; }
+.medical-title-line { width: min(230px, 45vw); height: 1px; background: linear-gradient(90deg, transparent, rgba(237, 219, 172, 0.75), transparent); opacity: 0; animation: lineReveal 0.9s 2.3s ease-out forwards; }
+.medical-intro-message { max-width: 470px; margin: 1rem auto 0; color: rgba(234, 242, 240, 0.68); font-size: 0.98rem; line-height: 1.6; opacity: 0; animation: introReveal 0.8s 3.5s ease-out forwards; }
+.medical-intro-actions { display: flex; justify-content: center; gap: 0.7rem; flex-wrap: wrap; margin-top: 1.35rem; opacity: 0; animation: introReveal 0.8s 3.9s ease-out forwards; }
+.medical-intro-actions button { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem 1.1rem; border-radius: 4px; font: 600 0.86rem var(--font-body); cursor: pointer; }
+.medical-intro-primary { border: 1px solid #8fc4bd; color: #0a1518; background: #9ccbc4; }
+.medical-intro-primary:hover { background: #b8ddd6; }
+.medical-intro-secondary { border: 1px solid rgba(234, 242, 240, 0.35); color: #eaf2f0; background: transparent; }
+.medical-intro-secondary:hover { border-color: #eddbac; color: #eddbac; }
+.medical-intro-skip { margin-top: 1rem; border: 0; color: rgba(234, 242, 240, 0.5); background: transparent; font: 0.74rem var(--font-mono); cursor: pointer; opacity: 0; animation: introReveal 0.8s 4.1s ease-out forwards; }
+.medical-intro-skip:hover { color: #eaf2f0; }
+
+@keyframes stethoscopeFloat { 0%, 100% { transform: translateX(-50%) rotate(-10deg) translateY(0); } 50% { transform: translateX(-50%) rotate(-5deg) translateY(-12px); } }
+@keyframes heartBeat { 0%, 35%, 65%, 100% { transform: scale(1); } 15%, 50% { transform: scale(1.16); } }
+@keyframes scanGlass { 0%, 100% { transform: translate(-140px, 32px) rotate(-12deg); } 50% { transform: translate(130px, -8px) rotate(14deg); } }
+@keyframes documentLeft { 0%, 100% { transform: translateX(-22px) rotate(-9deg); } 50% { transform: translateX(8px) rotate(-5deg); } }
+@keyframes documentRight { 0%, 100% { transform: translateX(22px) rotate(9deg); } 50% { transform: translateX(-8px) rotate(5deg); } }
+@keyframes cardSpreadLeft { from { opacity: 0; transform: rotate(-19deg) translateX(-190px); } to { opacity: 0.42; transform: rotate(-19deg) translateX(-80px); } }
+@keyframes cardSpreadRight { from { opacity: 0; transform: rotate(19deg) translateX(190px); } to { opacity: 0.42; transform: rotate(19deg) translateX(80px); } }
+@keyframes documentBackFloat { 0%, 100% { margin-top: 0; } 50% { margin-top: 8px; } }
+@keyframes titleReveal { to { opacity: 1; filter: blur(0); transform: scale(1); } }
+@keyframes lineReveal { to { opacity: 1; transform: scaleX(1.15); } }
+@keyframes introReveal { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes backgroundPulse { 0%, 100% { transform: translateX(-50%) scale(0.96); opacity: 0.04; } 15% { transform: translateX(-50%) scale(1.04); opacity: 0.075; } 28% { transform: translateX(-50%) scale(0.98); opacity: 0.05; } 42% { transform: translateX(-50%) scale(1.02); opacity: 0.06; } }
+@keyframes particleDrift { from { transform: translateY(0); } to { transform: translateY(-40px); } }
+@keyframes introLightSweep { to { transform: translateX(100%); } }
+
+@media (max-width: 650px) {
+  .medical-intro-stage { min-height: 260px; transform: scale(0.78); transform-origin: center top; margin-bottom: -55px; }
+  .medical-document { width: 135px; height: 165px; }
+  .medical-document-left { left: -28px; }
+  .medical-document-right { right: -28px; }
+  .medical-intro-copy h1 { font-size: clamp(2.25rem, 12vw, 3.5rem); }
+  .medical-intro-footer { font-size: 0.58rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .medical-stethoscope, .medical-heart, .medical-magnifier, .medical-document, .medical-pulse-backdrop, .medical-particle-field, .medical-intro::after, .medical-intro-eyebrow, .medical-title-lockup h1, .medical-title-subtitle, .medical-title-line, .medical-intro-message, .medical-intro-actions, .medical-intro-skip { animation: none; opacity: 1; filter: none; transform: none; }
+}
