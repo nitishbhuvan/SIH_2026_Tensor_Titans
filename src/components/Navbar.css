@@ -118,8 +118,8 @@ body.mode-elderly .brand-sublabel {
   display: inline-flex;
   align-items: center;
   gap: clamp(0.3rem, 1vw, 0.45rem);
-  padding: clamp(0.35rem, 1.2vw, 0.45rem) clamp(0.55rem, 1.5vw, 0.75rem);
-  border-radius: var(--radius-md);
+  padding: clamp(0.35rem, 1.2vw, 0.45rem) clamp(0.7rem, 1.8vw, 0.95rem);
+  border-radius: var(--radius-full);
   border: 1px solid var(--border-default);
   background: var(--navbar-btn-bg);
   color: var(--text-primary);
@@ -127,7 +127,7 @@ body.mode-elderly .brand-sublabel {
   font-weight: 600;
   font-size: clamp(0.75rem, 2vw, 0.82rem);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.18s ease;
   min-height: 36px;
   touch-action: manipulation;
   white-space: nowrap;
@@ -137,7 +137,7 @@ body.mode-elderly .brand-sublabel {
 body.mode-elderly .navbar-btn {
   min-height: 44px;
   font-size: clamp(0.85rem, 2.2vw, 0.95rem);
-  padding: clamp(0.45rem, 1.5vw, 0.6rem) clamp(0.65rem, 1.8vw, 0.95rem);
+  padding: clamp(0.45rem, 1.5vw, 0.6rem) clamp(0.85rem, 2vw, 1.1rem);
   border-width: 2px;
 }
 

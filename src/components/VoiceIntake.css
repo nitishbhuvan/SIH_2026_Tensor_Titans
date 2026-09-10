@@ -6,7 +6,7 @@
 .voice-intake-container {
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-xl);
   box-shadow: var(--card-shadow);
   margin-top: 2rem;
   margin-bottom: 2.5rem;
@@ -71,11 +71,11 @@
   gap: 0.4rem;
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-full);
   color: var(--text-secondary);
   font-family: var(--font-mono);
   font-size: 0.75rem;
-  padding: 0.35rem 0.65rem;
+  padding: 0.35rem 0.85rem;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -131,7 +131,7 @@
   background: var(--btn-primary-bg);
   color: var(--btn-primary-text);
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-full);
   padding: 0.5rem 1rem;
   font-size: 0.85rem;
   font-weight: 500;
@@ -142,7 +142,7 @@
   background: transparent;
   color: var(--accent-emergency);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-full);
   padding: 0.5rem 0.85rem;
   font-size: 0.85rem;
   cursor: pointer;
@@ -190,10 +190,10 @@
   gap: 0.75rem;
   flex-wrap: wrap;
   justify-content: center;
-  padding: 0.75rem;
+  padding: 0.75rem 1rem;
   background: var(--bg-surface-secondary);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
 }
 
 .lang-bar-label {
@@ -215,10 +215,10 @@
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.35rem 0.7rem;
+  padding: 0.4rem 0.85rem;
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-full);
   color: var(--text-primary);
   font-size: 0.85rem;
   cursor: pointer;
@@ -232,7 +232,7 @@
   justify-content: center;
   width: 18px;
   height: 18px;
-  border-radius: 2px;
+  border-radius: 50%;
   background: var(--bg-surface-secondary);
   font-size: 0.75rem;
   font-weight: 600;
@@ -512,16 +512,17 @@
   text-align: left;
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  padding: 0.85rem;
+  border-radius: var(--radius-md);
+  padding: 0.95rem;
   cursor: pointer;
   transition: all 0.2s ease;
+  box-shadow: var(--card-shadow);
 }
 
 .preset-card:hover {
   border-color: var(--accent-primary);
   transform: translateY(-2px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--card-shadow-hover);
 }
 
 .preset-card-top {
@@ -535,8 +536,8 @@
   font-family: var(--font-mono);
   font-size: 0.7rem;
   font-weight: 600;
-  padding: 0.15rem 0.45rem;
-  border-radius: 2px;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-full);
   background: var(--bg-surface-secondary);
   color: var(--accent-primary);
   border: 1px solid var(--border-subtle);
@@ -562,8 +563,8 @@
 /* ── CLINICAL RESULT CARD (OPD SLIP) ── */
 .clinical-result-card {
   background: var(--bg-surface);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
   box-shadow: var(--card-shadow);
   overflow: hidden;
   animation: fadeInUp 0.3s ease;
@@ -757,7 +758,7 @@
   padding: 1rem 1.25rem;
   background: var(--bg-surface-secondary);
   border-left: 3px solid var(--accent-primary);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
   font-style: italic;
 }
 
@@ -775,10 +776,11 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  padding: 1rem;
+  padding: 1.1rem;
   background: var(--bg-surface-secondary);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
+  box-shadow: var(--card-shadow);
 }
 
 .entity-card-title {
@@ -800,8 +802,8 @@
 
 .entity-tag {
   font-size: 0.82rem;
-  padding: 0.25rem 0.6rem;
-  border-radius: 3px;
+  padding: 0.3rem 0.75rem;
+  border-radius: var(--radius-full);
   font-weight: 500;
 }
 
@@ -869,10 +871,10 @@
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  padding: 0.5rem 0.95rem;
+  padding: 0.5rem 1.15rem;
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-full);
   color: var(--text-primary);
   font-size: 0.85rem;
   font-weight: 500;
@@ -884,6 +886,7 @@
 .slip-action-btn:hover {
   border-color: var(--accent-primary);
   background: var(--bg-surface-hover);
+  transform: translateY(-1px);
 }
 
 .primary-new-btn {

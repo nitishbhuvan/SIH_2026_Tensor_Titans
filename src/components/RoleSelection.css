@@ -172,15 +172,15 @@
 /* Role Card */
 .rs-role-card {
   background: var(--bg-surface);
-  border: 1.5px solid var(--border-default);
-  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
   padding: clamp(1.5rem, 4vw, 2.25rem) clamp(1.25rem, 3.5vw, 2rem);
   cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 1.1rem;
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: var(--card-shadow);
   text-align: left;
   outline: none;
@@ -210,7 +210,7 @@
 
 /* Patient card */
 .rs-role-card.role-patient {
-  border-top: 3px solid var(--accent-primary);
+  border-top: 4px solid var(--accent-primary);
 }
 
 .rs-role-card.role-patient:hover {
@@ -219,7 +219,7 @@
 
 /* Doctor card */
 .rs-role-card.role-doctor {
-  border-top: 3px solid var(--accent-success);
+  border-top: 4px solid var(--accent-success);
 }
 
 .rs-role-card.role-doctor:hover {
@@ -314,18 +314,19 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.65rem 1.25rem;
-  border-radius: var(--radius-md);
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--radius-full);
   font-size: clamp(0.88rem, 2vw, 0.95rem);
   font-weight: 600;
   border: none;
   cursor: pointer;
   text-decoration: none;
-  transition: all 0.18s ease;
+  transition: all 0.2s ease;
   letter-spacing: -0.01em;
   width: 100%;
   justify-content: center;
   font-family: var(--font-body);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .rs-role-card.role-patient .rs-card-cta {
