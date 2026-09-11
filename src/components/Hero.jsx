@@ -1,8 +1,8 @@
 import React from 'react';
-import { Mic, FileText, Sparkles } from 'lucide-react';
+import { Mic, FileText, Sparkles, Leaf } from 'lucide-react';
 import './Hero.css';
 
-export default function Hero({ isElderly, t, onVoiceIntake, onOcrIntake }) {
+export default function Hero({ isElderly, t, onVoiceIntake, onOcrIntake, onAyusetuIntake }) {
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-GB', {
     day: '2-digit',
@@ -32,10 +32,20 @@ export default function Hero({ isElderly, t, onVoiceIntake, onOcrIntake }) {
         <p className="hero-subtitle">
           {isElderly
             ? (t.heroSubElderly || 'Doctor consultations made simple, comfortable, and easy to understand for everyone.')
-            : (t.heroSubModern || 'AI-assisted pre-consultation intake. Speak your symptoms naturally or upload medical prescriptions for instant clinical summarization.')}
+            : (t.heroSubModern || 'AI-assisted pre-consultation intake. Complete the adaptive AYUSETU clinical protocol, speak your symptoms naturally, or upload prescriptions for instant summarization.')}
         </p>
 
         <div className="hero-actions">
+          <button
+            type="button"
+            className="hero-cta hero-cta-ayusetu"
+            onClick={onAyusetuIntake}
+            aria-label="Start Pre-Consultation"
+          >
+            <Leaf size={isElderly ? 22 : 18} aria-hidden="true" />
+            <span>{isElderly ? 'पूर्व-परामर्श (Pre-Consultation)' : 'Pre-Consultation'}</span>
+          </button>
+
           <button
             type="button"
             className="hero-cta hero-cta-voice"

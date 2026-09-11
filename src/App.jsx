@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { flushSync } from 'react-dom';
-import { Mic, FileText, Activity } from 'lucide-react';
+import { Mic, FileText, Activity, Leaf } from 'lucide-react';
 import Navbar from './components/Navbar.jsx';
 import ModeSelectionModal from './components/ModeSelectionModal.jsx';
 import Hero from './components/Hero.jsx';
 import VoiceIntake from './components/VoiceIntake.jsx';
 import MedicalOcr from './components/MedicalOcr.jsx';
+import AyusetuIntakeMode from './components/AyusetuIntakeMode.jsx';
 import ToastContainer from './components/Toast.jsx';
 import Footer from './components/Footer.jsx';
 import RoleSelection from './components/RoleSelection.jsx';
@@ -28,18 +29,30 @@ let toastIdCounter = 0;
 function getInitialRole() {
   const hash = window.location.hash.toLowerCase();
   if (hash === '#/doctor' || hash === '#doctor') return 'doctor';
+<<<<<<< HEAD
   if (hash === '#/patient' || hash === '#patient') return 'patient';
   if (hash === '#/role-select' || hash === '#role-select') return 'role-select';
   // Default to animated intro screen on root / start
   return 'intro';
+=======
+  if (hash === '#/patient' || hash === '#patient' || hash === '#/ayusetu' || hash === '#ayusetu' || hash === '#/ayush' || hash === '#ayush') return 'patient';
+  // Default to Role Selection entry page on link open / root URL
+  return 'role-select';
+>>>>>>> Questions
+}
+
+function getInitialIntakeModule() {
+  const hash = window.location.hash.toLowerCase();
+  if (hash === '#/ayusetu' || hash === '#ayusetu' || hash === '#/ayush' || hash === '#ayush') return 'ayusetu';
+  return 'ayusetu'; // Default to AYUSETU 25-Section Protocol on Patient page
 }
 
 export default function App() {
   // Current active view / role: 'intro' | 'role-select' | 'patient' | 'doctor'
   const [currentRole, setCurrentRole] = useState(getInitialRole);
 
-  // Active intake module in Patient portal: 'voice' | 'ocr' | 'all'
-  const [activeIntakeModule, setActiveIntakeModule] = useState('voice');
+  // Active intake module in Patient portal: 'ayusetu' | 'voice' | 'ocr' | 'all'
+  const [activeIntakeModule, setActiveIntakeModule] = useState(getInitialIntakeModule);
 
   // Language Preference
   const [userLanguage, setUserLanguage] = useState(() => {
@@ -90,7 +103,14 @@ export default function App() {
         setCurrentRole('doctor');
       } else if (hash === '#/patient' || hash === '#patient') {
         setCurrentRole('patient');
+<<<<<<< HEAD
       } else if (hash === '#/role-select' || hash === '#role-select') {
+=======
+      } else if (hash === '#/ayusetu' || hash === '#ayusetu' || hash === '#/ayush' || hash === '#ayush') {
+        setCurrentRole('patient');
+        setActiveIntakeModule('ayusetu');
+      } else if (hash === '#/role-select' || hash === '#role-select' || hash === '' || hash === '#/') {
+>>>>>>> Questions
         setCurrentRole('role-select');
       } else if (hash === '#/intro' || hash === '#intro' || hash === '' || hash === '#/') {
         setCurrentRole('intro');
@@ -111,9 +131,21 @@ export default function App() {
       window.location.hash = '#/patient';
       localStorage.setItem(ROLE_STORAGE_KEY, 'patient');
       setCurrentRole('patient');
+<<<<<<< HEAD
     } else if (role === 'intro') {
       window.location.hash = '#/intro';
       setCurrentRole('intro');
+=======
+    } else if (role === 'ayusetu') {
+      window.location.hash = '#/patient';
+      localStorage.setItem(ROLE_STORAGE_KEY, 'patient');
+      setCurrentRole('patient');
+      setActiveIntakeModule('ayusetu');
+      setTimeout(() => {
+        const el = document.getElementById('ayusetu-intake-section');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 80);
+>>>>>>> Questions
     } else {
       window.location.hash = '#/role-select';
       localStorage.removeItem(ROLE_STORAGE_KEY);
@@ -208,6 +240,16 @@ export default function App() {
     setShowModeModal(false);
   };
 
+  const scrollToAyusetuIntake = () => {
+    setActiveIntakeModule('ayusetu');
+    setTimeout(() => {
+      const el = document.getElementById('ayusetu-intake-section');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 50);
+  };
+
   const scrollToVoiceIntake = () => {
     setActiveIntakeModule('voice');
     setTimeout(() => {
@@ -290,7 +332,7 @@ export default function App() {
     );
   }
 
-  // ── Render Patient Portal (Default) ──
+  // ── Render Patient Portal (Default, includes AYUSETU Mode) ──
   return (
     <div className={`app-wrapper ${isElderly ? 'is-elderly-theme' : 'is-modern-theme'} ${theme === 'dark' ? 'theme-dark' : 'theme-light'}`}>
       {/* Theme sweep bar */}
@@ -319,12 +361,21 @@ export default function App() {
           <Hero
             isElderly={isElderly}
             t={t}
+            onAyusetuIntake={scrollToAyusetuIntake}
             onVoiceIntake={scrollToVoiceIntake}
             onOcrIntake={scrollToOcrIntake}
           />
 
           {/* Clinical Module Switcher */}
           <div className="intake-module-switcher">
+            <button
+              type="button"
+              className={`module-switch-btn ${activeIntakeModule === 'ayusetu' ? 'is-active' : ''}`}
+              onClick={() => setActiveIntakeModule('ayusetu')}
+            >
+              <Leaf size={18} style={{ color: '#16A34A' }} />
+              <span>{isElderly ? 'पूर्व-परामर्श (Pre-Consultation)' : 'Pre-Consultation'}</span>
+            </button>
             <button
               type="button"
               className={`module-switch-btn ${activeIntakeModule === 'voice' ? 'is-active' : ''}`}
@@ -350,6 +401,19 @@ export default function App() {
               <span>View All Clinical Tools</span>
             </button>
           </div>
+
+          {/* Module 0: Pre-Consultation Protocol with Dashavidha Pariksha & Dataset Explorer */}
+          {(activeIntakeModule === 'ayusetu' || activeIntakeModule === 'all') && (
+            <div id="ayusetu-intake-section">
+              <AyusetuIntakeMode
+                userLanguage={userLanguage}
+                isElderly={isElderly}
+                onNotify={(msg, type) => addToast(msg, type)}
+                onSwitchToDoctor={() => navigateToRole('doctor')}
+                onBackToMain={() => navigateToRole('role-select')}
+              />
+            </div>
+          )}
 
           {/* Module 1: Multilingual Indic Voice Intake */}
           {(activeIntakeModule === 'voice' || activeIntakeModule === 'all') && (
