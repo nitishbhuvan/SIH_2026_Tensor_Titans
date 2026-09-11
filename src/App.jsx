@@ -29,16 +29,10 @@ let toastIdCounter = 0;
 function getInitialRole() {
   const hash = window.location.hash.toLowerCase();
   if (hash === '#/doctor' || hash === '#doctor') return 'doctor';
-<<<<<<< HEAD
-  if (hash === '#/patient' || hash === '#patient') return 'patient';
+  if (hash === '#/patient' || hash === '#patient' || hash === '#/ayusetu' || hash === '#ayusetu' || hash === '#/ayush' || hash === '#ayush') return 'patient';
   if (hash === '#/role-select' || hash === '#role-select') return 'role-select';
   // Default to animated intro screen on root / start
   return 'intro';
-=======
-  if (hash === '#/patient' || hash === '#patient' || hash === '#/ayusetu' || hash === '#ayusetu' || hash === '#/ayush' || hash === '#ayush') return 'patient';
-  // Default to Role Selection entry page on link open / root URL
-  return 'role-select';
->>>>>>> Questions
 }
 
 function getInitialIntakeModule() {
@@ -101,16 +95,12 @@ export default function App() {
       const hash = window.location.hash.toLowerCase();
       if (hash === '#/doctor' || hash === '#doctor') {
         setCurrentRole('doctor');
-      } else if (hash === '#/patient' || hash === '#patient') {
-        setCurrentRole('patient');
-<<<<<<< HEAD
-      } else if (hash === '#/role-select' || hash === '#role-select') {
-=======
       } else if (hash === '#/ayusetu' || hash === '#ayusetu' || hash === '#/ayush' || hash === '#ayush') {
         setCurrentRole('patient');
         setActiveIntakeModule('ayusetu');
-      } else if (hash === '#/role-select' || hash === '#role-select' || hash === '' || hash === '#/') {
->>>>>>> Questions
+      } else if (hash === '#/patient' || hash === '#patient') {
+        setCurrentRole('patient');
+      } else if (hash === '#/role-select' || hash === '#role-select') {
         setCurrentRole('role-select');
       } else if (hash === '#/intro' || hash === '#intro' || hash === '' || hash === '#/') {
         setCurrentRole('intro');
@@ -131,11 +121,6 @@ export default function App() {
       window.location.hash = '#/patient';
       localStorage.setItem(ROLE_STORAGE_KEY, 'patient');
       setCurrentRole('patient');
-<<<<<<< HEAD
-    } else if (role === 'intro') {
-      window.location.hash = '#/intro';
-      setCurrentRole('intro');
-=======
     } else if (role === 'ayusetu') {
       window.location.hash = '#/patient';
       localStorage.setItem(ROLE_STORAGE_KEY, 'patient');
@@ -145,7 +130,9 @@ export default function App() {
         const el = document.getElementById('ayusetu-intake-section');
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 80);
->>>>>>> Questions
+    } else if (role === 'intro') {
+      window.location.hash = '#/intro';
+      setCurrentRole('intro');
     } else {
       window.location.hash = '#/role-select';
       localStorage.removeItem(ROLE_STORAGE_KEY);
