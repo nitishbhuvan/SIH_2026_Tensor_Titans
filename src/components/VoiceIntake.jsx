@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Mic,
   MicOff,
@@ -19,11 +19,26 @@ import {
   ChevronRight,
   FileText,
   Lock,
-  X
+  X,
+  Send,
+  Edit3
 } from 'lucide-react';
 import { VOICE_LANGUAGES } from '../translations.js';
 import { addClinicalRecord } from '../services/clinicalRecordsService.js';
 import './VoiceIntake.css';
+
+// Language locale mapping for SpeechRecognition API
+const SPEECH_LANG_MAP = {
+  hi: 'hi-IN',
+  kn: 'kn-IN',
+  ta: 'ta-IN',
+  te: 'te-IN',
+  mr: 'mr-IN',
+  bn: 'bn-IN',
+  ml: 'ml-IN',
+  sa: 'hi-IN',
+  en: 'en-IN'
+};
 
 const CLINICAL_PRESETS = [
   {
@@ -59,7 +74,7 @@ const CLINICAL_PRESETS = [
 export default function VoiceIntake({
   userLanguage = 'en',
   isElderly = false,
-  t,
+  t = {},
   onNotify
 }) {
   const [selectedVoiceLang, setSelectedVoiceLang] = useState(() => {
@@ -73,7 +88,12 @@ export default function VoiceIntake({
   const [activeTab, setActiveTab] = useState('clinical'); // 'clinical' | 'original'
   const [errorMessage, setErrorMessage] = useState('');
   const [showSettings, setShowSettings] = useState(false);
-  
+
+  // Live real-time speech recognition state
+  const [liveTranscript, setLiveTranscript] = useState('');
+  const [interimText, setInterimText] = useState('');
+  const [isSpeechRecognitionSupported, setIsSpeechRecognitionSupported] = useState(true);
+
   // Microphone permission modal states
   const [showPermissionModal, setShowPermissionModal] = useState(false);
   const [permissionBlocked, setPermissionBlocked] = useState(false);
@@ -88,6 +108,8 @@ export default function VoiceIntake({
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
   const animationFrameRef = useRef(null);
+  const recognitionRef = useRef(null);
+  const finalTranscriptAccumulatorRef = useRef('');
 
   // Sync voice language when user changes global language
   useEffect(() => {
@@ -96,23 +118,38 @@ export default function VoiceIntake({
     }
   }, [userLanguage]);
 
-  function stopRecordingCleanup() {
+  // Clean up Web Audio and Timer on unmount
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setIsSpeechRecognitionSupported(false);
+    }
+
+    return () => {
+      stopRecordingCleanup();
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (_) {}
+      }
+    };
+  }, []);
+
+  const stopRecordingCleanup = () => {
     if (timerRef.current) clearInterval(timerRef.current);
     if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
     if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
       audioContextRef.current.close().catch(() => {});
     }
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (_) {}
+    }
     setAudioLevel(0);
-  }
+  };
 
-  // Clean up Web Audio and Timer on unmount
-  useEffect(() => {
-    return () => {
-      stopRecordingCleanup();
-    };
-  }, []);
-
-  // ── Handle Mic Click: Check Permission First or Open Modal ──
+  // ── Handle Mic Click ──
   const handleMicButtonClick = async () => {
     if (recordingState === 'recording') {
       stopRecording();
@@ -136,17 +173,19 @@ export default function VoiceIntake({
       }
     }
 
-    // Open explicit pre-permission modal to guide user
-    setPermissionBlocked(false);
-    setShowPermissionModal(true);
+    // Direct recording start
+    startRecordingDirect();
   };
 
-  // ── Start Audio Recording Direct (Calls getUserMedia) ──
+  // ── Start Audio Recording & Live Speech Recognition ──
   const startRecordingDirect = async () => {
     try {
       setShowPermissionModal(false);
       setPermissionBlocked(false);
       setErrorMessage('');
+      setLiveTranscript('');
+      setInterimText('');
+      finalTranscriptAccumulatorRef.current = '';
       audioChunksRef.current = [];
 
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -158,7 +197,7 @@ export default function VoiceIntake({
         }
       });
 
-      // Web Audio Analyser for real-time waveform level
+      // ── Web Audio Analyser for real-time waveform level ──
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (AudioCtx) {
         const audioCtx = new AudioCtx();
@@ -185,7 +224,41 @@ export default function VoiceIntake({
         updateLevel();
       }
 
-      // MediaRecorder
+      // ── Browser Live Speech Recognition (Bhashini / Web Speech API) ──
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        try {
+          const recognition = new SpeechRecognition();
+          recognition.continuous = true;
+          recognition.interimResults = true;
+          recognition.lang = SPEECH_LANG_MAP[selectedVoiceLang] || 'hi-IN';
+
+          recognition.onresult = (event) => {
+            let interim = '';
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+              const transcriptPiece = event.results[i][0].transcript;
+              if (event.results[i].isFinal) {
+                finalTranscriptAccumulatorRef.current += (finalTranscriptAccumulatorRef.current ? ' ' : '') + transcriptPiece;
+              } else {
+                interim += transcriptPiece;
+              }
+            }
+            setLiveTranscript(finalTranscriptAccumulatorRef.current);
+            setInterimText(interim);
+          };
+
+          recognition.onerror = (e) => {
+            console.warn('SpeechRecognition notice:', e.error);
+          };
+
+          recognition.start();
+          recognitionRef.current = recognition;
+        } catch (e) {
+          console.warn('Could not start live SpeechRecognition:', e);
+        }
+      }
+
+      // ── MediaRecorder for audio recording ──
       const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
         ? 'audio/webm;codecs=opus'
         : 'audio/webm';
@@ -204,7 +277,8 @@ export default function VoiceIntake({
         stopRecordingCleanup();
 
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        await processAudioIntake(audioBlob, null);
+        const capturedUserText = (finalTranscriptAccumulatorRef.current + ' ' + interimText).trim();
+        await processAudioIntake(audioBlob, capturedUserText || null);
       };
 
       mediaRecorder.start(250);
@@ -216,64 +290,49 @@ export default function VoiceIntake({
       }, 1000);
 
       if (onNotify) {
-        onNotify(isElderly ? 'माइक चालू है, बोलिए…' : 'Microphone recording active. Speak your symptoms.', 'info');
+        onNotify(isElderly ? 'माइक चालू है, बोलिए…' : 'Microphone active. Speak your symptoms naturally.', 'info');
       }
     } catch (err) {
       console.warn('Microphone permission error:', err);
       setRecordingState('idle');
       stopRecordingCleanup();
-      
-      // If user denied in browser prompt, show the blocked guidance modal
+
       setPermissionBlocked(true);
       setShowPermissionModal(true);
 
       setErrorMessage(
-        'Microphone permission is required to record voice. You can also test clinical intake with the sample presets below.'
+        'Microphone permission is required to record voice. Please allow access in browser or choose a preset.'
       );
       if (onNotify) {
-        onNotify('Microphone permission blocked or dismissed.', 'warning');
+        onNotify('Microphone access blocked or dismissed.', 'warning');
       }
     }
   };
 
   // ── Stop Audio Recording ──
   const stopRecording = () => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (_) {}
+    }
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
       mediaRecorderRef.current.stop();
       setRecordingState('transcribing');
     }
   };
 
-  // ── Process Audio or Direct Transcript with API ──
-  const processAudioIntake = async (audioBlob, presetTranscript) => {
+  // ── Process Audio or Direct Spoken Transcript with Backend API ──
+  const processAudioIntake = async (audioBlob, spokenTranscript) => {
     try {
       setRecordingState('transcribing');
       setErrorMessage('');
 
-      // Send to /api/voice-intake
       let response;
 
-      if (audioBlob) {
-        const formData = new FormData();
-        formData.append('audio', audioBlob, 'intake.webm');
-        formData.append('language', selectedVoiceLang);
-        if (groqApiKey) {
-          formData.append('apiKey', groqApiKey);
-        }
-
-        setTimeout(() => {
-          setRecordingState('analyzing');
-        }, 800);
-
-        response = await fetch('/api/voice-intake', {
-          method: 'POST',
-          headers: groqApiKey ? { 'x-groq-api-key': groqApiKey } : {},
-          body: formData
-        });
-      } else {
-        setTimeout(() => {
-          setRecordingState('analyzing');
-        }, 500);
+      if (spokenTranscript) {
+        // Send the real spoken text captured from the user's voice
+        setTimeout(() => setRecordingState('analyzing'), 400);
 
         response = await fetch('/api/voice-intake', {
           method: 'POST',
@@ -283,10 +342,26 @@ export default function VoiceIntake({
           },
           body: JSON.stringify({
             language: selectedVoiceLang,
-            transcript: presetTranscript,
+            transcript: spokenTranscript,
             apiKey: groqApiKey
           })
         });
+      } else if (audioBlob) {
+        // Fallback: Send audio blob
+        const formData = new FormData();
+        formData.append('audio', audioBlob, 'intake.webm');
+        formData.append('language', selectedVoiceLang);
+        if (groqApiKey) formData.append('apiKey', groqApiKey);
+
+        setTimeout(() => setRecordingState('analyzing'), 800);
+
+        response = await fetch('/api/voice-intake', {
+          method: 'POST',
+          headers: groqApiKey ? { 'x-groq-api-key': groqApiKey } : {},
+          body: formData
+        });
+      } else {
+        throw new Error('No voice audio or transcript received.');
       }
 
       if (!response.ok) {
@@ -297,17 +372,29 @@ export default function VoiceIntake({
       if (resData.success && resData.data) {
         setClinicalData(resData.data);
         setRecordingState('success');
-        // ── Persist to shared Doctor Portal queue ──
+
+        // Persist to shared Doctor Portal queue
         addClinicalRecord(resData.data, {
           language: selectedVoiceLang,
           languageLabel: (() => {
-            const LANG_MAP = { hi: 'Hindi', kn: 'Kannada', ta: 'Tamil', te: 'Telugu', ml: 'Malayalam', mr: 'Marathi', bn: 'Bengali', sa: 'Sanskrit', en: 'English' };
+            const LANG_MAP = {
+              hi: 'Hindi',
+              kn: 'Kannada',
+              ta: 'Tamil',
+              te: 'Telugu',
+              ml: 'Malayalam',
+              mr: 'Marathi',
+              bn: 'Bengali',
+              sa: 'Sanskrit',
+              en: 'English'
+            };
             return LANG_MAP[selectedVoiceLang] || selectedVoiceLang;
           })(),
-          isElderly: isElderly,
+          isElderly: isElderly
         });
+
         if (onNotify) {
-          onNotify('Clinical Intake & Ayurvedic extraction completed. Record sent to Doctor Queue.', 'success');
+          onNotify('Voice intake processed. SOAP note generated & sent to Doctor Queue.', 'success');
         }
       } else {
         throw new Error(resData.error || 'Failed to parse clinical intake');
@@ -319,10 +406,11 @@ export default function VoiceIntake({
     }
   };
 
-  // ── Execute Preset Scenario ──
+  // ── Execute Preset Scenario (Explicit Demo Only) ──
   const handleSelectPreset = (preset) => {
     setShowPermissionModal(false);
     setSelectedVoiceLang(preset.lang);
+    setLiveTranscript(preset.transcript);
     processAudioIntake(null, preset.transcript);
   };
 
@@ -332,6 +420,8 @@ export default function VoiceIntake({
     setRecordingState('idle');
     setRecordDuration(0);
     setErrorMessage('');
+    setLiveTranscript('');
+    setInterimText('');
   };
 
   // ── Text-to-Speech (Read Aloud) ──
@@ -398,7 +488,7 @@ RAW NATIVE PATIENT TRANSCRIPT:
     localStorage.setItem('preconsult_groq_api_key', groqApiKey.trim());
     setShowSettings(false);
     if (onNotify) {
-      onNotify('Groq API Key configuration saved.', 'success');
+      onNotify('API Key configuration saved.', 'success');
     }
   };
 
@@ -442,7 +532,7 @@ RAW NATIVE PATIENT TRANSCRIPT:
             <Activity size={14} /> NIDAN-AI // VOICE CLINICAL INTAKE
           </span>
           <span className="voice-badge-status">
-            <span className="status-dot"></span> ASR & TERM PRESERVATION
+            <span className="status-dot"></span> REAL-TIME BHASHINI & INDIC ASR
           </span>
         </div>
         <button
@@ -450,10 +540,10 @@ RAW NATIVE PATIENT TRANSCRIPT:
           className="voice-settings-btn"
           onClick={() => setShowSettings(!showSettings)}
           aria-label="API Key Settings"
-          title="Configure Groq API Key"
+          title="Configure Cloud API Keys"
         >
           <Settings size={16} />
-          <span>{groqApiKey ? 'API Key Active' : 'API Settings'}</span>
+          <span>{groqApiKey ? 'Cloud AI Active' : 'AI Settings'}</span>
         </button>
       </div>
 
@@ -462,13 +552,13 @@ RAW NATIVE PATIENT TRANSCRIPT:
         <div className="voice-settings-drawer">
           <form onSubmit={handleSaveApiKey} className="voice-settings-form">
             <label htmlFor="groq-key-input">
-              <strong>Groq API Key (Optional for live Cloud Whisper & Llama 3.1):</strong>
+              <strong>Custom Cloud API Key (Groq / Bhashini / Gemini):</strong>
             </label>
             <div className="settings-input-group">
               <input
                 id="groq-key-input"
                 type="password"
-                placeholder="gsk_..."
+                placeholder="gsk_... or Cloudflare Secret Key"
                 value={groqApiKey}
                 onChange={(e) => setGroqApiKey(e.target.value)}
               />
@@ -487,7 +577,7 @@ RAW NATIVE PATIENT TRANSCRIPT:
               )}
             </div>
             <p className="settings-help">
-              If left blank, the system automatically uses the embedded high-fidelity clinical and Ayurvedic normalizer fallback.
+              Browser-native speech recognition runs 100% locally in your browser for all Indian languages without requiring any API key.
             </p>
           </form>
         </div>
@@ -516,7 +606,11 @@ RAW NATIVE PATIENT TRANSCRIPT:
                   key={lang.id}
                   type="button"
                   className={`lang-chip ${isActive ? 'is-active' : ''}`}
-                  onClick={() => setSelectedVoiceLang(lang.id)}
+                  onClick={() => {
+                    if (recordingState === 'idle') {
+                      setSelectedVoiceLang(lang.id);
+                    }
+                  }}
                   aria-pressed={isActive}
                 >
                   <span className="lang-chip-glyph">{lang.glyph}</span>
@@ -544,7 +638,7 @@ RAW NATIVE PATIENT TRANSCRIPT:
                 <span className="mic-cta-text">{t.voiceStartRecording || 'Tap to Speak'}</span>
               </button>
               <p className="mic-subtext">
-                Spoken language: <strong>{currentVoiceLangObj.nativeLabel} ({currentVoiceLangObj.label})</strong> • Tap microphone to begin
+                Spoken language: <strong>{currentVoiceLangObj.nativeLabel} ({currentVoiceLangObj.label})</strong> • Tap microphone to speak your symptoms
               </p>
             </div>
           )}
@@ -566,6 +660,26 @@ RAW NATIVE PATIENT TRANSCRIPT:
                 </div>
               </div>
 
+              {/* LIVE TRANSCRIPTION SPEECH BUBBLE */}
+              <div className="live-speech-card">
+                <div className="live-speech-header">
+                  <span className="live-pulse-dot"></span>
+                  <strong>Listening to your voice ({currentVoiceLangObj.nativeLabel}):</strong>
+                </div>
+                <div className="live-speech-body">
+                  {liveTranscript || interimText ? (
+                    <p className="live-speech-text">
+                      <span className="final-text">{liveTranscript}</span>
+                      <span className="interim-text"> {interimText}</span>
+                    </p>
+                  ) : (
+                    <p className="live-speech-placeholder">
+                      Start speaking now… Your words in {currentVoiceLangObj.nativeLabel} will appear here in real time.
+                    </p>
+                  )}
+                </div>
+              </div>
+
               <button
                 type="button"
                 className="big-mic-button mic-recording"
@@ -579,7 +693,7 @@ RAW NATIVE PATIENT TRANSCRIPT:
               </button>
 
               <p className="recording-instruction">
-                {t.voiceStatusRecording || 'Listening… Speak clearly into the microphone'}
+                {t.voiceStatusRecording || 'Listening… Speak clearly into your microphone'}
               </p>
             </div>
           )}
@@ -591,12 +705,15 @@ RAW NATIVE PATIENT TRANSCRIPT:
               </div>
               <h3 className="processing-heading">
                 {recordingState === 'transcribing'
-                  ? (t.voiceStatusTranscribing || 'Transcribing Indic Speech (Whisper v3)…')
-                  : (t.voiceStatusAnalyzing || 'Extracting Clinical Entities & Ayurvedic Dosha Factors…')}
+                  ? (t.voiceStatusTranscribing || 'Processing Indic Voice Speech…')
+                  : (t.voiceStatusAnalyzing || 'Generating SOAP Note & Preserving Ayurvedic Formulations…')}
               </h3>
-              <p className="processing-sub">
-                Ensuring Sanskrit formulations (*Triphala, Ashwagandha, Mandagni*) and modern medications (*Metformin, Pantoprazole*) are preserved.
-              </p>
+              {liveTranscript && (
+                <div className="processed-snippet-box">
+                  <span>Transcribed Voice:</span>
+                  <p>"{liveTranscript}"</p>
+                </div>
+              )}
             </div>
           )}
 
@@ -617,12 +734,12 @@ RAW NATIVE PATIENT TRANSCRIPT:
           )}
         </div>
 
-        {/* Quick Clinical Test Presets (For instant demonstration) */}
+        {/* Quick Clinical Test Presets (For Demonstration) */}
         {!clinicalData && (
           <div className="presets-container">
             <div className="presets-header">
               <span className="presets-title">
-                <Sparkles size={16} /> {t.voicePresetLabel || 'Quick Clinical Test Scenarios (Instant Demo):'}
+                <Sparkles size={16} /> {t.voicePresetLabel || 'Or Test With Instant Sample Scenarios:'}
               </span>
             </div>
             <div className="presets-grid">
@@ -888,25 +1005,14 @@ RAW NATIVE PATIENT TRANSCRIPT:
 
             {/* Modal Actions */}
             <div className="mic-perm-actions">
-              {!permissionBlocked ? (
-                <button
-                  type="button"
-                  className="mic-perm-btn primary-grant-btn"
-                  onClick={startRecordingDirect}
-                >
-                  <Mic size={18} />
-                  <span>{t.micPermAllowBtn || 'Allow Microphone & Speak'}</span>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="mic-perm-btn primary-grant-btn"
-                  onClick={startRecordingDirect}
-                >
-                  <RotateCcw size={18} />
-                  <span>Try Microphone Again</span>
-                </button>
-              )}
+              <button
+                type="button"
+                className="mic-perm-btn primary-grant-btn"
+                onClick={startRecordingDirect}
+              >
+                <Mic size={18} />
+                <span>{permissionBlocked ? 'Try Microphone Again' : (t.micPermAllowBtn || 'Allow Microphone & Speak')}</span>
+              </button>
 
               <button
                 type="button"
