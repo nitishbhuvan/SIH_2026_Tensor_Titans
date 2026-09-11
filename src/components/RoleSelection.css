@@ -64,6 +64,14 @@
   border-bottom: 1px solid var(--border-subtle);
 }
 
+.rs-brand-btn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: inherit;
+}
+
 .rs-topbar-brand {
   font-family: var(--font-mono);
   font-size: clamp(1rem, 3vw, 1.2rem);
@@ -71,6 +79,40 @@
   color: var(--text-primary);
   text-decoration: none;
   letter-spacing: -0.02em;
+  transition: opacity 0.2s ease;
+}
+
+.rs-topbar-brand:hover {
+  opacity: 0.8;
+}
+
+.rs-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.rs-topbar-intro-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.38rem 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent-primary);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.rs-topbar-intro-btn:hover {
+  background: var(--accent-primary);
+  color: #0a1518;
+  border-color: var(--accent-primary);
+  transform: translateY(-1px);
 }
 
 /* ── Brand/Logo Area ── */
@@ -88,6 +130,11 @@
   font-weight: 800;
   letter-spacing: -0.03em;
   color: var(--text-primary);
+  transition: transform 0.2s ease;
+}
+
+.rs-brand-logo:hover {
+  transform: scale(1.02);
 }
 
 .rs-brand-logo span {
