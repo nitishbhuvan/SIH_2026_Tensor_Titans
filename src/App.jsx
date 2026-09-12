@@ -20,9 +20,6 @@ const LANGUAGE_STORAGE_KEY = 'preconsult_user_language';
 const MODE_STORAGE_KEY = 'preconsult_user_mode';
 const THEME_STORAGE_KEY = 'preconsult_color_theme';
 const DOCTOR_SESSION_KEY = 'preconsult_doctor_session';
-const INTRO_SEEN_KEY = 'preconsult_intro_seen';
-
-const isIntroPreview = new URLSearchParams(window.location.search).get('intro') === '1';
 
 let toastIdCounter = 0;
 

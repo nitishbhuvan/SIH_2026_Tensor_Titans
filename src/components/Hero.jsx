@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mic, FileText, Sparkles, Leaf } from 'lucide-react';
+import { Mic, FileText, Leaf } from 'lucide-react';
 import './Hero.css';
 
 export default function Hero({ isElderly, t, onVoiceIntake, onOcrIntake, onAyusetuIntake }) {
