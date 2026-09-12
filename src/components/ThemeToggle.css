@@ -9,7 +9,7 @@
   justify-content: center;
   width: 36px;
   height: 36px;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-full);
   cursor: pointer;
   outline: none;
   background: var(--navbar-btn-bg);
@@ -197,7 +197,7 @@ body.mode-elderly .theme-toggle-disc {
 .theme-toggle-wave {
   position: absolute;
   inset: -2px;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-full);
   pointer-events: none;
   opacity: 0;
 }

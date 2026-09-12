@@ -6,7 +6,7 @@
 .medical-ocr-section {
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-xl);
   box-shadow: var(--card-shadow);
   margin-top: 2rem;
   margin-bottom: 2.5rem;
@@ -68,9 +68,9 @@
 .ocr-engine-tag {
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-full);
   color: var(--text-muted);
-  padding: 0.25rem 0.6rem;
+  padding: 0.25rem 0.75rem;
   font-size: 0.72rem;
 }
 
@@ -131,7 +131,7 @@
 .ocr-preset-btn {
   background: var(--bg-surface-secondary);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   padding: 0.85rem 1rem;
   text-align: left;
   cursor: pointer;
@@ -202,7 +202,7 @@
 /* Drop Zone */
 .ocr-drop-zone {
   border: 2px dashed var(--border-default);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-lg);
   background: var(--bg-surface-secondary);
   padding: 1.25rem;
   text-align: center;
@@ -269,7 +269,7 @@
 .ocr-split-panel {
   background: var(--bg-surface-secondary);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-lg);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -303,7 +303,7 @@
 .viewer-btn {
   background: var(--bg-surface-secondary);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-full);
   color: var(--text-secondary);
   width: 28px;
   height: 28px;
@@ -341,7 +341,7 @@
 .prescription-original-img {
   max-width: 100%;
   height: auto;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
@@ -586,8 +586,8 @@
 .badge-dosage {
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
-  padding: 0.15rem 0.45rem;
-  border-radius: var(--radius-sm);
+  padding: 0.15rem 0.55rem;
+  border-radius: var(--radius-full);
   font-family: var(--font-mono);
   font-size: 0.75rem;
 }
@@ -631,7 +631,7 @@
 .ayur-factors-card {
   background: rgba(16, 185, 129, 0.06);
   border: 1px solid rgba(16, 185, 129, 0.25);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   padding: 0.85rem;
 }
 
@@ -673,7 +673,7 @@
   gap: 1.5rem;
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   padding: 0.75rem 1rem;
   margin-bottom: 1rem;
   flex-wrap: wrap;
@@ -699,7 +699,7 @@
 .advice-box {
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   padding: 0.85rem 1rem;
   margin-bottom: 1rem;
 }
@@ -741,7 +741,7 @@
   padding: 0.65rem 0.85rem;
   background: rgba(37, 99, 235, 0.08);
   border-left: 3px solid var(--accent-primary);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
   font-size: 0.82rem;
   color: var(--text-primary);
 }
@@ -767,10 +767,10 @@
   gap: 0.3rem;
   background: transparent;
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-full);
   color: var(--text-secondary);
   font-size: 0.72rem;
-  padding: 0.25rem 0.5rem;
+  padding: 0.25rem 0.65rem;
   cursor: pointer;
 }
 
@@ -782,7 +782,7 @@
 .raw-ocr-monospace {
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   padding: 0.85rem;
   font-family: var(--font-mono);
   font-size: 0.78rem;
@@ -818,9 +818,9 @@
   gap: 0.4rem;
   background: var(--bg-surface-secondary);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-full);
   color: var(--text-secondary);
-  padding: 0.45rem 0.85rem;
+  padding: 0.45rem 1rem;
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;

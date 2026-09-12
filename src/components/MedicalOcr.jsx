@@ -239,7 +239,7 @@ Electronically Signed by: Dr. S. K. Sharma, MD (Pathology)`
   }
 ];
 
-export default function MedicalOcr({ isElderly = false, t = {}, onNotify }) {
+export default function MedicalOcr({ isElderly = false, t = {}, onNotify, patientProfile }) {
   const [selectedPresetId, setSelectedPresetId] = useState(OCR_SAMPLE_PRESETS[0].id);
   const [customImageSrc, setCustomImageSrc] = useState(null);
   const [customImageName, setCustomImageName] = useState('');
@@ -386,7 +386,10 @@ Vitals noted: BP 130/84 mmHg, P 76/min.`
     };
 
     addClinicalRecord(intakePayload, {
-      name: extractedData.patient || 'OPD Patient',
+      name: extractedData.patient || patientProfile?.name || 'OPD Patient',
+      abhaId: patientProfile?.abhaId || '91-8765-4321-0987',
+      abhaAddress: patientProfile?.abhaAddress || 'patient@abdm',
+      phone: patientProfile?.phone || '+91 98765 43210',
       age: extractedData.patientAgeSex?.includes('58') ? 58 : extractedData.patientAgeSex?.includes('65') ? 65 : 45,
       gender: extractedData.patientAgeSex?.includes('Male') ? 'Male' : 'Female',
       language: 'en',

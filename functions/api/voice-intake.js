@@ -173,16 +173,16 @@ Produce the structured JSON clinical intake output following all term preservati
 function executeClinicalDynamicEngine(transcript, lang) {
   const text = (transcript || '').trim();
   const lower = text.toLowerCase();
-  
+
   let detected_language =
     lang === 'hi' ? 'Hindi' :
-    lang === 'kn' ? 'Kannada' :
-    lang === 'ta' ? 'Tamil' :
-    lang === 'te' ? 'Telugu' :
-    lang === 'mr' ? 'Marathi' :
-    lang === 'bn' ? 'Bengali' :
-    lang === 'ml' ? 'Malayalam' :
-    lang === 'sa' ? 'Sanskrit / AYUSH' : 'English';
+      lang === 'kn' ? 'Kannada' :
+        lang === 'ta' ? 'Tamil' :
+          lang === 'te' ? 'Telugu' :
+            lang === 'mr' ? 'Marathi' :
+              lang === 'bn' ? 'Bengali' :
+                lang === 'ml' ? 'Malayalam' :
+                  lang === 'sa' ? 'Sanskrit / AYUSH' : 'English';
 
   let triage_urgency = "ROUTINE";
   let triage_reason = "Stable presentation without immediate life-threatening alerts.";

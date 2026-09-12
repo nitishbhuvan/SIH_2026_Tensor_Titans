@@ -1,21 +1,29 @@
 import React from 'react';
-import { Globe, Accessibility, Zap, Stethoscope } from 'lucide-react';
+import { Globe, ShieldCheck } from 'lucide-react';
 import ThemeToggle from './ThemeToggle.jsx';
 import { SUPPORTED_LANGUAGES, translations } from '../translations.js';
 import './Navbar.css';
 
 export default function Navbar({
-  currentMode,
   currentLanguage = 'en',
-  onOpenModeModal,
   onOpenLanguageModal,
-  onSwitchRole,
   currentTheme,
-  onToggleTheme
+  onToggleTheme,
+  patientProfile,
+  onOpenProfile,
 }) {
-  const isElderly = currentMode === 'elderly';
   const t = translations[currentLanguage] || translations.en;
   const currentLangObj = SUPPORTED_LANGUAGES.find((l) => l.id === currentLanguage) || SUPPORTED_LANGUAGES[0];
+
+  const initials = patientProfile?.name
+    ? patientProfile.name
+        .split(' ')
+        .map((p) => p[0])
+        .filter(Boolean)
+        .slice(0, 2)
+        .join('')
+        .toUpperCase()
+    : 'AB';
 
   return (
     <header className="navbar-wrapper">
@@ -49,44 +57,28 @@ export default function Navbar({
               <span className="navbar-lang-text">{currentLangObj.nativeLabel}</span>
             </button>
 
-            {/* Mode */}
-            <button
-              type="button"
-              className={`navbar-btn ${isElderly ? 'mode-elderly-btn' : 'mode-modern-btn'}`}
-              onClick={onOpenModeModal}
-              title="Change viewing mode"
-              aria-label={`Current mode: ${isElderly ? t.elderlyLabel : t.modernLabel}. Click to switch.`}
-            >
-              {isElderly
-                ? <Accessibility className="navbar-btn-icon" aria-hidden="true" />
-                : <Zap className="navbar-btn-icon" aria-hidden="true" />
-              }
-              <span className="navbar-mode-label">
-                <span className="navbar-mode-primary">
-                  {isElderly ? t.elderlyLabel : t.modernLabel}
-                </span>
-              </span>
-            </button>
-
-            {/* Switch Role Link */}
-            {onSwitchRole && (
-              <button
-                type="button"
-                className="navbar-btn navbar-switch-role-btn"
-                onClick={() => onSwitchRole('role-select')}
-                title="Switch role"
-                aria-label="Switch role"
-              >
-                <Stethoscope className="navbar-btn-icon" aria-hidden="true" />
-                <span className="navbar-lang-text">Switch Role</span>
-              </button>
-            )}
 
             {/* Theme Toggle */}
             <ThemeToggle
               theme={currentTheme}
               onToggle={onToggleTheme}
             />
+
+            {/* Circular Profile Avatar (PFP) Button */}
+            {onOpenProfile && (
+              <button
+                type="button"
+                className="navbar-pfp-btn"
+                onClick={onOpenProfile}
+                title="Open Profile & ABHA Card"
+                aria-label={`Open profile for ${patientProfile?.name || 'Patient'}`}
+              >
+                <span className="navbar-pfp-initials">{initials}</span>
+                <span className="navbar-pfp-badge" title="ABHA Verified">
+                  <ShieldCheck size={10} />
+                </span>
+              </button>
+            )}
           </div>
         </nav>
       </div>

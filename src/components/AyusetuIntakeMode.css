@@ -21,7 +21,7 @@
   margin-bottom: 1.75rem;
   background: var(--bg-surface, #FFFFFF);
   border: 1px solid var(--border-default, #D7DAD3);
-  border-radius: var(--radius-lg, 8px);
+  border-radius: var(--radius-xl);
   padding: 1.5rem 1.75rem;
   box-shadow: var(--card-shadow, 0 1px 3px rgba(0,0,0,0.05));
 }
@@ -56,7 +56,7 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   padding: 0.25rem 0.65rem;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   background: rgba(102, 125, 89, 0.15);
   color: var(--accent-success, #667D59);
   border: 1px solid rgba(102, 125, 89, 0.3);
@@ -73,7 +73,7 @@
   display: inline-flex;
   background: var(--bg-surface-secondary, #ECEEE9);
   padding: 0.25rem;
-  border-radius: var(--radius-md, 6px);
+  border-radius: var(--radius-full);
   border: 1px solid var(--border-default, #D7DAD3);
 }
 
@@ -81,14 +81,14 @@
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  padding: 0.5rem 0.95rem;
+  padding: 0.5rem 1rem;
   font-size: 0.88rem;
   font-weight: 600;
   border: none;
   background: transparent;
   color: var(--text-secondary, #62665F);
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: var(--radius-full);
   transition: all 0.18s ease;
 }
 
@@ -106,10 +106,10 @@
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  padding: 0.55rem 0.95rem;
+  padding: 0.55rem 1.1rem;
   font-size: 0.85rem;
   font-weight: 600;
-  border-radius: var(--radius-md, 6px);
+  border-radius: var(--radius-full);
   background: #EFF6FF;
   color: #1D4ED8;
   border: 1px solid #BFDBFE;
@@ -123,10 +123,10 @@
 }
 
 .ayusetu-back-nav-btn {
-  padding: 0.55rem 0.9rem;
+  padding: 0.55rem 1rem;
   font-size: 0.85rem;
   font-weight: 600;
-  border-radius: var(--radius-md, 6px);
+  border-radius: var(--radius-full);
   background: var(--bg-surface-secondary, #ECEEE9);
   color: var(--text-primary, #181B18);
   border: 1px solid var(--border-default, #D7DAD3);
@@ -147,10 +147,10 @@
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  padding: 0.45rem 0.75rem;
+  padding: 0.45rem 0.85rem;
   background: var(--bg-surface, #FFFFFF);
   border: 1px solid var(--border-default, #D7DAD3);
-  border-radius: var(--radius-md, 6px);
+  border-radius: var(--radius-full);
   white-space: nowrap;
   font-size: 0.82rem;
   color: var(--text-secondary, #62665F);
@@ -197,7 +197,7 @@
 .ayusetu-red-flag-emergency-banner {
   background: #FEF2F2;
   border: 2px solid #EF4444;
-  border-radius: var(--radius-lg, 8px);
+  border-radius: var(--radius-xl);
   padding: 1.5rem;
   margin-bottom: 1.5rem;
   box-shadow: 0 4px 20px rgba(239, 68, 68, 0.25);
@@ -243,7 +243,7 @@
 
 .rf-triggers-box {
   background: #FEE2E2;
-  border-radius: var(--radius-md, 6px);
+  border-radius: var(--radius-md);
   padding: 0.85rem 1rem;
   margin-bottom: 1.25rem;
   color: #991B1B;
@@ -270,7 +270,7 @@
   padding: 0.75rem 1.4rem;
   font-weight: 700;
   font-size: 0.95rem;
-  border-radius: var(--radius-md, 6px);
+  border-radius: var(--radius-full);
   text-decoration: none;
   transition: all 0.15s ease;
 }
@@ -290,7 +290,7 @@
   font-weight: 600;
   font-size: 0.92rem;
   border: none;
-  border-radius: var(--radius-md, 6px);
+  border-radius: var(--radius-full);
   cursor: pointer;
 }
 
@@ -298,7 +298,7 @@
   background: transparent;
   color: #7F1D1D;
   border: 1px solid #F87171;
-  border-radius: var(--radius-md, 6px);
+  border-radius: var(--radius-full);
   padding: 0.75rem 1rem;
   font-size: 0.88rem;
   cursor: pointer;
@@ -308,7 +308,7 @@
 .ayusetu-stage-card {
   background: var(--bg-surface, #FFFFFF);
   border: 1px solid var(--border-default, #D7DAD3);
-  border-radius: var(--radius-lg, 8px);
+  border-radius: var(--radius-xl);
   padding: 1.75rem 2rem;
   box-shadow: var(--card-shadow, 0 1px 3px rgba(0,0,0,0.05));
 }
@@ -391,7 +391,7 @@
   width: 100%;
   padding: 0.65rem 0.85rem;
   border: 1px solid var(--border-default, #D7DAD3);
-  border-radius: var(--radius-md, 4px);
+  border-radius: var(--radius-sm);
   background: var(--bg-surface, #FFFFFF);
   color: var(--text-primary, #181B18);
   font-family: inherit;
@@ -423,7 +423,7 @@
   justify-content: center;
   width: 42px;
   height: 42px;
-  border-radius: var(--radius-md, 4px);
+  border-radius: var(--radius-full);
   border: 1px solid var(--border-default, #D7DAD3);
   background: var(--bg-surface-secondary, #ECEEE9);
   color: var(--text-secondary, #62665F);
@@ -452,9 +452,9 @@
 }
 
 .pill-choice-btn {
-  padding: 0.45rem 0.85rem;
+  padding: 0.45rem 1rem;
   font-size: 0.86rem;
-  border-radius: var(--radius-sm, 4px);
+  border-radius: var(--radius-full);
   border: 1px solid var(--border-default, #D7DAD3);
   background: var(--bg-surface-secondary, #ECEEE9);
   color: var(--text-primary, #181B18);
@@ -504,7 +504,7 @@
 .consent-statement-card {
   background: var(--bg-surface-secondary, #ECEEE9);
   border: 1px solid var(--border-default, #D7DAD3);
-  border-radius: var(--radius-md, 6px);
+  border-radius: var(--radius-lg);
   padding: 1.5rem;
   text-align: left;
   margin-bottom: 2rem;
@@ -548,7 +548,7 @@
   align-items: flex-start;
   gap: 0.85rem;
   padding: 1.25rem;
-  border-radius: var(--radius-md, 6px);
+  border-radius: var(--radius-lg);
   border: 2px solid var(--border-default, #D7DAD3);
   background: var(--bg-surface, #FFFFFF);
   cursor: pointer;
@@ -646,7 +646,7 @@
 .presets-box {
   background: var(--bg-surface-secondary, #ECEEE9);
   padding: 1rem;
-  border-radius: var(--radius-md, 6px);
+  border-radius: var(--radius-lg);
   margin-bottom: 1.25rem;
 }
 
@@ -666,8 +666,8 @@
 
 .preset-chip-btn {
   font-size: 0.82rem;
-  padding: 0.35rem 0.65rem;
-  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-full);
   border: 1px solid var(--border-default, #D7DAD3);
   background: var(--bg-surface, #FFFFFF);
   color: var(--text-primary, #181B18);
@@ -684,11 +684,11 @@
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  padding: 0.75rem 1rem;
+  padding: 0.75rem 1.15rem;
   background: #F0FDF4;
   border: 1px solid #BBF7D0;
   color: #15803D;
-  border-radius: var(--radius-md, 6px);
+  border-radius: var(--radius-full);
   font-size: 0.9rem;
 }
 
@@ -704,9 +704,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 0.85rem 1rem;
+  padding: 0.85rem 1.15rem;
   border: 1px solid var(--border-default, #D7DAD3);
-  border-radius: var(--radius-md, 6px);
+  border-radius: var(--radius-md);
   background: var(--bg-surface-secondary, #ECEEE9);
   transition: all 0.15s ease;
 }
@@ -729,10 +729,10 @@
 }
 
 .rf-toggle-btn {
-  padding: 0.4rem 0.9rem;
+  padding: 0.4rem 1rem;
   font-size: 0.85rem;
   font-weight: 600;
-  border-radius: var(--radius-sm, 4px);
+  border-radius: var(--radius-full);
   border: 1px solid var(--border-default, #D7DAD3);
   background: var(--bg-surface, #FFFFFF);
   cursor: pointer;
@@ -764,7 +764,7 @@
   gap: 0.75rem;
   background: var(--accent-primary-bg, #E8EEF4);
   border: 1px solid var(--accent-primary-border, #A8BFCF);
-  border-radius: var(--radius-md, 6px);
+  border-radius: var(--radius-lg);
   padding: 1rem;
   color: var(--accent-primary-dark, #344E68);
 }
@@ -807,7 +807,7 @@
 .ros-card {
   background: var(--bg-surface-secondary, #ECEEE9);
   border: 1px solid var(--border-default, #D7DAD3);
-  border-radius: var(--radius-md, 6px);
+  border-radius: var(--radius-lg);
   padding: 1.25rem;
 }
 
@@ -852,7 +852,7 @@
 .ayush-group-box {
   background: var(--bg-surface-secondary, #ECEEE9);
   border: 1px solid var(--border-default, #D7DAD3);
-  border-radius: var(--radius-md, 6px);
+  border-radius: var(--radius-lg);
   padding: 1.25rem;
 }
 
@@ -888,7 +888,7 @@
 .clinical-summary-preview-card {
   background: var(--bg-surface-secondary, #ECEEE9);
   border: 1px solid var(--border-default, #D7DAD3);
-  border-radius: var(--radius-md, 6px);
+  border-radius: var(--radius-xl);
   padding: 1.5rem;
   margin: 1.5rem 0;
 }
@@ -961,8 +961,8 @@
   color: #FFF;
   font-weight: 700;
   font-size: 1.05rem;
-  padding: 0.85rem 2rem;
-  border-radius: var(--radius-md, 6px);
+  padding: 0.85rem 2.2rem;
+  border-radius: var(--radius-full);
   border: none;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1000,8 +1000,8 @@
 
 .success-ticket strong {
   background: var(--bg-surface-secondary, #ECEEE9);
-  padding: 0.2rem 0.65rem;
-  border-radius: 4px;
+  padding: 0.25rem 0.85rem;
+  border-radius: var(--radius-full);
 }
 
 .success-desc {
@@ -1024,8 +1024,8 @@
   gap: 0.5rem;
   background: var(--accent-primary-dark, #344E68);
   color: #FFF;
-  padding: 0.75rem 1.4rem;
-  border-radius: var(--radius-md, 6px);
+  padding: 0.75rem 1.6rem;
+  border-radius: var(--radius-full);
   font-weight: 600;
   border: none;
   cursor: pointer;
@@ -1037,8 +1037,8 @@
   gap: 0.5rem;
   background: var(--bg-surface-secondary, #ECEEE9);
   color: var(--text-primary, #181B18);
-  padding: 0.75rem 1.25rem;
-  border-radius: var(--radius-md, 6px);
+  padding: 0.75rem 1.4rem;
+  border-radius: var(--radius-full);
   font-weight: 600;
   border: 1px solid var(--border-default, #D7DAD3);
   cursor: pointer;
@@ -1059,10 +1059,10 @@
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.65rem 1.25rem;
+  padding: 0.65rem 1.4rem;
   font-size: 0.92rem;
   font-weight: 600;
-  border-radius: var(--radius-md, 4px);
+  border-radius: var(--radius-full);
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -1110,7 +1110,7 @@
 .stat-card {
   background: var(--bg-surface, #FFFFFF);
   border: 1px solid var(--border-default, #D7DAD3);
-  border-radius: var(--radius-md, 6px);
+  border-radius: var(--radius-lg);
   padding: 1.25rem;
   text-align: center;
   box-shadow: var(--card-shadow, 0 1px 3px rgba(0,0,0,0.05));
@@ -1152,7 +1152,7 @@
   padding: 0.85rem 1.25rem;
   font-weight: 600;
   font-size: 0.9rem;
-  border-radius: var(--radius-md, 6px);
+  border-radius: var(--radius-full);
   border: none;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -1171,7 +1171,7 @@
   gap: 1rem;
   background: var(--bg-surface, #FFFFFF);
   border: 1px solid var(--border-default, #D7DAD3);
-  border-radius: var(--radius-md, 6px);
+  border-radius: var(--radius-lg);
   padding: 1.25rem;
 }
 
@@ -1189,8 +1189,8 @@
   gap: 0.5rem;
   flex: 1;
   background: var(--bg-surface-secondary, #ECEEE9);
-  padding: 0.5rem 0.85rem;
-  border-radius: var(--radius-md, 6px);
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-full);
   border: 1px solid var(--border-default, #D7DAD3);
 }
 
@@ -1245,7 +1245,7 @@
 .dataset-section-card {
   background: var(--bg-surface, #FFFFFF);
   border: 1px solid var(--border-default, #D7DAD3);
-  border-radius: var(--radius-lg, 8px);
+  border-radius: var(--radius-xl);
   padding: 1.5rem;
   box-shadow: var(--card-shadow, 0 1px 3px rgba(0,0,0,0.05));
 }
@@ -1276,8 +1276,8 @@
   font-size: 0.75rem;
   font-weight: 700;
   background: var(--bg-surface-secondary, #ECEEE9);
-  padding: 0.25rem 0.55rem;
-  border-radius: 4px;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-full);
   color: var(--text-secondary, #62665F);
 }
 
@@ -1294,16 +1294,16 @@
 
 .sec-cat-tag {
   font-size: 0.75rem;
-  padding: 0.2rem 0.55rem;
-  border-radius: 4px;
+  padding: 0.2rem 0.65rem;
+  border-radius: var(--radius-full);
   background: var(--bg-surface-secondary, #ECEEE9);
   color: var(--text-secondary, #62665F);
 }
 
 .sec-ayur-tag {
   font-size: 0.75rem;
-  padding: 0.2rem 0.55rem;
-  border-radius: 4px;
+  padding: 0.2rem 0.65rem;
+  border-radius: var(--radius-full);
   background: #DCFCE7;
   color: #166534;
   font-weight: 600;
@@ -1318,7 +1318,7 @@
 /* Question table inside section */
 .sec-questions-table {
   border: 1px solid var(--border-default, #D7DAD3);
-  border-radius: var(--radius-md, 6px);
+  border-radius: var(--radius-lg);
   overflow: hidden;
 }
 
@@ -1369,8 +1369,8 @@
   font-family: var(--font-mono, monospace);
   font-size: 0.75rem;
   background: var(--bg-surface-secondary, #ECEEE9);
-  padding: 0.15rem 0.45rem;
-  border-radius: 3px;
+  padding: 0.15rem 0.55rem;
+  border-radius: var(--radius-full);
   color: var(--text-secondary, #62665F);
   align-self: start;
 }
@@ -1402,7 +1402,7 @@
 .branch-card {
   background: var(--bg-surface-secondary, #ECEEE9);
   border: 1px solid var(--border-default, #D7DAD3);
-  border-radius: var(--radius-md, 6px);
+  border-radius: var(--radius-md);
   padding: 1rem;
 }
 

@@ -187,6 +187,9 @@ export function addClinicalRecord(intakeData, patientInfo = {}) {
     status: 'pending',
     patientInfo: {
       name: patientInfo.name || 'Anonymous Patient',
+      abhaId: patientInfo.abhaId || '91-8765-4321-0987',
+      abhaAddress: patientInfo.abhaAddress || (patientInfo.name ? `${patientInfo.name.toLowerCase().replace(/\s+/g, '.')}@abdm` : 'patient@abdm'),
+      phone: patientInfo.phone || '+91 98765 43210',
       age: patientInfo.age || null,
       gender: patientInfo.gender || 'Unknown',
       language: patientInfo.language || 'en',
