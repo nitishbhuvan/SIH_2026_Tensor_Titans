@@ -488,7 +488,7 @@
   display: flex;
   flex-direction: column;
   padding: 0.95rem;
-  border-radius: 8px;
+  border-radius: var(--radius-md, 16px);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   box-shadow: 0 20px 35px rgba(0, 0, 0, 0.45),
@@ -563,8 +563,8 @@
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.2rem 0.45rem;
-  border-radius: 4px;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-full);
   font-size: 0.58rem;
   font-weight: 600;
   color: #8fc4bd;
@@ -589,8 +589,8 @@
 
 .doc-badge-optimal {
   margin-top: auto;
-  padding: 0.25rem 0.4rem;
-  border-radius: 4px;
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-full);
   text-align: center;
   font-size: 0.56rem;
   font-weight: 600;
@@ -842,8 +842,8 @@
   align-items: center;
   justify-content: center;
   gap: 0.55rem;
-  padding: 0.8rem 1.4rem;
-  border-radius: 6px;
+  padding: 0.85rem 1.6rem;
+  border-radius: var(--radius-full);
   font: 600 0.9rem var(--font-body);
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
@@ -918,8 +918,8 @@
 }
 
 .kbd-shortcut {
-  padding: 0.15rem 0.4rem;
-  border-radius: 3px;
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-xs, 6px);
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.16);
   font-size: 0.62rem;

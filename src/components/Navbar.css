@@ -90,8 +90,8 @@ body.mode-elderly .brand-sublabel {
   display: inline-flex;
   align-items: center;
   gap: clamp(0.3rem, 1vw, 0.45rem);
-  padding: clamp(0.35rem, 1.2vw, 0.45rem) clamp(0.55rem, 1.5vw, 0.75rem);
-  border-radius: var(--radius-md);
+  padding: clamp(0.35rem, 1.2vw, 0.45rem) clamp(0.65rem, 1.8vw, 0.95rem);
+  border-radius: var(--radius-full);
   border: 1px solid var(--border-default);
   background: var(--navbar-btn-bg);
   color: var(--text-primary);
@@ -99,18 +99,20 @@ body.mode-elderly .brand-sublabel {
   font-weight: 600;
   font-size: clamp(0.75rem, 2vw, 0.82rem);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   min-height: 36px;
   touch-action: manipulation;
   white-space: nowrap;
   text-decoration: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
 body.mode-elderly .navbar-btn {
   min-height: 44px;
   font-size: clamp(0.85rem, 2.2vw, 0.95rem);
-  padding: clamp(0.45rem, 1.5vw, 0.6rem) clamp(0.65rem, 1.8vw, 0.95rem);
+  padding: clamp(0.45rem, 1.5vw, 0.6rem) clamp(0.75rem, 2vw, 1.15rem);
   border-width: 2px;
+  border-radius: var(--radius-full);
 }
 
 .navbar-btn:hover {
@@ -211,3 +213,66 @@ body.mode-elderly .navbar-mode-secondary {
   border-color: var(--accent-success);
   color: var(--accent-success);
 }
+
+/* ── Circular Profile Avatar (PFP) ── */
+.navbar-pfp-btn {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, #15803d 0%, #047857 100%);
+  color: #ffffff;
+  border: 2px solid var(--border-default);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 0.25rem;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 8px rgba(21, 128, 61, 0.25);
+  flex-shrink: 0;
+}
+
+body.mode-elderly .navbar-pfp-btn {
+  width: 44px;
+  height: 44px;
+}
+
+.navbar-pfp-btn:hover {
+  transform: scale(1.06);
+  border-color: #22c55e;
+  box-shadow: 0 4px 14px rgba(34, 197, 94, 0.4);
+}
+
+.navbar-pfp-btn:active {
+  transform: scale(0.96);
+}
+
+.navbar-pfp-initials {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+body.mode-elderly .navbar-pfp-initials {
+  font-size: 0.95rem;
+}
+
+.navbar-pfp-badge {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 15px;
+  height: 15px;
+  border-radius: var(--radius-full);
+  background: #22c55e;
+  color: #ffffff;
+  border: 1.5px solid var(--bg-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+

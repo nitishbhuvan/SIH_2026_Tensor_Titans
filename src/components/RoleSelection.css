@@ -187,7 +187,7 @@
 .rs-role-card {
   background: var(--bg-surface);
   border: 1.5px solid var(--border-default);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   padding: clamp(1.5rem, 4vw, 2.25rem) clamp(1.25rem, 3.5vw, 2rem);
   cursor: pointer;
   display: flex;
@@ -195,7 +195,7 @@
   align-items: flex-start;
   gap: 1.1rem;
   transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: var(--card-shadow);
+  box-shadow: 0 4px 20px -6px rgba(0, 0, 0, 0.06);
   text-align: left;
   outline: none;
   touch-action: manipulation;
@@ -214,7 +214,7 @@
 
 .rs-role-card:hover {
   transform: translateY(-4px);
-  box-shadow: var(--card-shadow-hover);
+  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.12);
 }
 
 .rs-role-card:focus-visible {
@@ -253,7 +253,7 @@
 .rs-card-icon-wrap {
   width: clamp(44px, 10vw, 56px);
   height: clamp(44px, 10vw, 56px);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -346,14 +346,14 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.65rem 1.25rem;
-  border-radius: var(--radius-md);
+  padding: 0.75rem 1.4rem;
+  border-radius: var(--radius-full);
   font-size: clamp(0.88rem, 2vw, 0.95rem);
   font-weight: 600;
   border: none;
   cursor: pointer;
   text-decoration: none;
-  transition: all 0.18s ease;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   letter-spacing: -0.01em;
   width: 100%;
   justify-content: center;

@@ -5,9 +5,10 @@
 .hero-section {
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   margin-bottom: clamp(1rem, 3vw, 1.75rem);
   overflow: hidden;
+  box-shadow: 0 4px 20px -6px rgba(0, 0, 0, 0.05);
   transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
@@ -20,7 +21,7 @@ body.mode-elderly .hero-section {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: clamp(0.4rem, 1.2vw, 0.55rem) clamp(0.85rem, 2.5vw, 1.25rem);
+  padding: clamp(0.45rem, 1.2vw, 0.6rem) clamp(1rem, 2.5vw, 1.5rem);
   border-bottom: 1px solid var(--border-subtle);
   gap: 0.5rem;
 }
@@ -113,26 +114,27 @@ body.mode-elderly .hero-subtitle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  padding: var(--btn-padding);
+  gap: 0.55rem;
+  padding: 0.75rem 1.6rem;
   background: var(--btn-primary-bg);
   color: var(--btn-primary-text);
   border: 1px solid transparent;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-full);
   font-family: var(--font-body);
   font-size: var(--btn-font-size);
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.15s ease, transform 0.1s ease, border-color 0.15s ease;
-  min-height: 44px;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  min-height: 46px;
   touch-action: manipulation;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .hero-cta-ayusetu {
   background: #16A34A;
   color: #ffffff;
   border-color: #15803D;
-  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.25);
+  box-shadow: 0 4px 14px rgba(22, 163, 74, 0.3);
 }
 
 .hero-cta-ayusetu:hover {

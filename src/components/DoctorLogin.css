@@ -9,11 +9,11 @@
 
 .doctor-login-card {
   width: min(100%, 430px);
-  padding: clamp(1.5rem, 5vw, 2.5rem);
+  padding: clamp(1.75rem, 5vw, 2.75rem);
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg, 0 18px 45px rgba(20, 30, 40, 0.12));
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg, 0 20px 50px -10px rgba(20, 30, 40, 0.12));
 }
 
 .doctor-login-brand {
@@ -32,7 +32,7 @@
   width: 42px;
   height: 42px;
   place-items: center;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   color: var(--accent-primary);
   background: var(--accent-primary-bg);
 }
@@ -67,9 +67,9 @@
   display: flex;
   align-items: center;
   gap: 0.55rem;
-  padding: 0.7rem 0.8rem;
+  padding: 0.7rem 1rem;
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-full);
   color: var(--text-muted);
   background: var(--bg-surface-secondary);
 }
@@ -101,9 +101,9 @@
 
 .doctor-login-form > input {
   width: 100%;
-  padding: 0.7rem 0.8rem;
+  padding: 0.7rem 1rem;
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-full);
   outline: 0;
   color: var(--text-primary);
   background: var(--bg-surface-secondary);
@@ -122,13 +122,15 @@
 
 .doctor-login-submit {
   margin-top: 0.75rem;
-  padding: 0.75rem 1rem;
+  padding: 0.75rem 1.2rem;
   border: 0;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-full);
   color: var(--btn-primary-text);
   background: var(--btn-primary-bg);
   font: 600 0.95rem var(--font-body);
   cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 14px rgba(52, 78, 104, 0.25);
 }
 
 .doctor-login-submit:hover { background: var(--btn-primary-hover); }

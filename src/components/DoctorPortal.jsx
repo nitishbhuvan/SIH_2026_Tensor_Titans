@@ -341,6 +341,11 @@ export default function DoctorPortal({ theme, onToggleTheme, onSwitchRole, docto
                       )}
                     </div>
                     <div className="dp-queue-item-meta">
+                      {rec.patientInfo?.abhaId && (
+                        <span style={{ color: 'var(--accent-primary)', fontWeight: 600, display: 'inline-block', marginRight: '0.3rem' }}>
+                          ABHA: {rec.patientInfo.abhaId} •{' '}
+                        </span>
+                      )}
                       {rec.patientInfo?.age && `${rec.patientInfo.age}yr `}
                       {rec.patientInfo?.gender} •{' '}
                       {rec.patientInfo?.languageLabel || rec.patientInfo?.language}
@@ -382,6 +387,11 @@ export default function DoctorPortal({ theme, onToggleTheme, onSwitchRole, docto
                     {selectedRecord.patientInfo?.name || 'Anonymous Patient'}
                     {selectedRecord.patientInfo?.isElderly && ' 🧓'}
                   </span>
+                  {selectedRecord.patientInfo?.abhaId && (
+                    <span className="dp-patient-details" style={{ color: 'var(--accent-success)', fontWeight: 700, background: 'rgba(21, 128, 61, 0.1)', padding: '0.15rem 0.5rem', borderRadius: 'var(--radius-full)' }}>
+                      🛡️ ABHA: {selectedRecord.patientInfo.abhaId}
+                    </span>
+                  )}
                   <span className="dp-patient-details">
                     {selectedRecord.patientInfo?.age && `${selectedRecord.patientInfo.age} yr`}
                     {selectedRecord.patientInfo?.gender && ` • ${selectedRecord.patientInfo.gender}`}

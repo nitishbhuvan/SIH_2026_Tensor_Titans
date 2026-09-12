@@ -30,12 +30,12 @@
   -webkit-overflow-scrolling: touch;
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   display: flex;
   flex-direction: column;
   transition: background-color 0.3s ease, border-color 0.3s ease;
   animation: modalBoxIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  box-shadow: 0 16px 48px -12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 60px -15px rgba(0, 0, 0, 0.35);
 }
 
 @keyframes modalBoxIn {
@@ -54,7 +54,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: clamp(0.5rem, 1.5vw, 0.65rem) clamp(0.85rem, 2.5vw, 1.25rem);
+  padding: clamp(0.55rem, 1.5vw, 0.75rem) clamp(1rem, 2.5vw, 1.5rem);
   border-bottom: 1px solid var(--border-subtle);
 }
 
@@ -70,8 +70,8 @@
 }
 
 .step-pill {
-  padding: 0.2rem 0.5rem;
-  border-radius: var(--radius-sm);
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-full);
   background: transparent;
   border: 1px solid transparent;
   color: var(--text-muted);
@@ -103,7 +103,7 @@
 .modal-close {
   background: transparent;
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-full);
   width: 32px;
   height: 32px;
   display: flex;
@@ -154,13 +154,13 @@
   gap: 0.3rem;
   background: transparent;
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-full);
   color: var(--text-secondary);
   font-family: var(--font-mono);
   font-size: clamp(0.7rem, 1.8vw, 0.78rem);
   font-weight: 500;
   cursor: pointer;
-  padding: 0.25rem 0.6rem;
+  padding: 0.35rem 0.85rem;
   margin-bottom: 0.75rem;
   transition: all 0.15s ease;
 }
@@ -190,7 +190,7 @@
   position: relative;
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   padding: clamp(0.7rem, 2vw, 0.9rem) clamp(0.5rem, 1.5vw, 0.7rem);
   display: flex;
   flex-direction: column;
@@ -223,7 +223,7 @@
 .lang-glyph-badge {
   width: 32px;
   height: 32px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   background: var(--bg-surface-secondary);
   display: flex;
   align-items: center;
@@ -270,7 +270,7 @@
   max-width: 200px;
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -331,6 +331,134 @@
   max-width: 140px;
   line-height: 1.3;
   text-align: center;
+}
+
+/* ============================================================================
+   ABHA ONBOARDING STEP STYLES
+   ============================================================================ */
+.abha-step-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.abha-step-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.3rem 0.85rem;
+  background: var(--accent-primary-bg);
+  border: 1px solid var(--accent-primary-border);
+  border-radius: var(--radius-full);
+  color: var(--accent-primary-dark);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-bottom: 0.6rem;
+}
+
+.abha-onboarding-form {
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.95rem;
+  margin-top: 0.5rem;
+  text-align: left;
+}
+
+.abha-onboarding-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.abha-onboarding-field label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.abha-input-box {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  padding: 0.55rem 0.85rem;
+  transition: border-color 0.15s ease;
+  color: var(--text-muted);
+}
+
+.abha-input-box:focus-within {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px var(--accent-primary-bg);
+  color: var(--accent-primary);
+}
+
+.abha-input-box input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: inherit;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.abha-onboarding-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 0.75rem;
+}
+
+.abha-demo-action {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.2rem;
+}
+
+.abha-quick-demo-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: transparent;
+  border: 1px dashed var(--accent-primary);
+  border-radius: var(--radius-full);
+  color: var(--accent-primary-dark);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.35rem 0.95rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.abha-quick-demo-btn:hover {
+  background: var(--accent-primary-bg);
+}
+
+.abha-submit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  padding: 0.8rem 1.6rem;
+  border-radius: var(--radius-full);
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  border: none;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(82, 111, 140, 0.3);
+  margin-top: 0.5rem;
+}
+
+.abha-submit-btn:hover {
+  background: var(--btn-primary-hover);
+  transform: translateY(-2px);
 }
 
 /* ============================================================================

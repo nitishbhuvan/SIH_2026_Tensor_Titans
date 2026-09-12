@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
+import basicSsl from '@vitejs/plugin-basic-ssl'
 
 // Medical & Ayurvedic System Prompt for Clinical Intake
 const MEDICAL_SYSTEM_PROMPT = `You are an expert bilingual medical interpreter and clinical documentation specialist trained in both Modern Allopathic Medicine and Traditional Indian Medicine (Ayurveda/AYUSH).
@@ -148,6 +149,107 @@ function executeDynamicClinicalNLP(transcript, lang) {
   };
 }
 
+// Helper to transcribe via Bhashini ASR in dev mode (bhashini/bodhan/asr-transcribe-flex with 16kHz WAV)
+async function transcribeBhashiniDev(audioBuffer, language, env) {
+  const userId = env.BHASHINI_USER_ID || process.env.BHASHINI_USER_ID || '';
+  const ulcaApiKey = env.BHASHINI_API_KEY || process.env.BHASHINI_API_KEY || '';
+  const inferenceKey = env.BHASHINI_INFERENCE_KEY || process.env.BHASHINI_INFERENCE_KEY || '';
+
+  if (!userId || !ulcaApiKey || !audioBuffer || audioBuffer.length === 0) {
+    throw new Error('Bhashini credentials or audio missing');
+  }
+
+  const base64Audio = audioBuffer.toString('base64');
+  const srcLang = language === 'sa' ? 'sa' : (language || 'hi');
+  const t0 = Date.now();
+
+  const callbackUrl = 'https://dhruva-api.bhashini.gov.in/services/inference/pipeline';
+  const serviceId = 'bhashini/bodhan/asr-transcribe-flex';
+
+  console.log(`[Dev Server] Sending audio (${(audioBuffer.length / 1024).toFixed(1)} KB WAV) to Bhashini Bodhan (${serviceId}) for lang="${srcLang}"...`);
+
+  const computeRes = await fetch(callbackUrl, {
+    method: 'POST',
+    signal: AbortSignal.timeout(10000),
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': inferenceKey,
+      'InferenceApiKey': inferenceKey,
+      'ulcaApiKey': ulcaApiKey,
+      'userID': userId
+    },
+    body: JSON.stringify({
+      pipelineTasks: [
+        {
+          taskType: 'asr',
+          config: {
+            serviceId: serviceId,
+            language: {
+              sourceLanguage: srcLang
+            },
+            audioFormat: 'wav',
+            samplingRate: 16000
+          }
+        }
+      ],
+      inputData: {
+        audio: [
+          {
+            audioContent: base64Audio
+          }
+        ]
+      }
+    })
+  });
+
+  const totalMs = Date.now() - t0;
+  console.log(`[Dev Server] Bhashini Bodhan inference took ${totalMs}ms (${(totalMs / 1000).toFixed(2)}s)`);
+
+  if (!computeRes.ok) {
+    const errBody = await computeRes.text().catch(() => '');
+    throw new Error(`Bhashini Bodhan inference returned HTTP ${computeRes.status}: ${errBody}`);
+  }
+
+  const computeData = await computeRes.json();
+  const transcript = computeData?.pipelineResponse?.[0]?.output?.[0]?.source ||
+                     computeData?.pipelineResponse?.[0]?.output?.[0]?.target || '';
+  if (!transcript) throw new Error('Empty transcript from Bhashini Bodhan ASR response');
+
+  return {
+    transcript,
+    totalSeconds: (totalMs / 1000).toFixed(2)
+  };
+}
+
+// Helper to transcribe via Groq Whisper in dev mode (Natively accepts 16kHz WAV)
+async function transcribeGroqWhisperDev(audioBuffer, language, apiKey) {
+  if (!audioBuffer || audioBuffer.length === 0 || !apiKey) {
+    throw new Error('Groq Whisper credentials or audio missing');
+  }
+  const formData = new FormData();
+  const blob = new Blob([audioBuffer], { type: 'audio/wav' });
+  formData.append('file', blob, 'audio.wav');
+  formData.append('model', 'whisper-large-v3');
+  formData.append('prompt', "Ayurvedic and Allopathic clinical intake: Vata, Pitta, Kapha, Agni, Koshtha, Dashamula, Triphala, Ashwagandha, Metformin, fever, pain.");
+  formData.append('response_format', 'json');
+  if (language && language !== 'auto' && language !== 'sa') {
+    formData.append('language', language);
+  }
+
+  const whisperRes = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+    method: 'POST',
+    signal: AbortSignal.timeout(15000),
+    headers: {
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: formData
+  });
+
+  if (!whisperRes.ok) throw new Error(`Groq Whisper returned ${whisperRes.status}`);
+  const whisperData = await whisperRes.json();
+  return whisperData.text || '';
+}
+
 // Vite plugin to handle /api/voice-intake & /api/ocr-intake in dev mode
 function clinicalApisPlugin(env) {
   return {
@@ -167,6 +269,8 @@ function clinicalApisPlugin(env) {
             let language = 'hi';
             let rawTranscript = null;
             let apiKeyFromReq = req.headers['x-groq-api-key'] || '';
+            let audioBuffer = null;
+            let transcriptionEngine = null;
 
             if (contentType.includes('application/json')) {
               try {
@@ -178,7 +282,7 @@ function clinicalApisPlugin(env) {
                 }
               } catch (_) {}
             } else if (contentType.includes('multipart/form-data')) {
-              // Extract fields from multipart buffer if available
+              // Extract text fields & audio boundary
               const bodyStr = buffer.toString('latin1');
               const transcriptMatch = bodyStr.match(/name="transcript"\r\n\r\n([^\r\n]+)/);
               if (transcriptMatch) rawTranscript = transcriptMatch[1];
@@ -188,13 +292,51 @@ function clinicalApisPlugin(env) {
 
               const keyMatch = bodyStr.match(/name="apiKey"\r\n\r\n([^\r\n]+)/);
               if (keyMatch) apiKeyFromReq = keyMatch[1];
+
+              // Extract audio payload
+              const audioHeaderMatch = bodyStr.match(/name="audio"[^\r\n]*\r\nContent-Type: [^\r\n]+\r\n\r\n/);
+              if (audioHeaderMatch) {
+                const headerEndIndex = bodyStr.indexOf(audioHeaderMatch[0]) + audioHeaderMatch[0].length;
+                const boundaryMatch = contentType.match(/boundary=(?:([^;]+))/);
+                const boundary = boundaryMatch ? `--${boundaryMatch[1]}` : null;
+                if (boundary) {
+                  const footerIndex = bodyStr.indexOf(boundary, headerEndIndex);
+                  if (footerIndex > headerEndIndex) {
+                    audioBuffer = buffer.slice(headerEndIndex, footerIndex - 2);
+                  }
+                }
+              }
             }
 
             const effectiveApiKey = apiKeyFromReq || env.GROQ_API_KEY || process.env.GROQ_API_KEY || '';
 
-            // If no transcript was captured at all, use standard default
+            let bhashiniDurationSec = null;
+
+            // ── Primary: Bhashini ASR (10s timeout) with Groq Whisper Fallback ──
+            if (!rawTranscript && audioBuffer && audioBuffer.length > 0) {
+              try {
+                console.log(`[Dev Server] Starting Bhashini ASR request (10s timeout)...`);
+                const bhashiniResult = await transcribeBhashiniDev(audioBuffer, language, env);
+                rawTranscript = bhashiniResult.transcript;
+                bhashiniDurationSec = bhashiniResult.totalSeconds;
+                transcriptionEngine = `Bhashini ASR (MeitY) — took ${bhashiniDurationSec}s`;
+                console.log(`[Dev Server] ✅ Bhashini ASR Completed in ${bhashiniDurationSec}s! Transcript: "${rawTranscript}"`);
+              } catch (bhashiniErr) {
+                console.warn(`[Dev Server] ⚠️ Bhashini ASR failed or timed out (>10s): ${bhashiniErr.message}. Triggering Groq Whisper fallback...`);
+                if (effectiveApiKey) {
+                  try {
+                    rawTranscript = await transcribeGroqWhisperDev(audioBuffer, language, effectiveApiKey);
+                    transcriptionEngine = 'Groq Whisper Large v3 (Fallback)';
+                    console.log(`[Dev Server] ✅ Groq Whisper fallback succeeded! Transcript: "${rawTranscript}"`);
+                  } catch (groqErr) {
+                    console.error('[Dev Server] ❌ Groq Whisper fallback also failed:', groqErr.message);
+                  }
+                }
+              }
+            }
+
             if (!rawTranscript) {
-              rawTranscript = "Patient reports mild throat discomfort, weakness, and fever for 2 days.";
+              rawTranscript = "Patient reports clinical symptoms for review.";
             }
 
             let clinicalResult = null;
@@ -209,6 +351,7 @@ Produce the structured JSON clinical intake output following all term preservati
 
                 const groqChatRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                   method: 'POST',
+                  signal: AbortSignal.timeout(6000),
                   headers: {
                     'Authorization': `Bearer ${effectiveApiKey}`,
                     'Content-Type': 'application/json'
@@ -238,6 +381,8 @@ Produce the structured JSON clinical intake output following all term preservati
               clinicalResult = executeDynamicClinicalNLP(rawTranscript, language);
             }
 
+            clinicalResult.transcription_engine = transcriptionEngine || (rawTranscript ? 'Live Speech / Input' : 'Dynamic Indic Engine');
+
             res.setHeader('Content-Type', 'application/json');
             res.statusCode = 200;
             res.end(JSON.stringify({ success: true, data: clinicalResult }));
@@ -261,6 +406,10 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
 
   return {
-    plugins: [react(), clinicalApisPlugin(env)]
+    plugins: [react(), basicSsl(), clinicalApisPlugin(env)],
+    server: {
+      host: true, // Listen on all local IP addresses (0.0.0.0)
+      port: 5173
+    }
   };
 });
