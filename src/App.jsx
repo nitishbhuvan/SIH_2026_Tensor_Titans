@@ -1,22 +1,19 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { flushSync } from 'react-dom';
 import { Mic, FileText, Activity, Leaf } from 'lucide-react';
-import {
-  Navbar,
-  ModeSelectionModal,
-  ProfilePage,
-  Hero,
-  VoiceIntake,
-  MedicalOcr,
-  AyusetuIntakeMode,
-  ToastContainer,
-  Footer,
-  RoleSelection,
-  DoctorPortal,
-  DoctorLogin,
-  DEMO_DOCTOR_PROFILE,
-  MedicalIntro
-} from './components/Components.jsx';
+import Navbar from './components/Navbar.jsx';
+import ModeSelectionModal from './components/ModeSelectionModal.jsx';
+import ProfilePage from './components/ProfilePage.jsx';
+import Hero from './components/Hero.jsx';
+import VoiceIntake from './components/VoiceIntake.jsx';
+import MedicalOcr from './components/MedicalOcr.jsx';
+import AyusetuIntakeMode from './components/AyusetuIntakeMode.jsx';
+import ToastContainer from './components/Toast.jsx';
+import Footer from './components/Footer.jsx';
+import RoleSelection from './components/RoleSelection.jsx';
+import DoctorPortal from './components/DoctorPortal.jsx';
+import DoctorLogin, { DEMO_DOCTOR_PROFILE } from './components/DoctorLogin.jsx';
+import MedicalIntro from './components/MedicalIntro.jsx';
 import { translations } from './translations.js';
 import {
   getPatientProfile,

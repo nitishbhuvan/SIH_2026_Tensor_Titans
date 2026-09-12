@@ -1,0 +1,154 @@
+.doctor-login-page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: var(--bg-base);
+}
+
+.doctor-login-card {
+  width: min(100%, 430px);
+  padding: clamp(1.75rem, 5vw, 2.75rem);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg, 0 20px 50px -10px rgba(20, 30, 40, 0.12));
+}
+
+.doctor-login-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 2rem;
+  color: var(--text-muted);
+  font: 600 0.72rem var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.doctor-login-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: var(--radius-lg);
+  color: var(--accent-primary);
+  background: var(--accent-primary-bg);
+}
+
+.doctor-login-card h1 {
+  color: var(--text-primary);
+  font-size: clamp(1.7rem, 4vw, 2.2rem);
+}
+
+.doctor-login-subtitle {
+  margin-top: 0.5rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.doctor-login-form {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 1.75rem;
+}
+
+.doctor-login-form label {
+  margin-top: 0.45rem;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.doctor-login-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-full);
+  color: var(--text-muted);
+  background: var(--bg-surface-secondary);
+}
+
+.doctor-login-input-wrap:focus-within {
+  border-color: var(--accent-primary);
+}
+
+.doctor-login-input-wrap input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  color: var(--text-primary);
+  background: transparent;
+  font: 0.95rem var(--font-body);
+}
+
+.doctor-password-toggle {
+  display: grid;
+  flex-shrink: 0;
+  padding: 0.15rem;
+  border: 0;
+  color: var(--text-muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.doctor-password-toggle:hover { color: var(--accent-primary); }
+
+.doctor-login-form > input {
+  width: 100%;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-full);
+  outline: 0;
+  color: var(--text-primary);
+  background: var(--bg-surface-secondary);
+  font: 0.95rem var(--font-body);
+}
+
+.doctor-login-form > input:focus { border-color: var(--accent-primary); }
+
+.doctor-login-error {
+  margin-top: 0.35rem;
+  color: var(--accent-emergency);
+  font-size: 0.82rem;
+}
+
+.doctor-login-error.is-success { color: var(--accent-success); }
+
+.doctor-login-submit {
+  margin-top: 0.75rem;
+  padding: 0.75rem 1.2rem;
+  border: 0;
+  border-radius: var(--radius-full);
+  color: var(--btn-primary-text);
+  background: var(--btn-primary-bg);
+  font: 600 0.95rem var(--font-body);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 14px rgba(52, 78, 104, 0.25);
+}
+
+.doctor-login-submit:hover { background: var(--btn-primary-hover); }
+.doctor-login-submit:disabled { opacity: 0.65; cursor: wait; }
+
+.doctor-login-demo {
+  margin-top: 1.25rem;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+.doctor-login-back {
+  display: block;
+  margin: 1rem auto 0;
+  border: 0;
+  color: var(--accent-primary);
+  background: transparent;
+  font: 600 0.82rem var(--font-body);
+  cursor: pointer;
+}
