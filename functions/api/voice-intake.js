@@ -37,6 +37,126 @@ Respond strictly with valid JSON conforming to this schema:
 
 const ASR_DOMAIN_PROMPT = "Ayurvedic and Allopathic clinical intake: Vata, Pitta, Kapha, Agni, Koshtha, Dashamula, Triphala, Ashwagandha, Kwatha, Churna, Bhasma, Rasayana, Paracetamol, Metformin, Amlodipine, chest pain, fever, duration.";
 
+/**
+ * Transcribes audio using Bhashini ULCA ASR pipeline (No timeout for benchmarking).
+ */
+async function transcribeWithBhashini(audioBlob, language, env) {
+  const userId = env.BHASHINI_USER_ID || (typeof process !== 'undefined' && process.env && process.env.BHASHINI_USER_ID) || '';
+  const ulcaApiKey = env.BHASHINI_API_KEY || (typeof process !== 'undefined' && process.env && process.env.BHASHINI_API_KEY) || '';
+  const inferenceKey = env.BHASHINI_INFERENCE_KEY || (typeof process !== 'undefined' && process.env && process.env.BHASHINI_INFERENCE_KEY) || '';
+
+  if (!userId || !ulcaApiKey) {
+    throw new Error('Bhashini credentials not configured');
+  }
+
+  // 1. Convert audioBlob to base64
+  let base64Audio = '';
+  if (typeof audioBlob.arrayBuffer === 'function') {
+    const ab = await audioBlob.arrayBuffer();
+    const bytes = new Uint8Array(ab);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    base64Audio = btoa(binary);
+  } else if (typeof Buffer !== 'undefined' && Buffer.isBuffer(audioBlob)) {
+    base64Audio = audioBlob.toString('base64');
+  } else {
+    throw new Error('Unsupported audio format for Bhashini');
+  }
+
+  const srcLang = language === 'sa' ? 'sa' : (language || 'hi');
+  const t0 = Date.now();
+
+  const callbackUrl = 'https://dhruva-api.bhashini.gov.in/services/inference/pipeline';
+  const serviceId = "bhashini/bodhan/asr-transcribe-flex";
+
+  // Execute ASR Inference Call with bhashini/bodhan/asr-transcribe-flex & 16kHz WAV configuration (10s timeout)
+  const computeRes = await fetch(callbackUrl, {
+    method: 'POST',
+    signal: AbortSignal.timeout(10000),
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': inferenceKey,
+      'InferenceApiKey': inferenceKey,
+      'ulcaApiKey': ulcaApiKey,
+      'userID': userId
+    },
+    body: JSON.stringify({
+      pipelineTasks: [
+        {
+          taskType: 'asr',
+          config: {
+            serviceId: serviceId,
+            language: {
+              sourceLanguage: srcLang
+            },
+            audioFormat: 'wav',
+            samplingRate: 16000
+          }
+        }
+      ],
+      inputData: {
+        audio: [
+          {
+            audioContent: base64Audio
+          }
+        ]
+      }
+    })
+  });
+
+  const totalMs = Date.now() - t0;
+
+  if (!computeRes.ok) {
+    const errBody = await computeRes.text().catch(() => '');
+    throw new Error(`Bhashini Bodhan inference returned HTTP ${computeRes.status}: ${errBody}`);
+  }
+
+  const computeData = await computeRes.json();
+  const transcript = computeData?.pipelineResponse?.[0]?.output?.[0]?.source ||
+                     computeData?.pipelineResponse?.[0]?.output?.[0]?.target || '';
+
+  if (!transcript) {
+    throw new Error('Empty transcript received from Bhashini Bodhan ASR');
+  }
+
+  return {
+    transcript,
+    totalSeconds: (totalMs / 1000).toFixed(2)
+  };
+}
+
+/**
+ * Universal Groq Whisper Large v3 (Natively accepts 16kHz WAV)
+ */
+async function transcribeWithGroqWhisper(audioBlob, language, apiKey) {
+  const whisperFormData = new FormData();
+  whisperFormData.append('file', audioBlob, 'audio.wav');
+  whisperFormData.append('model', 'whisper-large-v3');
+  whisperFormData.append('prompt', ASR_DOMAIN_PROMPT);
+  whisperFormData.append('response_format', 'json');
+  if (language && language !== 'auto' && language !== 'sa') {
+    whisperFormData.append('language', language);
+  }
+
+  const whisperRes = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+    method: 'POST',
+    signal: AbortSignal.timeout(15000),
+    headers: {
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: whisperFormData
+  });
+
+  if (!whisperRes.ok) {
+    throw new Error(`Groq Whisper returned HTTP ${whisperRes.status}`);
+  }
+
+  const whisperData = await whisperRes.json();
+  return whisperData.text || '';
+}
+
 export async function onRequestPost(context) {
   try {
     const { request, env } = context;
@@ -65,38 +185,30 @@ export async function onRequestPost(context) {
     const apiKey = customApiKey || (env && env.GROQ_API_KEY) || (typeof process !== 'undefined' && process.env && process.env.GROQ_API_KEY) || '';
 
     let rawTranscript = directTranscript;
+    let transcriptionEngine = directTranscript ? 'Live Speech / Direct Input' : null;
 
-    // ── STEP 1: Indic Speech-to-Text (ASR) via Groq Whisper if only audio was provided ──
-    if (!rawTranscript && audioBlob && apiKey) {
+    // ── STEP 1: Primary Bhashini ASR (10s timeout) with Groq Whisper Fallback ──
+    if (!rawTranscript && audioBlob) {
       try {
-        const whisperFormData = new FormData();
-        whisperFormData.append('file', audioBlob, 'audio.webm');
-        whisperFormData.append('model', 'whisper-large-v3');
-        whisperFormData.append('prompt', ASR_DOMAIN_PROMPT);
-        whisperFormData.append('response_format', 'json');
-        if (language && language !== 'auto' && language !== 'sa') {
-          whisperFormData.append('language', language);
+        console.log('Initiating Bhashini ASR transcription (10s timeout)...');
+        const bhashiniResult = await transcribeWithBhashini(audioBlob, language, env);
+        rawTranscript = bhashiniResult.transcript;
+        transcriptionEngine = `Bhashini ASR (MeitY) — took ${bhashiniResult.totalSeconds}s`;
+      } catch (bhashiniErr) {
+        console.warn(`Bhashini ASR failed or timed out (>10s): ${bhashiniErr.message}. Triggering Groq Whisper fallback...`);
+        if (apiKey) {
+          try {
+            rawTranscript = await transcribeWithGroqWhisper(audioBlob, language, apiKey);
+            transcriptionEngine = 'Groq Whisper Large v3 (Fallback)';
+          } catch (groqErr) {
+            console.warn('Groq Whisper fallback also failed:', groqErr.message);
+          }
         }
-
-        const whisperRes = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${apiKey}`
-          },
-          body: whisperFormData
-        });
-
-        if (whisperRes.ok) {
-          const whisperData = await whisperRes.json();
-          rawTranscript = whisperData.text || '';
-        }
-      } catch (err) {
-        console.warn('Groq Whisper call error:', err);
       }
     }
 
     if (!rawTranscript) {
-      rawTranscript = "Patient reports mild symptoms and requests clinical consultation.";
+      rawTranscript = "Patient reports clinical symptoms for evaluation.";
     }
 
     // ── STEP 2: Clinical Normalization & Term-Preservation Engine ──
@@ -112,6 +224,7 @@ Produce the structured JSON clinical intake output following all term preservati
 
         const groqChatRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
+          signal: AbortSignal.timeout(8000),
           headers: {
             'Authorization': `Bearer ${apiKey}`,
             'Content-Type': 'application/json'
@@ -141,6 +254,8 @@ Produce the structured JSON clinical intake output following all term preservati
     if (!clinicalResult) {
       clinicalResult = executeClinicalDynamicEngine(rawTranscript, language);
     }
+
+    clinicalResult.transcription_engine = transcriptionEngine || 'Dynamic Indic Engine';
 
     return new Response(JSON.stringify({
       success: true,

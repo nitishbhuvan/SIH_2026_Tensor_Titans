@@ -26,6 +26,7 @@ import {
 import { VOICE_LANGUAGES } from '../translations.js';
 import { addClinicalRecord } from '../services/clinicalRecordsService.js';
 import { executeClientClinicalNLP } from '../services/clinicalNlpService.js';
+import { encodeWAV, resampleAudioBuffer } from '../utils/wavEncoder.js';
 import './VoiceIntake.css';
 
 // Language locale mapping for SpeechRecognition API
@@ -41,6 +42,24 @@ const SPEECH_LANG_MAP = {
   pa: 'pa-IN',
   sa: 'hi-IN',
   en: 'en-IN'
+};
+
+// Cross-platform audio format detector for Mobile (iOS Safari / Android Chrome) & Desktop
+const getSupportedAudioMimeType = () => {
+  if (typeof window === 'undefined' || typeof window.MediaRecorder === 'undefined') return '';
+  const candidates = [
+    'audio/webm;codecs=opus',
+    'audio/webm',
+    'audio/mp4',
+    'audio/aac',
+    'audio/ogg;codecs=opus'
+  ];
+  for (const t of candidates) {
+    if (typeof MediaRecorder.isTypeSupported === 'function' && MediaRecorder.isTypeSupported(t)) {
+      return t;
+    }
+  }
+  return '';
 };
 
 const CLINICAL_PRESETS = [
@@ -110,6 +129,7 @@ export default function VoiceIntake({
   // Live real-time speech recognition state
   const [liveTranscript, setLiveTranscript] = useState('');
   const [interimText, setInterimText] = useState('');
+  const [transcribeElapsedSec, setTranscribeElapsedSec] = useState(0);
 
   // Microphone permission modal states
   const [showPermissionModal, setShowPermissionModal] = useState(false);
@@ -121,6 +141,9 @@ export default function VoiceIntake({
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
+  const pcmChunksRef = useRef([]);
+  const scriptProcessorRef = useRef(null);
+  const mediaStreamRef = useRef(null);
   const timerRef = useRef(null);
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
@@ -131,8 +154,19 @@ export default function VoiceIntake({
   const stopRecordingCleanup = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+    if (scriptProcessorRef.current) {
+      try {
+        scriptProcessorRef.current.disconnect();
+      } catch (_) {}
+      scriptProcessorRef.current = null;
+    }
     if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
       audioContextRef.current.close().catch(() => {});
+      audioContextRef.current = null;
+    }
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      mediaStreamRef.current = null;
     }
     if (recognitionRef.current) {
       try {
@@ -202,22 +236,29 @@ export default function VoiceIntake({
       setInterimText('');
       finalTranscriptAccumulatorRef.current = '';
       audioChunksRef.current = [];
+      pcmChunksRef.current = [];
 
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           channelCount: 1,
-          sampleRate: 16000,
           echoCancellation: true,
-          noiseSuppression: true
+          noiseSuppression: true,
+          autoGainControl: true
         }
       });
+      mediaStreamRef.current = stream;
 
-      // ── Web Audio Analyser for real-time waveform level ──
+      // ── Web Audio Analyser & Raw Float32 PCM Capture ──
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (AudioCtx) {
         const audioCtx = new AudioCtx();
+        if (audioCtx.state === 'suspended') {
+          await audioCtx.resume().catch(() => {});
+        }
         audioContextRef.current = audioCtx;
         const source = audioCtx.createMediaStreamSource(stream);
+
+        // 1. Analyser for Waveform Visualizer
         const analyser = audioCtx.createAnalyser();
         analyser.fftSize = 64;
         source.connect(analyser);
@@ -237,6 +278,20 @@ export default function VoiceIntake({
           }
         };
         updateLevel();
+
+        // 2. ScriptProcessor for direct 16kHz PCM capture (Zero-loss WAV pipeline)
+        try {
+          const processor = audioCtx.createScriptProcessor(4096, 1, 1);
+          processor.onaudioprocess = (e) => {
+            const channelData = e.inputBuffer.getChannelData(0);
+            pcmChunksRef.current.push(new Float32Array(channelData));
+          };
+          source.connect(processor);
+          processor.connect(audioCtx.destination);
+          scriptProcessorRef.current = processor;
+        } catch (procErr) {
+          console.warn('ScriptProcessor setup warning:', procErr);
+        }
       }
 
       // ── Browser Live Speech Recognition (Bhashini / Web Speech API) ──
@@ -273,12 +328,17 @@ export default function VoiceIntake({
         }
       }
 
-      // ── MediaRecorder for audio recording ──
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : 'audio/webm';
-
-      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      // ── MediaRecorder for fallback recording ──
+      const mimeType = getSupportedAudioMimeType();
+      let mediaRecorder;
+      try {
+        mediaRecorder = mimeType
+          ? new MediaRecorder(stream, { mimeType })
+          : new MediaRecorder(stream);
+      } catch (e) {
+        console.warn('Fallback to standard MediaRecorder options:', e);
+        mediaRecorder = new MediaRecorder(stream);
+      }
       mediaRecorderRef.current = mediaRecorder;
 
       mediaRecorder.ondataavailable = (event) => {
@@ -288,12 +348,7 @@ export default function VoiceIntake({
       };
 
       mediaRecorder.onstop = async () => {
-        stream.getTracks().forEach((track) => track.stop());
-        stopRecordingCleanup();
-
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        const capturedUserText = (finalTranscriptAccumulatorRef.current + ' ' + interimText).trim();
-        await processAudioIntake(audioBlob, capturedUserText || null);
+        await handleAudioConversionAndProcess();
       };
 
       mediaRecorder.start(250);
@@ -312,14 +367,26 @@ export default function VoiceIntake({
       setRecordingState('idle');
       stopRecordingCleanup();
 
-      setPermissionBlocked(true);
-      setShowPermissionModal(true);
+      const isMobileInsecure = typeof window !== 'undefined' &&
+        window.location.protocol !== 'https:' &&
+        window.location.hostname !== 'localhost' &&
+        window.location.hostname !== '127.0.0.1';
 
-      setErrorMessage(
-        'Microphone is unavailable or blocked. You can still type your symptoms or use instant presets below.'
-      );
+      if (isMobileInsecure) {
+        setErrorMessage(
+          'Mobile browsers require HTTPS for microphone access over WiFi. You can type your symptoms below for instant clinical intake.'
+        );
+        setInputMethod('type');
+      } else {
+        setPermissionBlocked(true);
+        setShowPermissionModal(true);
+        setErrorMessage(
+          'Microphone is unavailable or blocked. You can type your symptoms below.'
+        );
+      }
+
       if (onNotify) {
-        onNotify('Microphone access blocked. You can type or use test presets.', 'warning');
+        onNotify(isMobileInsecure ? 'Microphone requires HTTPS on mobile. Switched to typing mode.' : 'Microphone access blocked. You can type your symptoms.', 'warning');
       }
     }
   };
@@ -333,13 +400,65 @@ export default function VoiceIntake({
     }
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
       mediaRecorderRef.current.stop();
-      setRecordingState('transcribing');
+    } else {
+      handleAudioConversionAndProcess();
     }
   };
 
-  // ── Process Audio or Direct Spoken/Typed Transcript (Resilient Backend + Client NLP Fallback) ──
+  // ── Convert Audio to 16kHz Mono WAV and Send to Server ──
+  const handleAudioConversionAndProcess = async () => {
+    setRecordingState('transcribing');
+
+    let wavBlob = null;
+    const sampleRate = audioContextRef.current?.sampleRate || 44100;
+    const capturedUserText = (finalTranscriptAccumulatorRef.current + ' ' + interimText).trim();
+
+    // 1. Primary: Encode directly from raw PCM chunks collected in real-time
+    if (pcmChunksRef.current && pcmChunksRef.current.length > 0) {
+      try {
+        const resampled = resampleAudioBuffer(pcmChunksRef.current, sampleRate, 16000);
+        wavBlob = encodeWAV(resampled, 16000);
+      } catch (pcmErr) {
+        console.warn('PCM encoding error:', pcmErr);
+      }
+    }
+
+    // 2. Secondary fallback: Decode from MediaRecorder compressed blob
+    if (!wavBlob && audioChunksRef.current.length > 0) {
+      try {
+        const mimeType = getSupportedAudioMimeType();
+        const rawBlob = new Blob(audioChunksRef.current, { type: mimeType || 'audio/webm' });
+        const arrayBuf = await rawBlob.arrayBuffer();
+        const decodeCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const decodedBuffer = await decodeCtx.decodeAudioData(arrayBuf);
+        const channelData = decodedBuffer.getChannelData(0);
+        const resampled = resampleAudioBuffer([channelData], decodedBuffer.sampleRate, 16000);
+        wavBlob = encodeWAV(resampled, 16000);
+        await decodeCtx.close().catch(() => {});
+      } catch (decodeErr) {
+        console.warn('decodeAudioData fallback error:', decodeErr);
+      }
+    }
+
+    stopRecordingCleanup();
+    await processAudioIntake(wavBlob, capturedUserText || null);
+  };
+
+  // ── Process Audio or Direct Spoken/Typed Transcript (Direct Bhashini Testing, No Timeout) ──
   const processAudioIntake = async (audioBlob, spokenTranscript) => {
-    const rawText = (spokenTranscript || customTypedText || '').trim();
+    const rawText = (spokenTranscript || customTypedText || liveTranscript || '').trim();
+
+    // If nothing was captured at all
+    if (!rawText && (!audioBlob || audioBlob.size === 0)) {
+      setRecordingState('idle');
+      setErrorMessage('No speech was detected. Please ensure your microphone is active and speak clearly, or type your symptoms.');
+      return;
+    }
+
+    setTranscribeElapsedSec(0);
+    const ticker = setInterval(() => {
+      setTranscribeElapsedSec((s) => s + 1);
+    }, 1000);
 
     try {
       setRecordingState('transcribing');
@@ -347,42 +466,62 @@ export default function VoiceIntake({
 
       let clinicalResult = null;
 
-      // 1. Attempt Server-side processing if text available
-      if (rawText) {
+      // 1. Send Audio / Transcript to Server (Direct Bhashini ASR, waiting full response time)
+      if (audioBlob || rawText) {
         try {
-          setTimeout(() => setRecordingState('analyzing'), 350);
+          let response;
+          if (audioBlob && audioBlob.size > 0) {
+            const formData = new FormData();
+            formData.append('audio', audioBlob, 'audio.wav');
+            formData.append('language', selectedVoiceLang);
+            if (rawText) formData.append('transcript', rawText);
+            if (groqApiKey) formData.append('apiKey', groqApiKey);
 
-          const response = await fetch('/api/voice-intake', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(groqApiKey ? { 'x-groq-api-key': groqApiKey } : {})
-            },
-            body: JSON.stringify({
-              language: selectedVoiceLang,
-              transcript: rawText,
-              apiKey: groqApiKey
-            })
-          });
+            response = await fetch('/api/voice-intake', {
+              method: 'POST',
+              headers: groqApiKey ? { 'x-groq-api-key': groqApiKey } : {},
+              body: formData
+            });
+          } else {
+            response = await fetch('/api/voice-intake', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                ...(groqApiKey ? { 'x-groq-api-key': groqApiKey } : {})
+              },
+              body: JSON.stringify({
+                language: selectedVoiceLang,
+                transcript: rawText,
+                apiKey: groqApiKey
+              })
+            });
+          }
 
           if (response.ok) {
             const resData = await response.json();
             if (resData.success && resData.data) {
               clinicalResult = resData.data;
             }
+          } else {
+            const errData = await response.json().catch(() => ({}));
+            console.error('Bhashini endpoint error:', errData);
+            setErrorMessage(errData.error || `Server error (${response.status}) from Bhashini`);
           }
         } catch (fetchErr) {
-          console.warn('API endpoint unreachable, executing local Indic NLP engine:', fetchErr);
+          console.error('Voice intake error:', fetchErr);
+          setErrorMessage(`Transcription failed: ${fetchErr.message}`);
         }
       }
 
-      // 2. Seamless Client-Side Clinical NLP Fallback (Guarantees 100% success rate)
+      clearInterval(ticker);
+
+      // 2. Client-Side Clinical NLP Fallback
       if (!clinicalResult) {
-        setTimeout(() => setRecordingState('analyzing'), 350);
         clinicalResult = executeClientClinicalNLP(
-          rawText || 'Patient reports subacute discomfort for clinical review.',
+          rawText || 'Patient reports clinical symptoms for evaluation.',
           selectedVoiceLang
         );
+        clinicalResult.transcription_engine = 'Client Indic Fallback';
       }
 
       setClinicalData(clinicalResult);
@@ -421,8 +560,11 @@ export default function VoiceIntake({
       }
     } catch (err) {
       console.error('Intake pipeline error:', err);
-      // Even on unexpected error, fallback to client NLP
-      const fallback = executeClientClinicalNLP(rawText, selectedVoiceLang);
+      const fallback = executeClientClinicalNLP(
+        rawText || 'Patient reports clinical symptoms for review.',
+        selectedVoiceLang
+      );
+      fallback.transcription_engine = 'Client Indic Fallback';
       setClinicalData(fallback);
       setRecordingState('success');
     }
@@ -786,12 +928,12 @@ RAW NATIVE PATIENT TRANSCRIPT:
               </div>
               <h3 className="processing-heading">
                 {recordingState === 'transcribing'
-                  ? (t.voiceStatusTranscribing || 'Processing Indic Voice Speech…')
+                  ? `Transcribing voice with Bhashini Bodhan ASR... (${transcribeElapsedSec}s)`
                   : (t.voiceStatusAnalyzing || 'Generating SOAP Note & Preserving Ayurvedic Formulations…')}
               </h3>
               {liveTranscript && (
                 <div className="processed-snippet-box">
-                  <span>Transcribed Voice:</span>
+                  <span>Detected Speech:</span>
                   <p>"{liveTranscript}"</p>
                 </div>
               )}
@@ -815,8 +957,11 @@ RAW NATIVE PATIENT TRANSCRIPT:
           )}
         </div>
 
-        {/* Quick Clinical Test Presets (For Demonstration) */}
-        {!clinicalData && (
+        {/*
+          ── SAMPLE PRESETS TEMPORARILY COMMENTED OUT FOR TESTING ──
+          [REMINDER BEFORE PUSH: Uncomment the block below if you want demo sample scenarios visible on production]
+        */}
+        {/* {!clinicalData && (
           <div className="presets-container">
             <div className="presets-header">
               <span className="presets-title">
@@ -841,7 +986,7 @@ RAW NATIVE PATIENT TRANSCRIPT:
               ))}
             </div>
           </div>
-        )}
+        )} */}
 
         {/* ── CLINICAL INTAKE RESULT CARD ── */}
         {clinicalData && (
@@ -849,7 +994,14 @@ RAW NATIVE PATIENT TRANSCRIPT:
             {/* Slip Header & Triage Badge */}
             <div className="result-header">
               <div className="result-title-group">
-                <span className="slip-meta-tag">OPD CLINICAL INTAKE RECORD // PC-MED-09</span>
+                <div className="slip-meta-badges">
+                  <span className="slip-meta-tag">OPD CLINICAL INTAKE RECORD // PC-MED-09</span>
+                  {clinicalData.transcription_engine && (
+                    <span className="engine-meta-tag">
+                      <Sparkles size={12} /> {clinicalData.transcription_engine}
+                    </span>
+                  )}
+                </div>
                 <h3 className="result-heading">Clinical Intake Summary</h3>
               </div>
 

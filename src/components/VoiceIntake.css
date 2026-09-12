@@ -665,7 +665,14 @@
 .result-title-group {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.3rem;
+}
+
+.slip-meta-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
 }
 
 .slip-meta-tag {
@@ -673,6 +680,24 @@
   font-size: 0.72rem;
   color: var(--text-muted);
   letter-spacing: 0.05em;
+}
+
+.engine-meta-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--accent-primary-dark);
+  background: var(--accent-primary-bg);
+  border: 1px solid var(--accent-primary-border);
+  padding: 0.15rem 0.55rem;
+  border-radius: var(--radius-full);
+}
+
+[data-theme="dark"] .engine-meta-tag {
+  color: var(--accent-primary);
 }
 
 .result-heading {
@@ -1413,6 +1438,238 @@
   cursor: not-allowed;
 }
 
+/* ── Responsive Mobile Styles (< 768px & < 480px) ── */
+@media (max-width: 768px) {
+  .voice-intake-container {
+    margin-top: 1rem;
+    margin-bottom: 1.5rem;
+    border-radius: var(--radius-lg);
+  }
+
+  .voice-header-bar {
+    padding: 0.6rem 0.85rem;
+    font-size: 0.75rem;
+  }
+
+  .voice-stage {
+    padding: 1.25rem 0.85rem;
+    gap: 1.25rem;
+  }
+
+  .voice-intro {
+    padding: 0 0.25rem;
+  }
+
+  .voice-title {
+    font-size: 1.25rem;
+  }
+
+  .voice-subtitle {
+    font-size: 0.88rem;
+  }
+
+  /* Horizontal swipeable language pill list on touch devices */
+  .voice-lang-bar {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    justify-content: flex-start;
+    padding: 0.5rem 0.6rem;
+    gap: 0.4rem;
+    border-radius: var(--radius-md);
+  }
+
+  .voice-lang-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .lang-bar-label {
+    flex-shrink: 0;
+    font-size: 0.75rem;
+  }
+
+  .lang-btn {
+    flex-shrink: 0;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+
+  /* Mode switch bar */
+  .intake-method-toggle-bar {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1rem;
+  }
+
+  .method-toggle-btn {
+    flex: 1;
+    justify-content: center;
+    padding: 0.45rem 0.75rem;
+    font-size: 0.82rem;
+  }
+
+  /* Mic Button on Mobile */
+  .big-mic-button {
+    gap: 0.75rem;
+  }
+
+  .mic-icon-wrap {
+    width: 80px;
+    height: 80px;
+  }
+
+  .mic-cta-text {
+    font-size: 0.95rem;
+  }
+
+  .mic-subtext {
+    font-size: 0.8rem;
+  }
+
+  /* Visualizer */
+  .recording-visualizer {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  /* Typed input on mobile */
+  .typed-action-box {
+    padding: 1rem;
+  }
+
+  .typed-symptoms-input {
+    padding: 0.75rem;
+    font-size: 0.9rem;
+    min-height: 90px;
+  }
+
+  .typed-form-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .typed-submit-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 0.75rem 1.25rem;
+  }
+
+  /* Clinical Result Card on Mobile */
+  .clinical-result-card {
+    border-radius: var(--radius-lg);
+  }
+
+  .result-header {
+    padding: 1rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .triage-wrapper {
+    width: 100%;
+  }
+
+  .triage-badge {
+    width: 100%;
+    justify-content: center;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.78rem;
+  }
+
+  .chief-complaint-banner {
+    grid-template-columns: 1fr;
+    padding: 0.85rem 1rem;
+    gap: 0.75rem;
+  }
+
+  .result-tab-nav {
+    padding: 0.35rem 0.75rem;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+  }
+
+  .result-tab-btn {
+    flex: 1;
+    min-width: 130px;
+    justify-content: center;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8rem;
+  }
+
+  .result-content {
+    padding: 1rem;
+  }
+
+  .result-action-bar {
+    padding: 0.85rem 1rem;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .btn-action {
+    width: 100%;
+    justify-content: center;
+    padding: 0.65rem 1rem;
+  }
+
+  /* Modal Dialog on Mobile */
+  .mic-perm-dialog {
+    width: 92%;
+    max-width: 420px;
+    padding: 1.25rem;
+    margin: 1rem;
+  }
+
+  .mic-perm-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .mic-perm-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .voice-stage {
+    padding: 1rem 0.65rem;
+  }
+
+  .voice-title {
+    font-size: 1.15rem;
+  }
+
+  .mic-icon-wrap {
+    width: 72px;
+    height: 72px;
+  }
+
+  .slip-meta-badges {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+  }
+
+  .engine-meta-tag {
+    font-size: 0.68rem;
+  }
+
+  .result-heading {
+    font-size: 1.1rem;
+  }
+
+  .processing-heading {
+    font-size: 1rem;
+  }
+}
+
 /* ── Print Styles for OPD Slip ── */
 @media print {
   body * {
@@ -1433,4 +1690,5 @@
     display: none !important;
   }
 }
+
 
