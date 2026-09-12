@@ -313,11 +313,31 @@
   min-height: 0;
 }
 
-@media (max-width: 860px) {
-  .dp-main {
-    grid-template-columns: 1fr;
-  }
+/* ── Master-Detail Mobile Rules ── */
+.dp-mobile-back-bar {
+  display: none;
+  padding: 0.75rem 1rem;
+  background: var(--bg-surface-secondary);
+  border-bottom: 1px solid var(--border-default);
 }
+
+.dp-mobile-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.95rem;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 700;
+  border-radius: var(--radius-full);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  color: var(--accent-primary-dark);
+  cursor: pointer;
+  min-height: 40px;
+  touch-action: manipulation;
+}
+
 
 /* ── Left: Triage Queue Panel ── */
 .dp-queue-panel {
@@ -1076,8 +1096,42 @@
   margin-top: 0.1rem;
 }
 
+/* ── Mobile Responsive Master-Detail Rules (< 860px) ── */
+@media (max-width: 860px) {
+  .dp-main {
+    display: block !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  .dp-main.no-patient-selected .dp-workspace {
+    display: none !important;
+  }
+
+  .dp-main.no-patient-selected .dp-queue-panel {
+    display: flex !important;
+    width: 100% !important;
+  }
+
+  .dp-main.has-selected-patient .dp-queue-panel {
+    display: none !important;
+  }
+
+  .dp-main.has-selected-patient .dp-workspace {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  .dp-mobile-back-bar {
+    display: block !important;
+    position: sticky;
+    top: 0;
+    z-index: 30;
+  }
+}
+
 @media print {
   .dp-header, .dp-account-actions, .dp-metrics-bar, .dp-queue-panel, .dp-header-actions, .dp-action-pad { display: none !important; }
   .dp-main { grid-template-columns: 1fr; }
   .dp-workspace { overflow: visible; }
 }
+

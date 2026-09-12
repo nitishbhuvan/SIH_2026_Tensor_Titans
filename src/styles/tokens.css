@@ -61,6 +61,12 @@
   --btn-padding: 0.65rem 1.35rem;
   --btn-font-size: 0.9rem;
 
+  /* ── Mobile-First Touch & Layout Tokens ── */
+  --touch-target-min: 44px;
+  --app-header-height: 58px;
+  --action-dock-height: 72px;
+  --container-padding-x: clamp(0.75rem, 3.5vw, 1.5rem);
+
   /* ── Safe Area Insets ── */
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);

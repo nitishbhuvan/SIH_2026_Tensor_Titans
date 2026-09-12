@@ -1470,19 +1470,11 @@
 
   /* Horizontal swipeable language pill list on touch devices */
   .voice-lang-bar {
-    display: flex;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    justify-content: flex-start;
-    padding: 0.5rem 0.6rem;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0.65rem;
     gap: 0.4rem;
     border-radius: var(--radius-md);
-  }
-
-  .voice-lang-bar::-webkit-scrollbar {
-    display: none;
   }
 
   .lang-bar-label {
@@ -1490,16 +1482,36 @@
     font-size: 0.75rem;
   }
 
-  .lang-btn {
+  .lang-chips-scroll {
+    display: flex;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    scroll-snap-type: x mandatory;
+    padding: 0.2rem 0 0.5rem;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 0.4rem;
+    width: 100%;
+  }
+
+  .lang-chips-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  .lang-chip {
     flex-shrink: 0;
-    padding: 0.35rem 0.75rem;
-    font-size: 0.8rem;
+    scroll-snap-align: start;
+    min-height: 42px;
+    padding: 0.4rem 0.85rem;
+    font-size: 0.82rem;
     white-space: nowrap;
   }
 
   /* Mode switch bar */
   .intake-method-toggle-bar {
     width: 100%;
+    max-width: 400px;
     display: flex;
     justify-content: center;
     margin-bottom: 1rem;

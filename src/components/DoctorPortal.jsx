@@ -276,8 +276,8 @@ export default function DoctorPortal({ theme, onToggleTheme, onSwitchRole, docto
         </div>
       </div>
 
-      {/* ── Main Layout ── */}
-      <div className="dp-main">
+      {/* ── Main Layout (Responsive Master-Detail on Mobile) ── */}
+      <div className={`dp-main ${selectedId ? 'has-selected-patient' : 'no-patient-selected'}`}>
         {/* ── Left: Triage Queue ── */}
         <aside className="dp-queue-panel">
           <div className="dp-queue-header">
@@ -372,6 +372,20 @@ export default function DoctorPortal({ theme, onToggleTheme, onSwitchRole, docto
 
         {/* ── Right: Clinical Workspace ── */}
         <section className="dp-workspace">
+          {/* Mobile Back Button */}
+          {selectedRecord && (
+            <div className="dp-mobile-back-bar">
+              <button
+                type="button"
+                className="dp-mobile-back-btn"
+                onClick={() => setSelectedId(null)}
+              >
+                <ArrowLeft size={16} />
+                <span>← Back to Patient Queue</span>
+              </button>
+            </div>
+          )}
+
           {!selectedRecord ? (
             <div className="dp-workspace-empty">
               <FileText size={48} />

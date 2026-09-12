@@ -249,6 +249,7 @@ export default function MedicalOcr({ isElderly = false, t = {}, onNotify, patien
   const [zoomLevel, setZoomLevel] = useState(1);
   const [isDragOver, setIsDragOver] = useState(false);
   const [transferredToDoctor, setTransferredToDoctor] = useState(false);
+  const [mobileOcrTab, setMobileOcrTab] = useState('data'); // 'image' | 'data'
 
   const fileInputRef = useRef(null);
 
@@ -512,8 +513,28 @@ Vitals noted: BP 130/84 mmHg, P 76/min.`
           </div>
         </div>
 
+        {/* ── Mobile Tab Switcher (Image vs Digitized Data) ── */}
+        <div className="ocr-mobile-tab-switch show-on-mobile">
+          <button
+            type="button"
+            className={`ocr-mobile-tab-btn ${mobileOcrTab === 'image' ? 'is-active' : ''}`}
+            onClick={() => setMobileOcrTab('image')}
+          >
+            <ImageIcon size={15} />
+            <span>Prescription Image</span>
+          </button>
+          <button
+            type="button"
+            className={`ocr-mobile-tab-btn ${mobileOcrTab === 'data' ? 'is-active' : ''}`}
+            onClick={() => setMobileOcrTab('data')}
+          >
+            <FileText size={15} />
+            <span>Digitized Rx & Entities</span>
+          </button>
+        </div>
+
         {/* ── SPLIT VIEW: ORIGINAL PICTURE vs TRANSCRIBED DATA ── */}
-        <div className="ocr-split-container">
+        <div className={`ocr-split-container mobile-active-${mobileOcrTab}`}>
           {/* LEFT PANEL: Original Image Viewer */}
           <div className="ocr-split-panel ocr-viewer-panel">
             <div className="panel-header">

@@ -401,6 +401,36 @@
   flex-shrink: 0;
 }
 
+@media (max-width: 480px) {
+  .role-selection-page {
+    padding: 4.5rem 0.85rem 1.5rem;
+    justify-content: flex-start;
+  }
+
+  .role-selection-inner {
+    gap: 1.5rem;
+  }
+
+  .rs-role-card {
+    padding: 1.25rem 1rem;
+    gap: 0.85rem;
+  }
+
+  .rs-card-features li {
+    font-size: 0.82rem;
+  }
+
+  .rs-card-cta {
+    min-height: 48px;
+  }
+
+  .rs-topbar-intro-btn {
+    font-size: 0.75rem;
+    padding: 0.35rem 0.6rem;
+  }
+}
+
+
 /* Mountain Scenery Ambient Backdrop in Dark Theme */
 [data-theme="dark"] .role-selection-page::after {
   content: '';
