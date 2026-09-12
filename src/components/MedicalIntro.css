@@ -1,3 +1,8 @@
+/* ============================================================================
+   PRECONSULT / AYUSETU — HIGH-TECH CLINICAL INTRO SCREEN
+   3D Spatial HUD with Live Mountain Scenery, ECG Waveform & Glassmorphic Telemetry
+   ============================================================================ */
+
 .medical-intro {
   position: relative;
   min-height: 100vh;
@@ -7,209 +12,1210 @@
   overflow: hidden;
   isolation: isolate;
   color: #eaf2f0;
-  background: #0a1518;
+  background: radial-gradient(circle at 50% 25%, #0d2527 0%, #081618 55%, #04090b 100%);
   font-family: var(--font-body);
+  user-select: none;
 }
 
+/* Ambient Subtle Sweep Light */
 .medical-intro::after {
   content: '';
   position: absolute;
   inset: 0;
   z-index: 8;
   pointer-events: none;
-  background: linear-gradient(105deg, transparent 35%, rgba(220, 247, 240, 0.08) 50%, transparent 65%);
+  background: linear-gradient(105deg, transparent 35%, rgba(143, 196, 189, 0.08) 50%, transparent 65%);
   transform: translateX(-100%);
-  animation: introLightSweep 1.4s 2.8s ease-out forwards;
+  animation: introLightSweep 1.6s 1.2s ease-out forwards;
 }
 
-.medical-intro-grid {
+/* ============================================================================
+   MOUNTAIN SCENERY & BRIDGE ARTWORK BACKDROP
+   ============================================================================ */
+.medical-mountain-backdrop {
   position: absolute;
   inset: 0;
   z-index: -3;
-  opacity: 0.22;
-  background-image: linear-gradient(rgba(137, 190, 184, 0.16) 1px, transparent 1px), linear-gradient(90deg, rgba(137, 190, 184, 0.16) 1px, transparent 1px);
-  background-size: 46px 46px;
-  transform: perspective(500px) rotateX(58deg) scale(1.7) translateY(30%);
-  transform-origin: center bottom;
+  pointer-events: none;
+  overflow: hidden;
 }
 
+.mountain-scenery-artwork {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 1440px;
+  height: 72vh;
+  min-height: 520px;
+  background-image: url('/ayusetu-mountain-scenery.webp'), url('/ayusetu-mountain-scenery.png');
+  background-position: center top;
+  background-repeat: no-repeat;
+  background-size: cover;
+  opacity: 0.62;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.9) 45%, rgba(0, 0, 0, 0.3) 75%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.9) 45%, rgba(0, 0, 0, 0.3) 75%, transparent 100%);
+  filter: drop-shadow(0 20px 30px rgba(0, 0, 0, 0.6)) contrast(1.08) saturate(1.1);
+  animation: mountainBreathe 18s ease-in-out infinite alternate;
+}
+
+.mountain-scenery-radiance {
+  position: absolute;
+  top: 24%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 380px;
+  height: 380px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 236, 185, 0.36) 0%, rgba(72, 223, 178, 0.16) 42%, transparent 72%);
+  filter: blur(48px);
+  pointer-events: none;
+  animation: radiancePulse 6s ease-in-out infinite alternate;
+}
+
+.mountain-scenery-overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 36%, transparent 22%, rgba(7, 18, 20, 0.65) 62%, #04090b 95%);
+  pointer-events: none;
+}
+
+/* Deep Perspective Medical Grid */
+.medical-intro-grid {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  opacity: 0.22;
+  background-image: 
+    linear-gradient(rgba(143, 196, 189, 0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(143, 196, 189, 0.12) 1px, transparent 1px);
+  background-size: 44px 44px;
+  transform: perspective(600px) rotateX(56deg) scale(1.8) translateY(28%);
+  transform-origin: center bottom;
+  animation: environmentReveal 1.2s ease-out forwards;
+}
+
+/* Glow Blobs */
 .medical-intro-glow {
   position: absolute;
   z-index: -2;
-  width: 38vw;
-  height: 38vw;
+  width: 44vw;
+  height: 44vw;
   border-radius: 50%;
-  filter: blur(70px);
+  filter: blur(85px);
   opacity: 0.2;
   pointer-events: none;
 }
 
-.medical-intro-glow-one { top: -15%; left: 8%; background: #367d7a; }
-.medical-intro-glow-two { right: -10%; bottom: 4%; background: #a98245; }
+.medical-intro-glow-one {
+  top: -12%;
+  left: 6%;
+  background: #256d68;
+  animation: glowReveal 1.4s 0.2s ease-out forwards;
+}
 
+.medical-intro-glow-two {
+  right: -8%;
+  bottom: 2%;
+  background: #a98245;
+  animation: glowReveal 1.4s 0.4s ease-out forwards;
+}
+
+/* Live ECG Stream in Background */
+.medical-ecg-stream {
+  position: absolute;
+  top: 36%;
+  left: 0;
+  width: 100%;
+  height: 90px;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.42;
+  overflow: hidden;
+}
+
+.medical-ecg-stream svg {
+  width: 100%;
+  height: 100%;
+}
+
+.ecg-path {
+  stroke-dasharray: 1200;
+  stroke-dashoffset: 1200;
+  animation: ecgDash 3.5s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+}
+
+/* Pulsing Heart Backdrop */
 .medical-pulse-backdrop {
   position: absolute;
   z-index: -1;
-  top: 22%;
+  top: 18%;
   left: 50%;
-  color: #8fc4bd;
-  opacity: 0.055;
+  display: grid;
+  place-items: center;
+  color: rgba(143, 196, 189, 0.08);
   filter: blur(0.4px);
+  pointer-events: none;
   transform: translateX(-50%);
-  animation: backgroundPulse 1.4s ease-in-out infinite;
+  animation: backgroundHeartReveal 1s 0.2s ease-out forwards, backgroundHeartBeat 2.2s 1.2s ease-in-out infinite;
 }
 
+.background-heart-outline {
+  grid-area: 1 / 1;
+  color: rgba(143, 196, 189, 0.09);
+  filter: drop-shadow(0 14px 20px rgba(0, 0, 0, 0.3)) drop-shadow(0 0 16px rgba(224, 98, 98, 0.1));
+}
+
+.background-heart-core {
+  grid-area: 1 / 1;
+  width: 52px;
+  height: 48px;
+  border-radius: 52% 48% 48% 52%;
+  background: radial-gradient(circle at 34% 30%, rgba(255, 195, 185, 0.95), #dc5c5c 42%, #85262c 100%);
+  opacity: 0;
+  filter: blur(12px) drop-shadow(0 0 18px rgba(220, 92, 92, 0.6));
+  animation: heartCoreBeat 2.2s 1.2s ease-in-out infinite;
+}
+
+/* Ambient Particles */
 .medical-particle-field {
   position: absolute;
-  inset: 12% 18%;
+  inset: 8% 12%;
   z-index: -1;
-  opacity: 0.5;
-  background-image: radial-gradient(circle, rgba(237, 219, 172, 0.65) 1px, transparent 1.5px);
-  background-size: 74px 82px;
-  mask-image: radial-gradient(ellipse, #000 20%, transparent 70%);
-  animation: particleDrift 12s linear infinite;
+  opacity: 0.55;
+  background-image: radial-gradient(circle, rgba(237, 219, 172, 0.7) 1px, transparent 1.6px);
+  background-size: 70px 78px;
+  mask-image: radial-gradient(ellipse, #000 25%, transparent 72%);
+  animation: particleReveal 1s 0.3s ease-out forwards, particleDrift 14s 1.3s linear infinite;
 }
 
-.medical-intro-header,
+/* ============================================================================
+   TOP TELEMETRY HEADER
+   ============================================================================ */
+.medical-intro-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.2rem;
+  padding: 1.2rem clamp(1.2rem, 5vw, 4rem);
+  opacity: 0;
+  animation: interfaceReveal 0.6s 0.1s ease-out forwards;
+  z-index: 10;
+}
+
+.medical-intro-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #f1f5ef;
+  font-size: 1.12rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.medical-intro-brand span {
+  color: #8fc4bd;
+}
+
+.brand-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #48dfb2;
+  box-shadow: 0 0 10px #48dfb2;
+}
+
+.brand-badge {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0.18rem 0.55rem;
+  border-radius: 12px;
+  font: 600 0.62rem var(--font-mono);
+  letter-spacing: 0.12em;
+  color: #eddbac;
+  background: rgba(237, 219, 172, 0.12);
+  border: 1px solid rgba(237, 219, 172, 0.28);
+}
+
+.medical-intro-telemetry {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font: 0.66rem var(--font-mono);
+  letter-spacing: 0.06em;
+}
+
+.telemetry-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 20px;
+  background: rgba(17, 36, 38, 0.75);
+  border: 1px solid rgba(143, 196, 189, 0.25);
+  color: rgba(234, 242, 240, 0.75);
+  backdrop-filter: blur(8px);
+}
+
+.telemetry-pill b {
+  color: #48dfb2;
+  font-weight: 600;
+}
+
+.telemetry-pulse-icon {
+  color: #e88b7d;
+  animation: pulseIcon 1.2s ease-in-out infinite;
+}
+
+.telemetry-pill.live-status {
+  border-color: rgba(72, 223, 178, 0.3);
+  color: #eaf2f0;
+}
+
+.status-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #48dfb2;
+  box-shadow: 0 0 8px #48dfb2;
+  animation: blinkLive 1.8s ease-in-out infinite;
+}
+
+/* ============================================================================
+   CENTRAL 3D STAGE & FLOATING MEDICAL ELEMENTS
+   ============================================================================ */
+.medical-intro-stage {
+  position: relative;
+  width: min(100%, 720px);
+  min-height: 350px;
+  margin: 0 auto;
+  perspective: 950px;
+  transform-style: preserve-3d;
+  transition: transform 0.18s cubic-bezier(0.2, 0, 0.2, 1);
+  z-index: 5;
+}
+
+/* Orbit Rings */
+.medical-intro-orbit {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  top: 140px;
+  width: 410px;
+  height: 155px;
+  border: 1px solid rgba(143, 196, 189, 0.22);
+  border-radius: 50%;
+  transform: translateX(-50%) rotate(-18deg);
+  pointer-events: none;
+}
+
+.medical-intro-orbit-two {
+  width: 260px;
+  height: 290px;
+  transform: translateX(-50%) rotate(56deg);
+  border-color: rgba(237, 219, 172, 0.18);
+}
+
+.medical-pulse-ring {
+  position: absolute;
+  top: 145px;
+  left: 50%;
+  border-radius: 50%;
+  border: 1px solid rgba(72, 223, 178, 0.35);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.pulse-ring-1 {
+  width: 140px;
+  height: 140px;
+  animation: sonarRing 3s ease-out infinite;
+}
+
+.pulse-ring-2 {
+  width: 140px;
+  height: 140px;
+  animation: sonarRing 3s 1.5s ease-out infinite;
+}
+
+/* Stethoscope */
+.medical-stethoscope {
+  position: absolute;
+  z-index: 4;
+  top: 24px;
+  left: 50%;
+  color: #acd2cb;
+  transform: translateX(-50%) rotate(-10deg);
+  opacity: 0;
+  animation: stethoscopeReveal 0.8s 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards, stethoscopeFloat 5s 1.2s ease-in-out infinite;
+  filter: drop-shadow(0 20px 24px rgba(0, 0, 0, 0.45));
+}
+
+.medical-stethoscope svg {
+  display: block;
+  width: 185px;
+  height: 195px;
+  overflow: visible;
+}
+
+.stethoscope-tube-shadow {
+  stroke: rgba(4, 22, 25, 0.6);
+  stroke-width: 13;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transform: translateY(5px);
+}
+
+.stethoscope-tube {
+  stroke: url(#stethoscopeTube);
+  stroke-width: 8.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.stethoscope-branch {
+  stroke: #9bc7c0;
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+
+.stethoscope-ear {
+  fill: #274f50;
+  stroke: #c8e7e1;
+  stroke-width: 2.2;
+}
+
+.stethoscope-stem {
+  stroke: url(#stethoscopeTube);
+  stroke-width: 7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.stethoscope-chest {
+  fill: url(#stethoscopeChest);
+  stroke: #f2dfaf;
+  stroke-width: 2.2;
+  filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.45));
+}
+
+.stethoscope-diaphragm {
+  fill: rgba(24, 49, 50, 0.8);
+  stroke: rgba(250, 235, 186, 0.8);
+  stroke-width: 2;
+}
+
+.stethoscope-highlight {
+  stroke: rgba(255, 247, 210, 0.9);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+
+/* Magnifier Glass */
+.medical-magnifier {
+  position: absolute;
+  z-index: 7;
+  top: 86px;
+  left: calc(50% - 54px);
+  width: 118px;
+  height: 118px;
+  opacity: 0;
+  animation: magnifierReveal 0.8s 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards, scanGlass 4.8s 1.3s ease-in-out infinite;
+}
+
+.magnifier-lens {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 94px;
+  height: 94px;
+  border: 4.5px solid #d7c18c;
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.45), transparent 16%),
+              radial-gradient(circle at 65% 72%, rgba(72, 223, 178, 0.2), transparent 58%),
+              rgba(17, 43, 44, 0.3);
+  backdrop-filter: blur(2px);
+  box-shadow: 0 12px 22px rgba(0, 0, 0, 0.4),
+              inset 5px 5px 10px rgba(255, 255, 255, 0.22),
+              inset -7px -8px 12px rgba(2, 22, 25, 0.38),
+              0 0 0 1.5px rgba(255, 238, 184, 0.28);
+  transform: rotate(-12deg);
+}
+
+.magnifier-lens::before {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  border: 1px solid rgba(235, 248, 236, 0.28);
+  border-radius: 50%;
+}
+
+.magnifier-lens i {
+  position: absolute;
+  top: 15px;
+  left: 17px;
+  width: 24px;
+  height: 11px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.65);
+  filter: blur(1.8px);
+  transform: rotate(-34deg);
+}
+
+.magnifier-handle {
+  position: absolute;
+  top: 80px;
+  left: 74px;
+  width: 58px;
+  height: 16px;
+  border: 1px solid rgba(235, 220, 174, 0.8);
+  border-radius: 12px;
+  background: linear-gradient(135deg, #e5d1a2 0%, #a8844e 45%, #5d4429 100%);
+  box-shadow: 5px 8px 10px rgba(0, 0, 0, 0.42),
+              inset 0 2px 2px rgba(255, 244, 200, 0.4),
+              inset 0 -3px 3px rgba(55, 35, 18, 0.45);
+  transform: rotate(48deg);
+  transform-origin: left center;
+}
+
+/* ============================================================================
+   GLASSMORPHIC HUD DOCUMENT CARDS
+   ============================================================================ */
+.medical-document {
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  padding: 0.95rem;
+  border-radius: 8px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 20px 35px rgba(0, 0, 0, 0.45),
+              0 1px 0 rgba(255, 255, 255, 0.12) inset,
+              0 -10px 20px rgba(0, 0, 0, 0.2) inset;
+  font: 0.64rem var(--font-mono);
+  letter-spacing: 0.03em;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+  overflow: hidden;
+}
+
+.medical-document:hover {
+  box-shadow: 0 26px 48px rgba(0, 0, 0, 0.55),
+              0 0 20px rgba(143, 196, 189, 0.25),
+              0 1px 0 rgba(255, 255, 255, 0.2) inset;
+}
+
+/* Card 1: Back Left (Vitals) */
+.medical-document-back-left {
+  left: 50px;
+  top: 110px;
+  width: 145px;
+  height: 185px;
+  border: 1px solid rgba(143, 196, 189, 0.3);
+  background: linear-gradient(150deg, rgba(22, 54, 56, 0.88), rgba(11, 28, 30, 0.92));
+  opacity: 0;
+  transform: rotate(-18deg) translateX(-70px);
+  animation: cardSpreadLeft 0.8s 0.25s ease-out forwards, documentBackFloat 6s 1.2s ease-in-out infinite;
+}
+
+/* Card 2: Front Left (Patient File) */
+.medical-document-left {
+  left: 0;
+  top: 90px;
+  width: 185px;
+  height: 220px;
+  border: 1px solid rgba(200, 230, 222, 0.35);
+  background: linear-gradient(150deg, rgba(34, 70, 72, 0.92), rgba(14, 34, 36, 0.96));
+  opacity: 0;
+  transform: translateX(-24px) rotate(-9deg);
+  animation: documentLeftReveal 0.8s 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards, documentLeft 6s 1.2s ease-in-out infinite;
+}
+
+/* Card 3: Back Right (Diagnostic Triage) */
+.medical-document-back-right {
+  right: 50px;
+  top: 110px;
+  width: 145px;
+  height: 185px;
+  border: 1px solid rgba(237, 219, 172, 0.28);
+  background: linear-gradient(150deg, rgba(46, 42, 28, 0.88), rgba(20, 18, 12, 0.92));
+  opacity: 0;
+  transform: rotate(18deg) translateX(70px);
+  animation: cardSpreadRight 0.8s 0.25s ease-out forwards, documentBackFloat 6s 1.4s ease-in-out infinite;
+}
+
+/* Card 4: Front Right (SOAP Note) */
+.medical-document-right {
+  right: 0;
+  top: 90px;
+  width: 185px;
+  height: 220px;
+  border: 1px solid rgba(200, 230, 222, 0.35);
+  background: linear-gradient(150deg, rgba(34, 70, 72, 0.92), rgba(14, 34, 36, 0.96));
+  opacity: 0;
+  transform: translateX(24px) rotate(9deg);
+  animation: documentRightReveal 0.8s 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards, documentRight 6s 1.3s ease-in-out infinite;
+}
+
+/* Internal Card Components */
+.doc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 4px;
+  font-size: 0.58rem;
+  font-weight: 600;
+  color: #8fc4bd;
+  background: rgba(143, 196, 189, 0.15);
+  margin-bottom: 0.6rem;
+  width: fit-content;
+}
+
+.doc-vital-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  color: rgba(234, 242, 240, 0.7);
+}
+
+.doc-vital-row b {
+  color: #48dfb2;
+  font-weight: 600;
+}
+
+.doc-badge-optimal {
+  margin-top: auto;
+  padding: 0.25rem 0.4rem;
+  border-radius: 4px;
+  text-align: center;
+  font-size: 0.56rem;
+  font-weight: 600;
+  color: #102621;
+  background: #48dfb2;
+  letter-spacing: 0.08em;
+}
+
+.doc-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  margin-bottom: 0.6rem;
+  color: #8fc4bd;
+}
+
+.doc-title {
+  display: block;
+  font-weight: 600;
+  color: #f1f5ef;
+  font-size: 0.74rem;
+}
+
+.doc-sub {
+  color: #8fc4bd;
+  font-size: 0.58rem;
+}
+
+.doc-meta-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.6rem;
+  margin-bottom: 0.35rem;
+}
+
+.doc-label {
+  color: rgba(234, 242, 240, 0.55);
+}
+
+.doc-val {
+  color: #f1f5ef;
+  font-weight: 500;
+}
+
+.doc-val.highlight {
+  color: #eddbac;
+}
+
+.doc-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 0.32rem;
+  margin: 0.5rem 0;
+}
+
+.doc-lines b {
+  display: block;
+  height: 4px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, rgba(143, 196, 189, 0.45), rgba(143, 196, 189, 0.1));
+}
+
+.doc-lines b:nth-child(1) { width: 90%; }
+.doc-lines b:nth-child(2) { width: 72%; }
+.doc-lines b:nth-child(3) { width: 82%; }
+
+.doc-footer-tag {
+  margin-top: auto;
+  font-size: 0.56rem;
+  color: #8fc4bd;
+  letter-spacing: 0.05em;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.doc-footer-tag.verified {
+  color: #48dfb2;
+}
+
+.doc-soap-snippet {
+  font-size: 0.58rem;
+  line-height: 1.45;
+  color: rgba(234, 242, 240, 0.78);
+  display: flex;
+  flex-direction: column;
+  gap: 0.22rem;
+  margin-bottom: 0.4rem;
+}
+
+.doc-soap-snippet b {
+  color: #eddbac;
+  margin-right: 0.25rem;
+}
+
+/* ============================================================================
+   TYPOGRAPHY & CALL-TO-ACTIONS SECTION
+   ============================================================================ */
+.medical-intro-copy {
+  align-self: center;
+  max-width: 680px;
+  margin: -0.25rem auto 1rem;
+  padding: 0 1.25rem;
+  text-align: center;
+  z-index: 10;
+}
+
+.medical-intro-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.32rem 0.85rem;
+  border-radius: 24px;
+  background: rgba(17, 36, 38, 0.75);
+  border: 1px solid rgba(143, 196, 189, 0.24);
+  color: #8fc4bd;
+  font: 0.65rem var(--font-mono);
+  letter-spacing: 0.08em;
+  opacity: 0;
+  animation: introReveal 0.6s 0.4s ease-out forwards;
+}
+
+.shield-icon {
+  color: #48dfb2;
+}
+
+.eyebrow-divider {
+  opacity: 0.35;
+}
+
+.eyebrow-highlight {
+  color: #eddbac;
+  font-weight: 600;
+}
+
+/* AYUSETU Metallic Gradient Title Lockup */
+.medical-title-lockup {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 0.65rem;
+}
+
+.medical-title-line {
+  height: 1.5px;
+  flex: 1;
+  max-width: 140px;
+  background: linear-gradient(90deg, transparent, rgba(237, 219, 172, 0.85), transparent);
+  opacity: 0;
+  animation: lineReveal 0.8s 0.4s ease-out forwards;
+}
+
+.line-left { transform-origin: right center; }
+.line-right { transform-origin: left center; }
+
+.ayusetu-title {
+  display: flex;
+  justify-content: center;
+  font: 800 clamp(3.2rem, 10vw, 6.2rem)/0.88 Georgia, 'Times New Roman', serif;
+  letter-spacing: 0.08em;
+  margin: 0;
+  padding: 0 0.15em;
+  background: linear-gradient(135deg, #ffffff 0%, #bcebe3 40%, #f0deb0 75%, #ffffff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 25px rgba(143, 196, 189, 0.35));
+}
+
+.ayusetu-title span {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(22px) rotateX(60deg) scale(0.9);
+  transform-origin: center bottom;
+  animation: titleLetterReveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Native Devanagari Lockup (आयुसेतु) matching artwork */
+.medical-native-lockup {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.9rem;
+  margin-top: 0.45rem;
+  opacity: 0;
+  animation: introReveal 0.6s 0.72s ease-out forwards;
+}
+
+.native-rule {
+  width: min(80px, 18vw);
+  height: 1.5px;
+  background: linear-gradient(90deg, transparent, rgba(237, 219, 172, 0.85), transparent);
+}
+
+.medical-native-title {
+  font-family: 'Noto Sans Devanagari', 'Nirmala UI', sans-serif;
+  font-size: clamp(1.25rem, 3.5vw, 1.75rem);
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  color: #ffffff;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.7), 0 0 20px rgba(237, 219, 172, 0.4);
+}
+
+/* Slogan Tagline: CONNECTING CARE • ACROSS LIVES */
+.medical-title-tagline {
+  font-family: var(--font-mono);
+  font-size: clamp(0.68rem, 1.8vw, 0.78rem);
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: rgba(234, 242, 240, 0.85);
+  margin-top: 0.4rem;
+  opacity: 0;
+  animation: introReveal 0.6s 0.82s ease-out forwards;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+.tagline-dot {
+  color: #eddbac;
+  margin: 0 0.35rem;
+}
+
+.medical-intro-message {
+  max-width: 520px;
+  margin: 0.85rem auto 0;
+  color: rgba(234, 242, 240, 0.76);
+  font-size: 0.94rem;
+  line-height: 1.6;
+  opacity: 0;
+  animation: introReveal 0.6s 0.9s ease-out forwards;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+}
+
+/* High-Impact Actions */
+.medical-intro-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+  margin-top: 1.35rem;
+  opacity: 0;
+  animation: actionsReveal 0.7s 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.medical-intro-actions button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  padding: 0.8rem 1.4rem;
+  border-radius: 6px;
+  font: 600 0.9rem var(--font-body);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+.medical-intro-primary {
+  border: 1px solid #75c9bb;
+  color: #051416;
+  background: linear-gradient(135deg, #8fe0d1 0%, #68c7b8 100%);
+  box-shadow: 0 4px 18px rgba(104, 199, 184, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+}
+
+.medical-intro-primary:hover {
+  background: linear-gradient(135deg, #a7eae0 0%, #7fd3c6 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(104, 199, 184, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.4) inset;
+}
+
+.btn-shine {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+  transform: skewX(-20deg);
+  animation: btnShine 4s 2s infinite;
+  pointer-events: none;
+}
+
+.btn-arrow {
+  transition: transform 0.2s ease;
+}
+
+.medical-intro-primary:hover .btn-arrow {
+  transform: translateX(3px);
+}
+
+.medical-intro-secondary {
+  border: 1px solid rgba(234, 242, 240, 0.32);
+  color: #eaf2f0;
+  background: rgba(18, 41, 44, 0.65);
+  backdrop-filter: blur(8px);
+}
+
+.medical-intro-secondary:hover {
+  border-color: #eddbac;
+  color: #eddbac;
+  background: rgba(237, 219, 172, 0.14);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+.medical-intro-skip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 1rem;
+  border: 0;
+  color: rgba(234, 242, 240, 0.52);
+  background: transparent;
+  font: 0.74rem var(--font-mono);
+  cursor: pointer;
+  opacity: 0;
+  animation: introReveal 0.6s 1.1s ease-out forwards;
+  transition: color 0.2s ease;
+}
+
+.medical-intro-skip:hover {
+  color: #eaf2f0;
+}
+
+.kbd-shortcut {
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  font-size: 0.62rem;
+  color: rgba(234, 242, 240, 0.75);
+}
+
+/* ============================================================================
+   FOOTER
+   ============================================================================ */
 .medical-intro-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
   padding: 1.25rem clamp(1.25rem, 5vw, 4rem);
-  color: rgba(234, 242, 240, 0.65);
-  font: 0.68rem var(--font-mono);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  color: rgba(234, 242, 240, 0.5);
+  font: 0.66rem var(--font-mono);
+  letter-spacing: 0.06em;
+  opacity: 0;
+  animation: interfaceReveal 0.6s 1.15s ease-out forwards;
+  z-index: 10;
 }
 
-.medical-intro-brand { color: #f1f5ef; font-size: 1.05rem; font-weight: 700; letter-spacing: -0.03em; }
-.medical-intro-brand span { color: #8fc4bd; }
-.medical-intro-status { display: inline-flex; align-items: center; gap: 0.45rem; }
-.medical-intro-status i { width: 7px; height: 7px; border-radius: 50%; background: #8fc4bd; box-shadow: 0 0 12px #8fc4bd; }
-
-.medical-intro-stage {
-  position: relative;
-  width: min(100%, 700px);
-  min-height: 340px;
-  margin: 0 auto;
-  perspective: 900px;
+.footer-dot {
+  margin: 0 0.4rem;
+  opacity: 0.35;
 }
 
-.medical-stethoscope {
-  position: absolute;
-  z-index: 4;
-  top: 38px;
-  left: 50%;
-  color: #9ccbc4;
-  filter: drop-shadow(0 18px 20px rgba(0, 0, 0, 0.4));
-  transform: translateX(-50%) rotate(-10deg);
-  animation: stethoscopeFloat 5s ease-in-out infinite;
+/* ============================================================================
+   KEYFRAME ANIMATIONS
+   ============================================================================ */
+@keyframes mountainBreathe {
+  0% { transform: translateX(-50%) scale(1); }
+  100% { transform: translateX(-50%) scale(1.04); }
 }
 
-.medical-heart {
-  position: absolute;
-  z-index: 6;
-  top: 118px;
-  left: calc(50% - 35px);
-  display: grid;
-  place-items: center;
-  color: #e88b7d;
-  filter: drop-shadow(0 0 17px rgba(232, 139, 125, 0.55));
-  animation: heartBeat 1.4s ease-in-out infinite;
+@keyframes radiancePulse {
+  0% { opacity: 0.7; transform: translate(-50%, -50%) scale(0.95); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
 }
 
-.medical-magnifier {
-  position: absolute;
-  z-index: 7;
-  top: 110px;
-  left: calc(50% - 30px);
-  display: grid;
-  width: 76px;
-  height: 76px;
-  place-items: center;
-  border: 1px solid rgba(235, 223, 188, 0.8);
-  border-radius: 50%;
-  color: #eddbac;
-  background: rgba(17, 39, 41, 0.35);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3), inset 0 0 18px rgba(255, 255, 255, 0.08);
-  animation: scanGlass 4.8s ease-in-out infinite;
+@keyframes ecgDash {
+  0% { stroke-dashoffset: 1200; opacity: 0; }
+  15% { opacity: 0.8; }
+  85% { opacity: 0.8; }
+  100% { stroke-dashoffset: -1200; opacity: 0; }
 }
 
-.medical-magnifier::after { content: ''; position: absolute; right: -25px; bottom: -18px; width: 38px; height: 4px; border-radius: 4px; background: #eddbac; transform: rotate(48deg); transform-origin: left center; }
-
-.medical-document {
-  position: absolute;
-  z-index: 3;
-  top: 100px;
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-  width: 172px;
-  height: 205px;
-  padding: 1rem;
-  border: 1px solid rgba(188, 218, 210, 0.3);
-  border-radius: 4px;
-  color: #c1d6d1;
-  background: linear-gradient(145deg, rgba(35, 67, 68, 0.9), rgba(19, 38, 41, 0.95));
-  box-shadow: 0 24px 40px rgba(0, 0, 0, 0.3);
-  font: 0.63rem var(--font-mono);
-  letter-spacing: 0.04em;
+@keyframes sonarRing {
+  0% { transform: translate(-50%, -50%) scale(0.6); opacity: 0.7; }
+  100% { transform: translate(-50%, -50%) scale(2.4); opacity: 0; }
 }
 
-.medical-document-left { left: 0; transform: rotate(-9deg); animation: documentLeft 6s ease-in-out infinite; }
-.medical-document-right { right: 0; transform: rotate(9deg); animation: documentRight 6s ease-in-out infinite; }
-.medical-document-back-left { left: 55px; top: 115px; opacity: 0.42; transform: rotate(-19deg) translateX(-80px); animation: cardSpreadLeft 1.2s 0.5s ease-out both, documentBackFloat 6s 2s ease-in-out infinite; }
-.medical-document-back-right { right: 55px; top: 115px; opacity: 0.42; transform: rotate(19deg) translateX(80px); animation: cardSpreadRight 1.2s 0.7s ease-out both, documentBackFloat 6s 2.2s ease-in-out infinite; }
-.medical-document span { color: #f1f5ef; font-size: 0.72rem; font-weight: 600; }
-.medical-document b { display: block; width: 82%; height: 5px; border-radius: 4px; background: rgba(143, 196, 189, 0.35); }
-.medical-document b:nth-of-type(2) { width: 64%; }
-.medical-document b:nth-of-type(3) { width: 74%; }
-.medical-document small { margin-top: auto; color: #8fc4bd; }
+@keyframes pulseIcon {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.22); }
+}
 
-.medical-intro-orbit { position: absolute; z-index: 1; left: 50%; top: 144px; width: 390px; height: 150px; border: 1px solid rgba(143, 196, 189, 0.22); border-radius: 50%; transform: translateX(-50%) rotate(-18deg); }
-.medical-intro-orbit-two { width: 250px; height: 280px; transform: translateX(-50%) rotate(58deg); border-color: rgba(237, 219, 172, 0.16); }
+@keyframes blinkLive {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.85); }
+}
 
-.medical-intro-copy { align-self: center; max-width: 620px; margin: -0.5rem auto 1rem; padding: 0 1.25rem; text-align: center; }
-.medical-intro-eyebrow { display: inline-flex; align-items: center; gap: 0.4rem; color: #8fc4bd; font: 0.67rem var(--font-mono); letter-spacing: 0.1em; opacity: 0; animation: introReveal 0.8s 3.2s ease-out forwards; }
-.medical-title-lockup { display: flex; flex-direction: column; align-items: center; gap: 0.55rem; margin-top: 0.8rem; }
-.medical-title-lockup h1 { color: #f1f5ef; font: 700 clamp(3.4rem, 11vw, 7.5rem)/0.86 var(--font-mono); letter-spacing: 0.16em; text-indent: 0.16em; opacity: 0; filter: blur(16px); transform: scale(1.15); animation: titleReveal 1.3s 2.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-.medical-title-subtitle { color: #eddbac; font: 0.7rem var(--font-mono); letter-spacing: 0.28em; text-transform: uppercase; opacity: 0; animation: introReveal 0.8s 3s ease-out forwards; }
-.medical-title-line { width: min(230px, 45vw); height: 1px; background: linear-gradient(90deg, transparent, rgba(237, 219, 172, 0.75), transparent); opacity: 0; animation: lineReveal 0.9s 2.3s ease-out forwards; }
-.medical-intro-message { max-width: 470px; margin: 1rem auto 0; color: rgba(234, 242, 240, 0.68); font-size: 0.98rem; line-height: 1.6; opacity: 0; animation: introReveal 0.8s 3.5s ease-out forwards; }
-.medical-intro-actions { display: flex; justify-content: center; gap: 0.7rem; flex-wrap: wrap; margin-top: 1.35rem; opacity: 0; animation: introReveal 0.8s 3.9s ease-out forwards; }
-.medical-intro-actions button { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem 1.1rem; border-radius: 4px; font: 600 0.86rem var(--font-body); cursor: pointer; }
-.medical-intro-primary { border: 1px solid #8fc4bd; color: #0a1518; background: #9ccbc4; }
-.medical-intro-primary:hover { background: #b8ddd6; }
-.medical-intro-secondary { border: 1px solid rgba(234, 242, 240, 0.35); color: #eaf2f0; background: transparent; }
-.medical-intro-secondary:hover { border-color: #eddbac; color: #eddbac; }
-.medical-intro-skip { margin-top: 1rem; border: 0; color: rgba(234, 242, 240, 0.5); background: transparent; font: 0.74rem var(--font-mono); cursor: pointer; opacity: 0; animation: introReveal 0.8s 4.1s ease-out forwards; }
-.medical-intro-skip:hover { color: #eaf2f0; }
+@keyframes btnShine {
+  0% { left: -100%; }
+  25%, 100% { left: 140%; }
+}
 
-@keyframes stethoscopeFloat { 0%, 100% { transform: translateX(-50%) rotate(-10deg) translateY(0); } 50% { transform: translateX(-50%) rotate(-5deg) translateY(-12px); } }
-@keyframes heartBeat { 0%, 35%, 65%, 100% { transform: scale(1); } 15%, 50% { transform: scale(1.16); } }
-@keyframes scanGlass { 0%, 100% { transform: translate(-140px, 32px) rotate(-12deg); } 50% { transform: translate(130px, -8px) rotate(14deg); } }
-@keyframes documentLeft { 0%, 100% { transform: translateX(-22px) rotate(-9deg); } 50% { transform: translateX(8px) rotate(-5deg); } }
-@keyframes documentRight { 0%, 100% { transform: translateX(22px) rotate(9deg); } 50% { transform: translateX(-8px) rotate(5deg); } }
-@keyframes cardSpreadLeft { from { opacity: 0; transform: rotate(-19deg) translateX(-190px); } to { opacity: 0.42; transform: rotate(-19deg) translateX(-80px); } }
-@keyframes cardSpreadRight { from { opacity: 0; transform: rotate(19deg) translateX(190px); } to { opacity: 0.42; transform: rotate(19deg) translateX(80px); } }
-@keyframes documentBackFloat { 0%, 100% { margin-top: 0; } 50% { margin-top: 8px; } }
-@keyframes titleReveal { to { opacity: 1; filter: blur(0); transform: scale(1); } }
-@keyframes lineReveal { to { opacity: 1; transform: scaleX(1.15); } }
-@keyframes introReveal { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes backgroundPulse { 0%, 100% { transform: translateX(-50%) scale(0.96); opacity: 0.04; } 15% { transform: translateX(-50%) scale(1.04); opacity: 0.075; } 28% { transform: translateX(-50%) scale(0.98); opacity: 0.05; } 42% { transform: translateX(-50%) scale(1.02); opacity: 0.06; } }
-@keyframes particleDrift { from { transform: translateY(0); } to { transform: translateY(-40px); } }
-@keyframes introLightSweep { to { transform: translateX(100%); } }
+@keyframes stethoscopeFloat {
+  0%, 100% { transform: translateX(-50%) rotate(-10deg) translateY(0); }
+  50% { transform: translateX(-50%) rotate(-6deg) translateY(-10px); }
+}
 
+@keyframes environmentReveal {
+  from { opacity: 0; transform: perspective(600px) rotateX(56deg) scale(1.8) translateY(36%); }
+  to { opacity: 0.22; transform: perspective(600px) rotateX(56deg) scale(1.8) translateY(28%); }
+}
+
+@keyframes glowReveal {
+  from { opacity: 0; }
+  to { opacity: 0.2; }
+}
+
+@keyframes backgroundHeartReveal {
+  from { opacity: 0; transform: translateX(-50%) translateY(12px) scale(0.92); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+}
+
+@keyframes backgroundHeartBeat {
+  0%, 100% { transform: translateX(-50%) scale(1); }
+  8% { transform: translateX(-50%) scale(1.025); }
+  16% { transform: translateX(-50%) scale(0.99); }
+  25% { transform: translateX(-50%) scale(1.012); }
+  38%, 100% { transform: translateX(-50%) scale(1); }
+}
+
+@keyframes heartCoreBeat {
+  0%, 100% { opacity: 0; transform: scale(0.4); }
+  8% { opacity: 0.48; transform: scale(1.4); }
+  18% { opacity: 0.18; transform: scale(1); }
+  32% { opacity: 0; transform: scale(0.7); }
+}
+
+@keyframes particleReveal {
+  from { opacity: 0; }
+  to { opacity: 0.55; }
+}
+
+@keyframes interfaceReveal {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes stethoscopeReveal {
+  from { opacity: 0; transform: translateX(-50%) rotate(-20deg) translateY(20px) scale(0.88); }
+  to { opacity: 1; transform: translateX(-50%) rotate(-10deg) translateY(0) scale(1); }
+}
+
+@keyframes magnifierReveal {
+  from { opacity: 0; transform: translate(-15px, 15px) scale(0.75); }
+  to { opacity: 1; transform: translate(0, 0) scale(1); }
+}
+
+@keyframes documentLeftReveal {
+  from { opacity: 0; transform: translateX(-80px) rotate(-16deg); }
+  to { opacity: 1; transform: translateX(-24px) rotate(-9deg); }
+}
+
+@keyframes documentRightReveal {
+  from { opacity: 0; transform: translateX(80px) rotate(16deg); }
+  to { opacity: 1; transform: translateX(24px) rotate(9deg); }
+}
+
+@keyframes scanGlass {
+  0%, 100% { transform: translate(-130px, 28px) rotate(-12deg); }
+  50% { transform: translate(120px, -6px) rotate(14deg); }
+}
+
+@keyframes documentLeft {
+  0%, 100% { transform: translateX(-24px) rotate(-9deg); }
+  50% { transform: translateX(4px) rotate(-5deg); }
+}
+
+@keyframes documentRight {
+  0%, 100% { transform: translateX(24px) rotate(9deg); }
+  50% { transform: translateX(-4px) rotate(5deg); }
+}
+
+@keyframes cardSpreadLeft {
+  from { opacity: 0; transform: rotate(-18deg) translateX(-150px); }
+  to { opacity: 0.7; transform: rotate(-18deg) translateX(-70px); }
+}
+
+@keyframes cardSpreadRight {
+  from { opacity: 0; transform: rotate(18deg) translateX(150px); }
+  to { opacity: 0.7; transform: rotate(18deg) translateX(70px); }
+}
+
+@keyframes documentBackFloat {
+  0%, 100% { margin-top: 0; }
+  50% { margin-top: 7px; }
+}
+
+@keyframes titleLetterReveal {
+  0% { opacity: 0; filter: blur(8px); transform: translateY(22px) rotateX(60deg) scale(0.9); }
+  70% { opacity: 1; filter: blur(0); transform: translateY(-3px) rotateX(0) scale(1.02); }
+  100% { opacity: 1; transform: translateY(0) rotateX(0) scale(1); }
+}
+
+@keyframes lineReveal {
+  from { opacity: 0; transform: scaleX(0.4); }
+  to { opacity: 1; transform: scaleX(1); }
+}
+
+@keyframes introReveal {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes actionsReveal {
+  from { opacity: 0; transform: translateY(16px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes particleDrift {
+  from { transform: translateY(0); }
+  to { transform: translateY(-35px); }
+}
+
+@keyframes introLightSweep {
+  to { transform: translateX(100%); }
+}
+
+/* ============================================================================
+   RESPONSIVENESS & ACCESSIBILITY
+   ============================================================================ */
 @media (max-width: 650px) {
-  .medical-intro-stage { min-height: 260px; transform: scale(0.78); transform-origin: center top; margin-bottom: -55px; }
-  .medical-document { width: 135px; height: 165px; }
-  .medical-document-left { left: -28px; }
-  .medical-document-right { right: -28px; }
-  .medical-intro-copy h1 { font-size: clamp(2.25rem, 12vw, 3.5rem); }
-  .medical-intro-footer { font-size: 0.58rem; }
+  .mountain-scenery-artwork {
+    height: 52vh;
+    min-height: 380px;
+    opacity: 0.45;
+  }
+
+  .medical-intro-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 1rem 1.2rem;
+  }
+
+  .medical-intro-stage {
+    min-height: 280px;
+    transform: scale(0.82) !important;
+    transform-origin: center top;
+    margin-bottom: -35px;
+  }
+
+  .medical-document {
+    width: 140px;
+    height: 175px;
+    padding: 0.75rem;
+  }
+
+  .medical-document-left { left: -16px; }
+  .medical-document-right { right: -16px; }
+  .medical-document-back-left { left: 18px; }
+  .medical-document-back-right { right: 18px; }
+
+  .ayusetu-title {
+    font-size: clamp(2.6rem, 13vw, 3.8rem);
+  }
+
+  .medical-title-line {
+    max-width: 40px;
+  }
+
+  .medical-native-title {
+    font-size: 1.25rem;
+  }
+
+  .medical-intro-copy {
+    padding: 0 1rem;
+  }
+
+  .medical-intro-message {
+    font-size: 0.88rem;
+  }
+
+  .medical-intro-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .medical-intro-actions button {
+    width: 100%;
+  }
+
+  .medical-intro-footer {
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: center;
+    font-size: 0.58rem;
+    padding: 1rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .medical-stethoscope, .medical-heart, .medical-magnifier, .medical-document, .medical-pulse-backdrop, .medical-particle-field, .medical-intro::after, .medical-intro-eyebrow, .medical-title-lockup h1, .medical-title-subtitle, .medical-title-line, .medical-intro-message, .medical-intro-actions, .medical-intro-skip { animation: none; opacity: 1; filter: none; transform: none; }
+  .medical-intro-header,
+  .medical-intro-footer,
+  .medical-intro-glow,
+  .medical-intro-grid,
+  .medical-stethoscope,
+  .medical-magnifier,
+  .medical-document,
+  .medical-pulse-backdrop,
+  .background-heart-outline,
+  .background-heart-core,
+  .medical-particle-field,
+  .medical-intro::after,
+  .medical-intro-eyebrow,
+  .ayusetu-title span,
+  .medical-native-lockup,
+  .medical-title-tagline,
+  .medical-title-line,
+  .medical-intro-message,
+  .medical-intro-actions,
+  .medical-intro-skip,
+  .ecg-path,
+  .pulse-ring-1,
+  .pulse-ring-2,
+  .btn-shine,
+  .mountain-scenery-artwork,
+  .mountain-scenery-radiance {
+    animation: none !important;
+    opacity: 1 !important;
+    filter: none !important;
+    transform: none !important;
+  }
 }
