@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   Shield,
   AlertOctagon,
@@ -10,26 +10,21 @@ import {
   MicOff,
   Volume2,
   Database,
-  PlayCircle,
   Download,
   Search,
   Sparkles,
   Stethoscope,
-  Heart,
   Leaf,
   Activity,
-  FileText,
   RotateCcw,
   Check,
+  ClipboardList,
   PhoneCall,
-  UserCheck,
-  ClipboardList
+  UserCheck
 } from 'lucide-react';
 import {
-  AYUSETU_DATASET_METADATA,
   PRIMARY_STAGES,
   AYUSETU_SECTIONS,
-  getAllSections,
   getRedFlagQuestions,
   getAdaptiveBranch,
   getDatasetStats
@@ -91,8 +86,11 @@ export default function AyusetuIntakeMode({
   const [redFlagDetected, setRedFlagDetected] = useState(false);
   const [triggeredRedFlags, setTriggeredRedFlags] = useState([]);
 
-  // Adaptive branch detected from chief complaint
-  const [activeAdaptiveBranch, setActiveAdaptiveBranch] = useState(null);
+  // Adaptive branch derived dynamically from chief complaint
+  const activeAdaptiveBranch = useMemo(() => {
+    const text = responses.q_chief_complaint_main || '';
+    return getAdaptiveBranch(text);
+  }, [responses.q_chief_complaint_main]);
 
   // Voice Speech Recognition state
   const [isListening, setIsListening] = useState(false);
@@ -108,12 +106,21 @@ export default function AyusetuIntakeMode({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedRecordId, setSubmittedRecordId] = useState(null);
 
-  // Auto-detect adaptive branch when chief complaint changes
-  useEffect(() => {
-    const text = responses.q_chief_complaint_main || '';
-    const branch = getAdaptiveBranch(text);
-    setActiveAdaptiveBranch(branch);
-  }, [responses.q_chief_complaint_main]);
+  const handleResponseChange = useCallback((questionId, value) => {
+    setResponses((prev) => ({ ...prev, [questionId]: value }));
+
+    // Real-time Red-Flag Checker
+    const rfList = getRedFlagQuestions();
+    const isRfQuestion = rfList.find((q) => q.id === questionId);
+    if (isRfQuestion) {
+      if (value === true || value === 'Yes' || value === 'true') {
+        setRedFlagDetected(true);
+        setTriggeredRedFlags((prev) => [...new Set([...prev, isRfQuestion.text])]);
+      } else {
+        setTriggeredRedFlags((prev) => prev.filter((item) => item !== isRfQuestion.text));
+      }
+    }
+  }, []);
 
   // Handle Speech Recognition setup
   useEffect(() => {
@@ -146,7 +153,7 @@ export default function AyusetuIntakeMode({
 
       speechRecognitionRef.current = recognizer;
     }
-  }, [userLanguage, activeListeningQuestionId]);
+  }, [userLanguage, activeListeningQuestionId, handleResponseChange, onNotify]);
 
   const toggleVoiceInput = (questionId) => {
     if (!speechRecognitionRef.current) {
@@ -163,7 +170,7 @@ export default function AyusetuIntakeMode({
       try {
         speechRecognitionRef.current.start();
         if (onNotify) onNotify('Listening... Please speak your answer.', 'info');
-      } catch (err) {
+      } catch (_) {
         setIsListening(false);
       }
     }
@@ -175,22 +182,6 @@ export default function AyusetuIntakeMode({
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.rate = 0.95;
       window.speechSynthesis.speak(utterance);
-    }
-  };
-
-  const handleResponseChange = (questionId, value) => {
-    setResponses((prev) => ({ ...prev, [questionId]: value }));
-
-    // Real-time Red-Flag Checker
-    const rfList = getRedFlagQuestions();
-    const isRfQuestion = rfList.find((q) => q.id === questionId);
-    if (isRfQuestion) {
-      if (value === true || value === 'Yes' || value === 'true') {
-        setRedFlagDetected(true);
-        setTriggeredRedFlags((prev) => [...new Set([...prev, isRfQuestion.text])]);
-      } else {
-        setTriggeredRedFlags((prev) => prev.filter((item) => item !== isRfQuestion.text));
-      }
     }
   };
 
