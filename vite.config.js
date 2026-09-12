@@ -39,13 +39,13 @@ function executeDynamicClinicalNLP(transcript, lang) {
 
   let detected_language =
     lang === 'hi' ? 'Hindi' :
-    lang === 'kn' ? 'Kannada' :
-    lang === 'ta' ? 'Tamil' :
-    lang === 'te' ? 'Telugu' :
-    lang === 'mr' ? 'Marathi' :
-    lang === 'bn' ? 'Bengali' :
-    lang === 'ml' ? 'Malayalam' :
-    lang === 'sa' ? 'Sanskrit / AYUSH' : 'English';
+      lang === 'kn' ? 'Kannada' :
+        lang === 'ta' ? 'Tamil' :
+          lang === 'te' ? 'Telugu' :
+            lang === 'mr' ? 'Marathi' :
+              lang === 'bn' ? 'Bengali' :
+                lang === 'ml' ? 'Malayalam' :
+                  lang === 'sa' ? 'Sanskrit / AYUSH' : 'English';
 
   let triage_urgency = "ROUTINE";
   let triage_reason = "Patient presents with subacute symptoms requiring standard clinical outpatient evaluation.";
@@ -168,9 +168,9 @@ async function transcribeBhashiniDev(audioBuffer, language, env) {
 
   console.log(`[Dev Server] Sending audio (${(audioBuffer.length / 1024).toFixed(1)} KB WAV) to Bhashini Bodhan (${serviceId}) for lang="${srcLang}"...`);
 
+  // Execute Bhashini ASR without time constraints (runs until completed or error)
   const computeRes = await fetch(callbackUrl, {
     method: 'POST',
-    signal: AbortSignal.timeout(10000),
     headers: {
       'Content-Type': 'application/json',
       'Authorization': inferenceKey,
@@ -212,7 +212,7 @@ async function transcribeBhashiniDev(audioBuffer, language, env) {
 
   const computeData = await computeRes.json();
   const transcript = computeData?.pipelineResponse?.[0]?.output?.[0]?.source ||
-                     computeData?.pipelineResponse?.[0]?.output?.[0]?.target || '';
+    computeData?.pipelineResponse?.[0]?.output?.[0]?.target || '';
   if (!transcript) throw new Error('Empty transcript from Bhashini Bodhan ASR response');
 
   return {
@@ -280,7 +280,7 @@ function clinicalApisPlugin(env) {
                 if (!apiKeyFromReq && body.apiKey) {
                   apiKeyFromReq = body.apiKey;
                 }
-              } catch (_) {}
+              } catch (_) { }
             } else if (contentType.includes('multipart/form-data')) {
               // Extract text fields & audio boundary
               const bodyStr = buffer.toString('latin1');
@@ -312,17 +312,18 @@ function clinicalApisPlugin(env) {
 
             let bhashiniDurationSec = null;
 
-            // ── Primary: Bhashini ASR (10s timeout) with Groq Whisper Fallback ──
-            if (!rawTranscript && audioBuffer && audioBuffer.length > 0) {
+            // ── Primary: Bhashini ASR (No timeout restraint; switches to Groq on ANY error) ──
+            if (audioBuffer && audioBuffer.length > 0) {
               try {
-                console.log(`[Dev Server] Starting Bhashini ASR request (10s timeout)...`);
+                console.log(`[Dev Server] 🎙️ Processing audio with Bhashini Bodhan ASR (no time limit)...`);
                 const bhashiniResult = await transcribeBhashiniDev(audioBuffer, language, env);
                 rawTranscript = bhashiniResult.transcript;
                 bhashiniDurationSec = bhashiniResult.totalSeconds;
                 transcriptionEngine = `Bhashini ASR (MeitY) — took ${bhashiniDurationSec}s`;
-                console.log(`[Dev Server] ✅ Bhashini ASR Completed in ${bhashiniDurationSec}s! Transcript: "${rawTranscript}"`);
+                console.log(`[Dev Server] ✅ Bhashini ASR Succeeded in ${bhashiniDurationSec}s! Transcript: "${rawTranscript}"`);
               } catch (bhashiniErr) {
-                console.warn(`[Dev Server] ⚠️ Bhashini ASR failed or timed out (>10s): ${bhashiniErr.message}. Triggering Groq Whisper fallback...`);
+                console.warn(`[Dev Server] ⚠️ Bhashini ASR encountered an error: ${bhashiniErr.message}`);
+                console.log(`[Dev Server] 🔄 Switching to Groq Whisper Large v3 Fallback...`);
                 if (effectiveApiKey) {
                   try {
                     rawTranscript = await transcribeGroqWhisperDev(audioBuffer, language, effectiveApiKey);
@@ -331,6 +332,8 @@ function clinicalApisPlugin(env) {
                   } catch (groqErr) {
                     console.error('[Dev Server] ❌ Groq Whisper fallback also failed:', groqErr.message);
                   }
+                } else {
+                  console.error('[Dev Server] ❌ GROQ_API_KEY not found for fallback transcription');
                 }
               }
             }
