@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { flushSync } from 'react-dom';
-import { Mic, FileText, Activity, Leaf } from 'lucide-react';
 import Navbar from './components/Navbar.jsx';
 import ModeSelectionModal from './components/ModeSelectionModal.jsx';
 import ProfilePage from './components/ProfilePage.jsx';
@@ -452,42 +451,6 @@ export default function App() {
             onVoiceIntake={scrollToVoiceIntake}
             onOcrIntake={scrollToOcrIntake}
           />
-
-          {/* Clinical Module Switcher */}
-          <div className="intake-module-switcher">
-            <button
-              type="button"
-              className={`module-switch-btn ${activeIntakeModule === 'ayusetu' ? 'is-active' : ''}`}
-              onClick={() => setActiveIntakeModule('ayusetu')}
-            >
-              <Leaf size={18} style={{ color: '#16A34A' }} />
-              <span>{isElderly ? 'पूर्व-परामर्श (Pre-Consultation)' : 'Pre-Consultation'}</span>
-            </button>
-            <button
-              type="button"
-              className={`module-switch-btn ${activeIntakeModule === 'voice' ? 'is-active' : ''}`}
-              onClick={() => setActiveIntakeModule('voice')}
-            >
-              <Mic size={18} />
-              <span>{isElderly ? 'माइक से लक्षण बताएं (Voice Intake)' : 'Multilingual Voice Intake'}</span>
-            </button>
-            <button
-              type="button"
-              className={`module-switch-btn ${activeIntakeModule === 'ocr' ? 'is-active' : ''}`}
-              onClick={() => setActiveIntakeModule('ocr')}
-            >
-              <FileText size={18} />
-              <span>{isElderly ? 'दवा पर्ची स्कैन करें (Prescription OCR)' : 'Prescription & Lab OCR Digitizer'}</span>
-            </button>
-            <button
-              type="button"
-              className={`module-switch-btn ${activeIntakeModule === 'all' ? 'is-active' : ''}`}
-              onClick={() => setActiveIntakeModule('all')}
-            >
-              <Activity size={18} />
-              <span>View All Clinical Tools</span>
-            </button>
-          </div>
 
           {/* Module 0: Pre-Consultation Protocol with Dashavidha Pariksha & Dataset Explorer */}
           {(activeIntakeModule === 'ayusetu' || activeIntakeModule === 'all') && (
