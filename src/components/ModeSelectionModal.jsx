@@ -114,14 +114,24 @@ export default function ModeSelectionModal({
     }
   };
 
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget && onClose) {
+      onClose();
+    }
+  };
+
   return (
     <div
       className="modal-overlay"
+      onClick={handleBackdropClick}
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
     >
       <div className="modal-box">
+        {/* Mobile Drag Handle Bar */}
+        <div className="modal-drag-handle show-on-mobile" aria-hidden="true" />
+
         {/* Header Strip */}
         <div className="modal-header-strip">
           <div className="modal-step-indicator" role="tablist" aria-label="Setup steps">
