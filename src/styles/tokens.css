@@ -65,10 +65,12 @@
   --btn-font-size: 0.9rem;
 
   /* ── Mobile-First Touch & Layout Tokens ── */
-  --touch-target-min: 44px;
-  --app-header-height: 58px;
-  --action-dock-height: 72px;
-  --container-padding-x: clamp(0.75rem, 3.5vw, 1.5rem);
+  --touch-target-min: 48px;
+  --app-header-height: 54px;
+  --action-dock-height: 68px;
+  --mobile-card-padding: clamp(0.85rem, 3.5vw, 1.25rem);
+  --mobile-sheet-radius: 24px;
+  --container-padding-x: clamp(0.85rem, 3.5vw, 1.5rem);
 
   /* ── Safe Area Insets ── */
   --safe-top: env(safe-area-inset-top, 0px);

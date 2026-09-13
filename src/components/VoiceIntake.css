@@ -274,8 +274,15 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 1.5rem 1rem;
-  min-height: 200px;
+  padding: 1rem 0;
+  width: 100%;
+}
+
+.voice-recording-console:empty {
+  display: none !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
 }
 
 .mic-action-box {
@@ -1654,35 +1661,41 @@
   /* Mode switch bar */
   .intake-method-toggle-bar {
     width: 100%;
-    max-width: 400px;
-    display: flex;
-    justify-content: center;
-    margin-bottom: 1rem;
+    max-width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.25rem;
+    padding: 0.25rem;
+    margin-bottom: 1.25rem;
   }
 
   .method-toggle-btn {
-    flex: 1;
+    width: 100%;
     justify-content: center;
-    padding: 0.45rem 0.75rem;
-    font-size: 0.82rem;
+    padding: 0.55rem 0.65rem;
+    font-size: 0.84rem;
+    min-height: 44px;
+    touch-action: manipulation;
   }
 
   /* Mic Button on Mobile */
   .big-mic-button {
     gap: 0.75rem;
+    padding: 0.5rem;
   }
 
   .mic-icon-wrap {
-    width: 80px;
-    height: 80px;
+    width: 84px;
+    height: 84px;
   }
 
   .mic-cta-text {
-    font-size: 0.95rem;
+    font-size: 1rem;
   }
 
   .mic-subtext {
-    font-size: 0.8rem;
+    font-size: 0.82rem;
+    padding: 0 0.5rem;
   }
 
   /* Visualizer */
@@ -1694,12 +1707,14 @@
   /* Typed input on mobile */
   .typed-action-box {
     padding: 1rem;
+    border-radius: var(--radius-md);
   }
 
   .typed-symptoms-input {
-    padding: 0.75rem;
-    font-size: 0.9rem;
-    min-height: 90px;
+    padding: 0.85rem;
+    font-size: 1rem;
+    min-height: 100px;
+    border-radius: var(--radius-sm);
   }
 
   .typed-form-footer {
@@ -1708,15 +1723,23 @@
     gap: 0.75rem;
   }
 
+  .typed-lang-badge {
+    font-size: 0.76rem;
+    justify-content: center;
+  }
+
   .typed-submit-btn {
     width: 100%;
     justify-content: center;
-    padding: 0.75rem 1.25rem;
+    padding: 0.85rem 1.25rem;
+    min-height: 48px;
+    font-size: 0.94rem;
   }
 
   /* Clinical Result Card on Mobile */
   .clinical-result-card {
     border-radius: var(--radius-lg);
+    margin-top: 0.5rem;
   }
 
   .result-header {

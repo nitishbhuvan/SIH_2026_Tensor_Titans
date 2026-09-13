@@ -177,14 +177,6 @@ export default function DoctorPortal({ theme, onToggleTheme, onSwitchRole, docto
           <div className="dp-header-actions">
             <button
               type="button"
-              className="dp-switch-role-btn"
-              onClick={() => onSwitchRole('intro')}
-            >
-              <ArrowLeft size={14} />
-              Exit / Switch Role
-            </button>
-            <button
-              type="button"
               className="dp-doctor-profile"
               onClick={() => onSwitchRole('doctor-profile')}
               title="Click to view & edit Doctor Profile and ABDM HPR credentials"
@@ -200,54 +192,6 @@ export default function DoctorPortal({ theme, onToggleTheme, onSwitchRole, docto
           </div>
         </div>
       </header>
-
-      <div className="dp-account-actions">
-        <span>Account settings</span>
-        <button
-          type="button"
-          className="dp-account-btn dp-account-profile-btn"
-          onClick={() => onSwitchRole('doctor-profile')}
-        >
-          <User size={13} style={{ display: 'inline', marginRight: '0.35rem', verticalAlign: 'middle' }} />
-          Doctor Profile &amp; HPR Card
-        </button>
-        <button type="button" className="dp-account-btn dp-logout-btn" onClick={onLogout}>
-          Log Out
-        </button>
-      </div>
-
-      {/* ── Triage Metrics Bar ── */}
-      <div className="dp-metrics-bar" role="status" aria-label="OPD triage summary">
-        <div className="dp-metric metric-total">
-          <span className="dp-metric-value">{summary.total}</span>
-          <span className="dp-metric-label">Total</span>
-        </div>
-        <div className="dp-metrics-divider" />
-        <div className="dp-metric metric-redflag">
-          <AlertOctagon size={14} />
-          <span className="dp-metric-value">{summary.red_flag}</span>
-          <span className="dp-metric-label">Red Flag</span>
-        </div>
-        <div className="dp-metric metric-urgent">
-          <AlertTriangle size={14} />
-          <span className="dp-metric-value">{summary.urgent}</span>
-          <span className="dp-metric-label">Urgent</span>
-        </div>
-        <div className="dp-metric metric-routine">
-          <CheckCircle2 size={14} />
-          <span className="dp-metric-value">{summary.routine}</span>
-          <span className="dp-metric-label">Routine</span>
-        </div>
-        <div className="dp-metrics-divider" />
-        <div className="dp-metric metric-completed">
-          <span className="dp-metric-value">{summary.completed}</span>
-          <span className="dp-metric-label">Completed</span>
-        </div>
-        <div className="dp-live-badge">
-          <span className="dp-live-dot" />
-          Live Sync
-        </div>
-      </div>
 
       {/* ── Main Layout (Responsive Master-Detail on Mobile) ── */}
       <div className={`dp-main ${selectedId ? 'has-selected-patient' : 'no-patient-selected'}`}>

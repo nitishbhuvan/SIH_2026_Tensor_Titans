@@ -787,168 +787,171 @@ RAW NATIVE PATIENT TRANSCRIPT:
           </p>
         </div>
 
-        {/* Input Method Switcher (Voice vs Type) */}
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <div className="intake-method-toggle-bar">
-            <button
-              type="button"
-              className={`method-toggle-btn ${inputMethod === 'voice' ? 'is-active' : ''}`}
-              onClick={() => setInputMethod('voice')}
-            >
-              <Mic size={16} />
-              <span>Voice Microphone</span>
-            </button>
-            <button
-              type="button"
-              className={`method-toggle-btn ${inputMethod === 'type' ? 'is-active' : ''}`}
-              onClick={() => setInputMethod('type')}
-            >
-              <Edit3 size={16} />
-              <span>Type / Paste Symptoms</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Microphone / Typing Recording Console */}
-        <div className="voice-recording-console">
-          {inputMethod === 'type' && recordingState === 'idle' && (
-            <div className="typed-action-box">
-              <form onSubmit={handleTypedSubmit} className="typed-input-form">
-                <div className="typed-textarea-wrap">
-                  <textarea
-                    className="typed-symptoms-input"
-                    rows={4}
-                    value={customTypedText}
-                    onChange={(e) => setCustomTypedText(e.target.value)}
-                    placeholder="Describe symptoms in your language or English (e.g. 'मुझे 2 दिन से तेज बुखार, खांसी और सिरदर्द है' or 'I have severe chest pain and fever')"
-                  />
-                </div>
-                <div className="typed-form-footer">
-                  <span className="typed-lang-badge">
-                    <Activity size={14} /> Automatic Multilingual Language Detection
-                  </span>
-                  <button
-                    type="submit"
-                    className="typed-submit-btn"
-                    disabled={!customTypedText.trim() || recordingState === 'transcribing' || recordingState === 'analyzing'}
-                  >
-                    <Send size={16} />
-                    <span>Analyze & Generate SOAP Note</span>
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
-
-          {inputMethod === 'voice' && recordingState === 'idle' && (
-            <div className="mic-action-box">
-              <button
-                type="button"
-                className="big-mic-button mic-idle"
-                onClick={handleMicButtonClick}
-                aria-label={t.voiceStartRecording || 'Tap to Speak'}
-              >
-                <div className="mic-icon-wrap">
-                  <Mic size={isElderly ? 52 : 44} />
-                </div>
-                <span className="mic-cta-text">{t.voiceStartRecording || 'Tap to Speak'}</span>
-              </button>
-              <p className="mic-subtext">
-                Speak naturally in any Indian language or English • Tap microphone to speak your symptoms
-              </p>
-            </div>
-          )}
-
-          {recordingState === 'recording' && (
-            <div className="mic-action-box is-active-recording">
-              <div className="recording-visualizer">
-                <div className="audio-wave-bars">
-                  <span className="wave-bar" style={{ height: `${Math.max(15, audioLevel * 0.9)}%` }}></span>
-                  <span className="wave-bar" style={{ height: `${Math.max(25, audioLevel * 1.3)}%` }}></span>
-                  <span className="wave-bar" style={{ height: `${Math.max(10, audioLevel * 0.7)}%` }}></span>
-                  <span className="wave-bar" style={{ height: `${Math.max(30, audioLevel * 1.5)}%` }}></span>
-                  <span className="wave-bar" style={{ height: `${Math.max(18, audioLevel * 1.0)}%` }}></span>
-                </div>
-                <div className="recording-timer">
-                  <span className="recording-pulse-dot"></span>
-                  <Clock size={16} />
-                  <span>{formatTimer(recordDuration)}</span>
-                </div>
-              </div>
-
-              {/* LIVE TRANSCRIPTION SPEECH BUBBLE */}
-              <div className="live-speech-card">
-                <div className="live-speech-header">
-                  <span className="live-pulse-dot"></span>
-                  <strong>Listening to your voice (Automatic Detection):</strong>
-                </div>
-                <div className="live-speech-body">
-                  {liveTranscript || interimText ? (
-                    <p className="live-speech-text">
-                      <span className="final-text">{liveTranscript}</span>
-                      <span className="interim-text"> {interimText}</span>
-                    </p>
-                  ) : (
-                    <p className="live-speech-placeholder">
-                      Start speaking now… Your words will appear here in real time.
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <button
-                type="button"
-                className="big-mic-button mic-recording"
-                onClick={stopRecording}
-                aria-label={t.voiceStopRecording || 'Tap to Stop'}
-              >
-                <div className="mic-icon-wrap stop-pulse">
-                  <MicOff size={isElderly ? 52 : 44} />
-                </div>
-                <span className="mic-cta-text">{t.voiceStopRecording || 'Tap to Finish'}</span>
-              </button>
-
-              <p className="recording-instruction">
-                {t.voiceStatusRecording || 'Listening… Speak clearly into your microphone'}
-              </p>
-            </div>
-          )}
-
-          {(recordingState === 'transcribing' || recordingState === 'analyzing') && (
-            <div className="processing-indicator">
-              <div className="spinner-orbit">
-                <Sparkles size={36} className="spin-icon" />
-              </div>
-              <h3 className="processing-heading">
-                {recordingState === 'transcribing'
-                  ? `Transcribing voice with Bhashini Bodhan ASR... (${transcribeElapsedSec}s)`
-                  : (t.voiceStatusAnalyzing || 'Generating SOAP Note & Preserving Ayurvedic Formulations…')}
-              </h3>
-              {liveTranscript && (
-                <div className="processed-snippet-box">
-                  <span>Detected Speech:</span>
-                  <p>"{liveTranscript}"</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {errorMessage && (
-            <div className="voice-error-box">
-              <AlertTriangle size={20} />
-              <div className="error-text-wrap">
-                <span>{errorMessage}</span>
+        {/* Input Method Switcher & Recording Console (Visible when not viewing clinical summary) */}
+        {!clinicalData && (
+          <>
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <div className="intake-method-toggle-bar">
                 <button
                   type="button"
-                  className="error-action-link"
-                  onClick={() => setShowPermissionModal(true)}
+                  className={`method-toggle-btn ${inputMethod === 'voice' ? 'is-active' : ''}`}
+                  onClick={() => setInputMethod('voice')}
                 >
-                  View Permission Guide
+                  <Mic size={16} />
+                  <span>Voice Microphone</span>
+                </button>
+                <button
+                  type="button"
+                  className={`method-toggle-btn ${inputMethod === 'type' ? 'is-active' : ''}`}
+                  onClick={() => setInputMethod('type')}
+                >
+                  <Edit3 size={16} />
+                  <span>Type / Paste Symptoms</span>
                 </button>
               </div>
             </div>
-          )}
-        </div>
+
+            <div className="voice-recording-console">
+              {inputMethod === 'type' && recordingState === 'idle' && (
+                <div className="typed-action-box">
+                  <form onSubmit={handleTypedSubmit} className="typed-input-form">
+                    <div className="typed-textarea-wrap">
+                      <textarea
+                        className="typed-symptoms-input"
+                        rows={4}
+                        value={customTypedText}
+                        onChange={(e) => setCustomTypedText(e.target.value)}
+                        placeholder="Describe symptoms in your language or English (e.g. 'मुझे 2 दिन से तेज बुखार, खांसी और सिरदर्द है' or 'I have severe chest pain and fever')"
+                      />
+                    </div>
+                    <div className="typed-form-footer">
+                      <span className="typed-lang-badge">
+                        <Activity size={14} /> Automatic Multilingual Language Detection
+                      </span>
+                      <button
+                        type="submit"
+                        className="typed-submit-btn"
+                        disabled={!customTypedText.trim() || recordingState === 'transcribing' || recordingState === 'analyzing'}
+                      >
+                        <Send size={16} />
+                        <span>Analyze & Generate SOAP Note</span>
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              {inputMethod === 'voice' && recordingState === 'idle' && (
+                <div className="mic-action-box">
+                  <button
+                    type="button"
+                    className="big-mic-button mic-idle"
+                    onClick={handleMicButtonClick}
+                    aria-label={t.voiceStartRecording || 'Tap to Speak'}
+                  >
+                    <div className="mic-icon-wrap">
+                      <Mic size={isElderly ? 52 : 44} />
+                    </div>
+                    <span className="mic-cta-text">{t.voiceStartRecording || 'Tap to Speak'}</span>
+                  </button>
+                  <p className="mic-subtext">
+                    Speak naturally in any Indian language or English • Tap microphone to speak your symptoms
+                  </p>
+                </div>
+              )}
+
+              {recordingState === 'recording' && (
+                <div className="mic-action-box is-active-recording">
+                  <div className="recording-visualizer">
+                    <div className="audio-wave-bars">
+                      <span className="wave-bar" style={{ height: `${Math.max(15, audioLevel * 0.9)}%` }}></span>
+                      <span className="wave-bar" style={{ height: `${Math.max(25, audioLevel * 1.3)}%` }}></span>
+                      <span className="wave-bar" style={{ height: `${Math.max(10, audioLevel * 0.7)}%` }}></span>
+                      <span className="wave-bar" style={{ height: `${Math.max(30, audioLevel * 1.5)}%` }}></span>
+                      <span className="wave-bar" style={{ height: `${Math.max(18, audioLevel * 1.0)}%` }}></span>
+                    </div>
+                    <div className="recording-timer">
+                      <span className="recording-pulse-dot"></span>
+                      <Clock size={16} />
+                      <span>{formatTimer(recordDuration)}</span>
+                    </div>
+                  </div>
+
+                  {/* LIVE TRANSCRIPTION SPEECH BUBBLE */}
+                  <div className="live-speech-card">
+                    <div className="live-speech-header">
+                      <span className="live-pulse-dot"></span>
+                      <strong>Listening to your voice (Automatic Detection):</strong>
+                    </div>
+                    <div className="live-speech-body">
+                      {liveTranscript || interimText ? (
+                        <p className="live-speech-text">
+                          <span className="final-text">{liveTranscript}</span>
+                          <span className="interim-text"> {interimText}</span>
+                        </p>
+                      ) : (
+                        <p className="live-speech-placeholder">
+                          Start speaking now… Your words will appear here in real time.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="big-mic-button mic-recording"
+                    onClick={stopRecording}
+                    aria-label={t.voiceStopRecording || 'Tap to Stop'}
+                  >
+                    <div className="mic-icon-wrap stop-pulse">
+                      <MicOff size={isElderly ? 52 : 44} />
+                    </div>
+                    <span className="mic-cta-text">{t.voiceStopRecording || 'Tap to Finish'}</span>
+                  </button>
+
+                  <p className="recording-instruction">
+                    {t.voiceStatusRecording || 'Listening… Speak clearly into your microphone'}
+                  </p>
+                </div>
+              )}
+
+              {(recordingState === 'transcribing' || recordingState === 'analyzing') && (
+                <div className="processing-indicator">
+                  <div className="spinner-orbit">
+                    <Sparkles size={36} className="spin-icon" />
+                  </div>
+                  <h3 className="processing-heading">
+                    {recordingState === 'transcribing'
+                      ? `Transcribing voice with Bhashini Bodhan ASR... (${transcribeElapsedSec}s)`
+                      : (t.voiceStatusAnalyzing || 'Generating SOAP Note & Preserving Ayurvedic Formulations…')}
+                  </h3>
+                  {liveTranscript && (
+                    <div className="processed-snippet-box">
+                      <span>Detected Speech:</span>
+                      <p>"{liveTranscript}"</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {errorMessage && (
+                <div className="voice-error-box">
+                  <AlertTriangle size={20} />
+                  <div className="error-text-wrap">
+                    <span>{errorMessage}</span>
+                    <button
+                      type="button"
+                      className="error-action-link"
+                      onClick={() => setShowPermissionModal(true)}
+                    >
+                      View Permission Guide
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
 
         {/*
           ── SAMPLE PRESETS TEMPORARILY COMMENTED OUT FOR TESTING ──
