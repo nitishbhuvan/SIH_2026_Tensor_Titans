@@ -152,7 +152,7 @@ export default function DoctorLogin({ onLogin, onBack }) {
         <button type="button" className="doctor-login-back" onClick={() => { setIsRegistering(!isRegistering); setError(''); }}>
           {isRegistering ? 'Back to sign in' : 'Create a new doctor account'}
         </button>
-        <button type="button" className="doctor-login-back" onClick={onBack}>Back to role selection</button>
+        <button type="button" className="doctor-login-back" onClick={onBack}>← Back to Intro</button>
       </section>
     </main>
   );

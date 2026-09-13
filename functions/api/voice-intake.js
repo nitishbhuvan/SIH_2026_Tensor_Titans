@@ -71,10 +71,9 @@ async function transcribeWithBhashini(audioBlob, language, env) {
   const callbackUrl = 'https://dhruva-api.bhashini.gov.in/services/inference/pipeline';
   const serviceId = "bhashini/bodhan/asr-transcribe-flex";
 
-  // Execute ASR Inference Call with bhashini/bodhan/asr-transcribe-flex & 16kHz WAV configuration (10s timeout)
+  // Execute ASR Inference Call with bhashini/bodhan/asr-transcribe-flex & 16kHz WAV configuration (No timeout)
   const computeRes = await fetch(callbackUrl, {
     method: 'POST',
-    signal: AbortSignal.timeout(10000),
     headers: {
       'Content-Type': 'application/json',
       'Authorization': inferenceKey,
@@ -115,7 +114,7 @@ async function transcribeWithBhashini(audioBlob, language, env) {
 
   const computeData = await computeRes.json();
   const transcript = computeData?.pipelineResponse?.[0]?.output?.[0]?.source ||
-                     computeData?.pipelineResponse?.[0]?.output?.[0]?.target || '';
+    computeData?.pipelineResponse?.[0]?.output?.[0]?.target || '';
 
   if (!transcript) {
     throw new Error('Empty transcript received from Bhashini Bodhan ASR');
@@ -187,15 +186,15 @@ export async function onRequestPost(context) {
     let rawTranscript = directTranscript;
     let transcriptionEngine = directTranscript ? 'Live Speech / Direct Input' : null;
 
-    // ── STEP 1: Primary Bhashini ASR (10s timeout) with Groq Whisper Fallback ──
-    if (!rawTranscript && audioBlob) {
+    // ── STEP 1: Primary Bhashini ASR (Switches to Groq Whisper on ANY error) ──
+    if (audioBlob) {
       try {
-        console.log('Initiating Bhashini ASR transcription (10s timeout)...');
+        console.log('Initiating Bhashini ASR transcription (no time limit)...');
         const bhashiniResult = await transcribeWithBhashini(audioBlob, language, env);
         rawTranscript = bhashiniResult.transcript;
         transcriptionEngine = `Bhashini ASR (MeitY) — took ${bhashiniResult.totalSeconds}s`;
       } catch (bhashiniErr) {
-        console.warn(`Bhashini ASR failed or timed out (>10s): ${bhashiniErr.message}. Triggering Groq Whisper fallback...`);
+        console.warn(`Bhashini ASR failed with error: ${bhashiniErr.message}. Triggering Groq Whisper fallback...`);
         if (apiKey) {
           try {
             rawTranscript = await transcribeWithGroqWhisper(audioBlob, language, apiKey);

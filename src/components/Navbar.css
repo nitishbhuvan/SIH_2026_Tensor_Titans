@@ -181,23 +181,41 @@ body.mode-elderly .navbar-mode-secondary {
   font-size: clamp(0.68rem, 1.8vw, 0.78rem);
 }
 
-/* ── Responsive: Very Small Mobile ── */
+/* ── Responsive: Mobile Adjustments ── */
+@media (max-width: 600px) {
+  .navbar-wrapper {
+    padding-top: calc(0.45rem + var(--safe-top));
+    padding-bottom: 0.45rem;
+  }
+
+  .navbar-btn {
+    min-height: 40px;
+    padding: 0.35rem 0.65rem;
+  }
+
+  .brand-sublabel {
+    font-size: 0.55rem;
+  }
+}
+
 @media (max-width: 420px) {
   .navbar-mode-label {
-    display: none;
-  }
-  .navbar-lang-text {
     display: none;
   }
   .brand-sublabel {
     display: none;
   }
+  .navbar-lang-text {
+    font-size: 0.76rem;
+  }
 }
 
-@media (max-width: 340px) {
+@media (max-width: 360px) {
+  .navbar-lang-text {
+    display: none;
+  }
   .navbar-btn {
-    padding: 0.3rem 0.45rem;
-    gap: 0.2rem;
+    padding: 0.35rem 0.5rem;
   }
 }
 
