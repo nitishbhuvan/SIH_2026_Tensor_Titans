@@ -37,7 +37,8 @@ export default function AyusetuIntakeMode({
   isElderly = false,
   onNotify,
   onSwitchToDoctor,
-  onBackToMain
+  onBackToMain,
+  patientProfile
 }) {
   // Main View: 'interview' (Live AI Clinical Flow) | 'dataset-explorer' (Browse PDF Dataset)
   const [activeTab, setActiveTab] = useState('interview');
@@ -51,13 +52,13 @@ export default function AyusetuIntakeMode({
   // Form responses stored keyed by question ID
   const [responses, setResponses] = useState({
     // Defaults for easy demo / fast test
-    q_name: '',
-    q_age: '',
-    q_gender: 'Male',
+    q_name: patientProfile?.name || '',
+    q_age: patientProfile?.age || '',
+    q_gender: patientProfile?.gender || 'Male',
     q_occupation: '',
     q_language: 'Hindi',
     q_first_visit: 'Yes, First Visit',
-    q_abha_id: '',
+    q_abha_id: patientProfile?.abhaId || '',
     q_consent_given: '',
     q_chief_complaint_main: '',
     // HPI
@@ -245,13 +246,15 @@ export default function AyusetuIntakeMode({
       status: 'pending',
       protocol: 'AYUSETU_SIH_2026',
       patientInfo: {
-        name: responses.q_name || 'Anonymous Patient',
-        age: parseInt(responses.q_age, 10) || 45,
-        gender: responses.q_gender || 'Not specified',
-        language: responses.q_language || 'Hindi',
+        name: responses.q_name || patientProfile?.name || 'Anonymous Patient',
+        age: parseInt(responses.q_age, 10) || (patientProfile?.age ? parseInt(patientProfile.age, 10) : 45),
+        gender: responses.q_gender || patientProfile?.gender || 'Not specified',
+        language: responses.q_language || patientProfile?.language || 'Hindi',
         languageLabel: responses.q_language || 'Hindi',
         occupation: responses.q_occupation || 'Unspecified',
-        abhaId: responses.q_abha_id || '91-ABHA-TENSOR-2026',
+        abhaId: responses.q_abha_id || patientProfile?.abhaId || '91-8765-4321-0987',
+        abhaAddress: patientProfile?.abhaAddress || 'patient@abdm',
+        phone: patientProfile?.phone || '+91 98765 43210',
         isElderly: isElderly || (parseInt(responses.q_age, 10) >= 60)
       },
       intake: {
