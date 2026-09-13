@@ -93,7 +93,19 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding-left: 0.25rem;
+  padding: 0.25rem 0.6rem 0.25rem 0.35rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: var(--font-body);
+  text-align: left;
+}
+
+.dp-doctor-profile:hover {
+  background: var(--bg-surface-secondary);
+  border-color: var(--border-default);
 }
 
 .dp-doctor-avatar {
@@ -105,6 +117,7 @@
   color: #fff;
   background: var(--accent-primary);
   font-weight: 700;
+  flex-shrink: 0;
 }
 
 .dp-doctor-profile-copy {
@@ -135,9 +148,21 @@
   font: 600 0.74rem var(--font-body);
   cursor: pointer;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
 }
 
 .dp-account-btn:hover { color: var(--accent-primary); border-color: var(--accent-primary-border); }
+.dp-account-profile-btn {
+  background: var(--accent-primary-bg);
+  color: var(--accent-primary-dark);
+  border-color: var(--accent-primary-border);
+}
+.dp-account-profile-btn:hover {
+  background: var(--accent-primary);
+  color: #ffffff;
+  border-color: var(--accent-primary);
+}
 .dp-logout-btn:hover { color: var(--accent-emergency); border-color: var(--accent-emergency-border); }
 
 .dp-account-actions {

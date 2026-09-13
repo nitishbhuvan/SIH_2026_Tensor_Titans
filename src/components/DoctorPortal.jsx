@@ -25,7 +25,6 @@ import {
   getTriageSummary,
   sortRecordsByUrgency,
 } from '../services/clinicalRecordsService.js';
-import { changeDoctorPassword } from '../services/doctorAuthService.js';
 import './DoctorPortal.css';
 
 const TRIAGE_ICONS = {
@@ -79,11 +78,6 @@ export default function DoctorPortal({ theme, onToggleTheme, onSwitchRole, docto
   const [rxMed, setRxMed] = useState('');
   const [rxDose, setRxDose] = useState('');
   const [rxFreq, setRxFreq] = useState('');
-  const [showPasswordPanel, setShowPasswordPanel] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmNewPassword, setConfirmNewPassword] = useState('');
-  const [passwordMessage, setPasswordMessage] = useState('');
 
   // Load records
   const refreshRecords = useCallback(() => {
@@ -166,28 +160,6 @@ export default function DoctorPortal({ theme, onToggleTheme, onSwitchRole, docto
     window.print();
   };
 
-  const handleChangePassword = async (event) => {
-    event.preventDefault();
-    setPasswordMessage('');
-    if (newPassword.length < 8) {
-      setPasswordMessage('New password must contain at least 8 characters.');
-      return;
-    }
-    if (newPassword !== confirmNewPassword) {
-      setPasswordMessage('New passwords do not match.');
-      return;
-    }
-    try {
-      await changeDoctorPassword(doctorProfile.username, currentPassword, newPassword);
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmNewPassword('');
-      setPasswordMessage('Password changed successfully.');
-    } catch (error) {
-      setPasswordMessage(error.message);
-    }
-  };
-
   return (
     <div className="doctor-portal">
       {/* ── Header ── */}
@@ -206,18 +178,24 @@ export default function DoctorPortal({ theme, onToggleTheme, onSwitchRole, docto
             <button
               type="button"
               className="dp-switch-role-btn"
-              onClick={() => onSwitchRole('role-select')}
+              onClick={() => onSwitchRole('intro')}
             >
               <ArrowLeft size={14} />
-              Switch Role
+              Exit / Switch Role
             </button>
-            <div className="dp-doctor-profile" aria-label="Signed-in doctor profile">
+            <button
+              type="button"
+              className="dp-doctor-profile"
+              onClick={() => onSwitchRole('doctor-profile')}
+              title="Click to view & edit Doctor Profile and ABDM HPR credentials"
+              aria-label="View Doctor Profile"
+            >
               <span className="dp-doctor-avatar">{doctorProfile?.name?.replace('Dr. ', '').charAt(0) || 'D'}</span>
               <span className="dp-doctor-profile-copy">
                 <strong>{doctorProfile?.name || 'Doctor'}</strong>
                 <small>{doctorProfile?.registration || 'Verified clinician'}</small>
               </span>
-            </div>
+            </button>
             <ThemeToggle theme={theme} onToggle={onToggleTheme} />
           </div>
         </div>
@@ -225,24 +203,18 @@ export default function DoctorPortal({ theme, onToggleTheme, onSwitchRole, docto
 
       <div className="dp-account-actions">
         <span>Account settings</span>
-        <button type="button" className="dp-account-btn" onClick={() => setShowPasswordPanel((visible) => !visible)}>
-          Change Password
+        <button
+          type="button"
+          className="dp-account-btn dp-account-profile-btn"
+          onClick={() => onSwitchRole('doctor-profile')}
+        >
+          <User size={13} style={{ display: 'inline', marginRight: '0.35rem', verticalAlign: 'middle' }} />
+          Doctor Profile &amp; HPR Card
         </button>
         <button type="button" className="dp-account-btn dp-logout-btn" onClick={onLogout}>
           Log Out
         </button>
       </div>
-
-      {showPasswordPanel && (
-        <form className="dp-password-panel" onSubmit={handleChangePassword}>
-          <strong>Change Password</strong>
-          <input type="password" placeholder="Current password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} required />
-          <input type="password" placeholder="New password (8+ characters)" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} required />
-          <input type="password" placeholder="Confirm new password" value={confirmNewPassword} onChange={(event) => setConfirmNewPassword(event.target.value)} required />
-          <button type="submit" className="dp-btn-save">Update Password</button>
-          {passwordMessage && <span className="dp-password-message">{passwordMessage}</span>}
-        </form>
-      )}
 
       {/* ── Triage Metrics Bar ── */}
       <div className="dp-metrics-bar" role="status" aria-label="OPD triage summary">
