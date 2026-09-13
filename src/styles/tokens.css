@@ -12,6 +12,9 @@
   --navbar-bg: rgba(244, 245, 241, 0.92);
   --navbar-btn-bg: #FFFFFF;
 
+  --bg-texture: url('/textures/paper-seamless.jpg');
+  --bg-texture-opacity: 0.28;
+
   --border-default: #D7DAD3;
   --border-strong: #B8BCB2;
   --border-subtle: rgba(0, 0, 0, 0.06);

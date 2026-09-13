@@ -7,6 +7,8 @@ import {
   AlertTriangle,
   AlertOctagon,
   Volume2,
+  Play,
+  Pause,
   Copy,
   Printer,
   RotateCcw,
@@ -135,6 +137,15 @@ export default function VoiceIntake({
   const [showPermissionModal, setShowPermissionModal] = useState(false);
   const [permissionBlocked, setPermissionBlocked] = useState(false);
 
+  // Original recorded audio playback state
+  const [recordedAudioUrl, setRecordedAudioUrl] = useState(null);
+  const recordedAudioUrlRef = useRef(null);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [audioPlaybackProgress, setAudioPlaybackProgress] = useState(0);
+  const [audioCurrentTime, setAudioCurrentTime] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(0);
+  const audioElementRef = useRef(null);
+
   const [groqApiKey, setGroqApiKey] = useState(() => {
     return localStorage.getItem('preconsult_groq_api_key') || '';
   });
@@ -176,17 +187,18 @@ export default function VoiceIntake({
     setAudioLevel(0);
   }, []);
 
-  // Sync voice language when user changes global language
-  useEffect(() => {
-    if (userLanguage && userLanguage !== 'en') {
-      setSelectedVoiceLang(userLanguage);
-    }
-  }, [userLanguage]);
-
-  // Clean up Web Audio and Timer on unmount
+  // Clean up Web Audio, Timer, and Audio Player on unmount
   useEffect(() => {
     return () => {
       stopRecordingCleanup();
+      if (audioElementRef.current) {
+        audioElementRef.current.pause();
+        audioElementRef.current = null;
+      }
+      if (recordedAudioUrlRef.current) {
+        URL.revokeObjectURL(recordedAudioUrlRef.current);
+        recordedAudioUrlRef.current = null;
+      }
       if (recognitionRef.current) {
         try {
           recognitionRef.current.stop();
@@ -194,6 +206,13 @@ export default function VoiceIntake({
       }
     };
   }, [stopRecordingCleanup]);
+
+  // Sync voice language when user changes global language
+  useEffect(() => {
+    if (userLanguage && userLanguage !== 'en') {
+      setSelectedVoiceLang(userLanguage);
+    }
+  }, [userLanguage]);
 
   const [inputMethod, setInputMethod] = useState('voice'); // 'voice' | 'type'
   const [customTypedText, setCustomTypedText] = useState('');
@@ -287,7 +306,11 @@ export default function VoiceIntake({
             pcmChunksRef.current.push(new Float32Array(channelData));
           };
           source.connect(processor);
-          processor.connect(audioCtx.destination);
+          // Route through silent GainNode to keep processor active without audio feedback into speakers
+          const silentGain = audioCtx.createGain();
+          silentGain.gain.value = 0;
+          processor.connect(silentGain);
+          silentGain.connect(audioCtx.destination);
           scriptProcessorRef.current = processor;
         } catch (procErr) {
           console.warn('ScriptProcessor setup warning:', procErr);
@@ -313,7 +336,7 @@ export default function VoiceIntake({
                 interim += transcriptPiece;
               }
             }
-            setLiveTranscript(finalTranscriptAccumulatorRef.current);
+            setLiveTranscript(finalTranscriptAccumulatorRef.current || interim);
             setInterimText(interim);
           };
 
@@ -440,11 +463,28 @@ export default function VoiceIntake({
       }
     }
 
+    // 3. Create audio playback URL for playing back patient's original voice
+    if (wavBlob) {
+      if (recordedAudioUrlRef.current) {
+        URL.revokeObjectURL(recordedAudioUrlRef.current);
+      }
+      const audioUrl = URL.createObjectURL(wavBlob);
+      recordedAudioUrlRef.current = audioUrl;
+      setRecordedAudioUrl(audioUrl);
+      setIsPlayingAudio(false);
+      setAudioPlaybackProgress(0);
+      setAudioCurrentTime(0);
+      if (audioElementRef.current) {
+        audioElementRef.current.pause();
+        audioElementRef.current = null;
+      }
+    }
+
     stopRecordingCleanup();
     await processAudioIntake(wavBlob, capturedUserText || null);
   };
 
-  // ── Process Audio or Direct Spoken/Typed Transcript (Direct Bhashini Testing, No Timeout) ──
+  // ── Process Audio or Direct Spoken/Typed Transcript ──
   const processAudioIntake = async (audioBlob, spokenTranscript) => {
     const rawText = (spokenTranscript || customTypedText || liveTranscript || '').trim();
 
@@ -466,7 +506,7 @@ export default function VoiceIntake({
 
       let clinicalResult = null;
 
-      // 1. Send Audio / Transcript to Server (Direct Bhashini ASR, waiting full response time)
+      // 1. Send Audio / Transcript to Server (Multi-tier ASR Cascade)
       if (audioBlob || rawText) {
         try {
           let response;
@@ -497,19 +537,14 @@ export default function VoiceIntake({
             });
           }
 
-          if (response.ok) {
+          if (response && response.ok) {
             const resData = await response.json();
             if (resData.success && resData.data) {
               clinicalResult = resData.data;
             }
-          } else {
-            const errData = await response.json().catch(() => ({}));
-            console.error('Bhashini endpoint error:', errData);
-            setErrorMessage(errData.error || `Server error (${response.status}) from Bhashini`);
           }
         } catch (fetchErr) {
-          console.error('Voice intake error:', fetchErr);
-          setErrorMessage(`Transcription failed: ${fetchErr.message}`);
+          console.warn('Voice intake fetch warning:', fetchErr);
         }
       }
 
@@ -522,6 +557,11 @@ export default function VoiceIntake({
           selectedVoiceLang
         );
         clinicalResult.transcription_engine = 'Client Indic Fallback';
+      }
+
+      // Update recognized live text in UI if available
+      if (clinicalResult.original_transcript && clinicalResult.original_transcript !== 'Patient reports clinical symptoms for evaluation.') {
+        setLiveTranscript(clinicalResult.original_transcript);
       }
 
       setClinicalData(clinicalResult);
@@ -588,12 +628,77 @@ export default function VoiceIntake({
 
   // ── Reset Intake ──
   const handleReset = () => {
+    if (audioElementRef.current) {
+      audioElementRef.current.pause();
+      audioElementRef.current = null;
+    }
+    if (recordedAudioUrlRef.current) {
+      URL.revokeObjectURL(recordedAudioUrlRef.current);
+      recordedAudioUrlRef.current = null;
+    }
+    setRecordedAudioUrl(null);
+    setIsPlayingAudio(false);
+    setAudioPlaybackProgress(0);
+    setAudioCurrentTime(0);
+    setAudioDuration(0);
     setClinicalData(null);
     setRecordingState('idle');
     setRecordDuration(0);
     setErrorMessage('');
     setLiveTranscript('');
     setInterimText('');
+  };
+
+  // ── Original Patient Audio Playback Toggle ──
+  const handleToggleAudioPlayback = () => {
+    if (!recordedAudioUrl) return;
+
+    if (!audioElementRef.current) {
+      const audio = new Audio(recordedAudioUrl);
+      audioElementRef.current = audio;
+
+      audio.onloadedmetadata = () => {
+        if (audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
+          setAudioDuration(audio.duration);
+        }
+      };
+
+      audio.ontimeupdate = () => {
+        setAudioCurrentTime(audio.currentTime);
+        if (audio.duration && audio.duration > 0) {
+          setAudioPlaybackProgress((audio.currentTime / audio.duration) * 100);
+        }
+      };
+
+      audio.onended = () => {
+        setIsPlayingAudio(false);
+        setAudioPlaybackProgress(0);
+        setAudioCurrentTime(0);
+      };
+
+      audio.onerror = (e) => {
+        console.warn('Audio playback error:', e);
+        setIsPlayingAudio(false);
+      };
+    }
+
+    if (isPlayingAudio) {
+      audioElementRef.current.pause();
+      setIsPlayingAudio(false);
+    } else {
+      if (audioElementRef.current.currentTime >= (audioElementRef.current.duration || 0)) {
+        audioElementRef.current.currentTime = 0;
+      }
+      audioElementRef.current.play().then(() => {
+        setIsPlayingAudio(true);
+        if (onNotify) {
+          onNotify('Playing original patient voice recording…', 'info');
+        }
+      }).catch((err) => {
+        console.warn('Playback error:', err);
+        setIsPlayingAudio(false);
+      });
+    }
   };
 
   // ── Text-to-Speech (Read Aloud) ──
@@ -1074,12 +1179,65 @@ RAW NATIVE PATIENT TRANSCRIPT:
                 </div>
               ) : (
                 <div className="original-transcript-view">
-                  <span className="transcript-lang-tag">
-                    Detected Language: <strong>{clinicalData.detected_language}</strong>
-                  </span>
+                  <div className="transcript-header-row">
+                    <span className="transcript-lang-tag">
+                      Detected Language: <strong>{clinicalData.detected_language}</strong>
+                    </span>
+                    {recordedAudioUrl && (
+                      <button
+                        type="button"
+                        className={`audio-inline-play-btn ${isPlayingAudio ? 'is-playing' : ''}`}
+                        onClick={handleToggleAudioPlayback}
+                        aria-label={isPlayingAudio ? 'Pause Voice Recording' : 'Play Patient Voice Recording'}
+                      >
+                        {isPlayingAudio ? <Pause size={14} /> : <Play size={14} />}
+                        <span>{isPlayingAudio ? 'Pause Audio' : 'Play Voice Recording'}</span>
+                      </button>
+                    )}
+                  </div>
                   <blockquote className="raw-transcript-quote">
                     "{clinicalData.original_transcript}"
                   </blockquote>
+                  {recordedAudioUrl && (
+                    <div className="audio-player-card">
+                      <div className="audio-player-top">
+                        <div className="audio-player-label">
+                          <Volume2 size={16} />
+                          <span>Original Patient Voice Audio</span>
+                        </div>
+                        <span className="audio-time-stamp">
+                          {formatTimer(Math.floor(audioCurrentTime))} / {formatTimer(Math.floor(audioDuration || recordDuration))}
+                        </span>
+                      </div>
+                      <div className="audio-player-controls">
+                        <button
+                          type="button"
+                          className={`audio-play-round-btn ${isPlayingAudio ? 'is-playing' : ''}`}
+                          onClick={handleToggleAudioPlayback}
+                          aria-label={isPlayingAudio ? 'Pause Audio' : 'Play Original Audio'}
+                        >
+                          {isPlayingAudio ? <Pause size={18} /> : <Play size={18} />}
+                        </button>
+                        <div
+                          className="audio-progress-bar-wrap"
+                          onClick={(e) => {
+                            if (audioElementRef.current && (audioDuration > 0 || recordDuration > 0)) {
+                              const duration = audioDuration || recordDuration;
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              const clickX = e.clientX - rect.left;
+                              const width = rect.width;
+                              const newTime = Math.max(0, Math.min(duration, (clickX / width) * duration));
+                              audioElementRef.current.currentTime = newTime;
+                              setAudioCurrentTime(newTime);
+                              setAudioPlaybackProgress((newTime / duration) * 100);
+                            }
+                          }}
+                        >
+                          <div className="audio-progress-bar-fill" style={{ width: `${audioPlaybackProgress}%` }} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -1141,6 +1299,17 @@ RAW NATIVE PATIENT TRANSCRIPT:
             {/* Actions Footer */}
             <div className="result-actions-bar">
               <div className="action-btns-left">
+                {recordedAudioUrl && (
+                  <button
+                    type="button"
+                    className={`slip-action-btn audio-action-btn ${isPlayingAudio ? 'is-playing-audio-btn' : ''}`}
+                    onClick={handleToggleAudioPlayback}
+                    title="Play patient's original voice recording"
+                  >
+                    {isPlayingAudio ? <Pause size={16} /> : <Play size={16} />}
+                    <span>{isPlayingAudio ? 'Pause Audio' : 'Play Voice'}</span>
+                  </button>
+                )}
                 <button
                   type="button"
                   className="slip-action-btn"
