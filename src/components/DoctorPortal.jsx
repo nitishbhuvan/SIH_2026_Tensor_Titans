@@ -23,6 +23,7 @@ import {
   updateClinicalRecord,
   subscribeToRecords,
   getTriageSummary,
+  sortRecordsByUrgency,
 } from '../services/clinicalRecordsService.js';
 import { changeDoctorPassword } from '../services/doctorAuthService.js';
 import './DoctorPortal.css';
@@ -94,7 +95,7 @@ export default function DoctorPortal({ theme, onToggleTheme, onSwitchRole, docto
   useEffect(() => {
     refreshRecords();
     const unsub = subscribeToRecords((updated) => {
-      const sorted = [...updated].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      const sorted = sortRecordsByUrgency(updated);
       setRecords(sorted);
       setSummary(getTriageSummary());
     });
@@ -281,7 +282,12 @@ export default function DoctorPortal({ theme, onToggleTheme, onSwitchRole, docto
         {/* ── Left: Triage Queue ── */}
         <aside className="dp-queue-panel">
           <div className="dp-queue-header">
-            <span className="dp-queue-title">OPD Triage Queue</span>
+            <div className="dp-queue-title-row">
+              <span className="dp-queue-title">OPD Triage Queue</span>
+              <span className="dp-queue-order-badge" title="Queue is prioritized by clinical urgency (Red Flag → Urgent → Routine)">
+                <AlertOctagon size={11} /> Urgency Priority
+              </span>
+            </div>
 
             {/* Search */}
             <div className="dp-search-wrap">

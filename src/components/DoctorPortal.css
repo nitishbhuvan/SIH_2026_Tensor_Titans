@@ -356,12 +356,34 @@
   gap: 0.65rem;
 }
 
+.dp-queue-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
 .dp-queue-title {
   font-size: 0.82rem;
   font-weight: 700;
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.08em;
+}
+
+.dp-queue-order-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--accent-emergency);
+  background: var(--accent-emergency-bg);
+  border: 1px solid var(--accent-emergency-border);
+  padding: 0.18rem 0.55rem;
+  border-radius: var(--radius-full);
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
 }
 
 /* Search */
