@@ -25,7 +25,6 @@ import {
   Send,
   X
 } from 'lucide-react';
-import { VOICE_LANGUAGES } from '../translations.js';
 import { addClinicalRecord } from '../services/clinicalRecordsService.js';
 import { executeClientClinicalNLP } from '../services/clinicalNlpService.js';
 import { encodeWAV, resampleAudioBuffer } from '../utils/wavEncoder.js';
@@ -116,9 +115,7 @@ export default function VoiceIntake({
   onNotify,
   patientProfile
 }) {
-  const [selectedVoiceLang, setSelectedVoiceLang] = useState(() => {
-    return userLanguage === 'en' ? 'hi' : userLanguage;
-  });
+  const [selectedVoiceLang, setSelectedVoiceLang] = useState('auto');
 
   const [recordingState, setRecordingState] = useState('idle'); // 'idle' | 'recording' | 'transcribing' | 'analyzing' | 'success' | 'error'
   const [recordDuration, setRecordDuration] = useState(0);
@@ -206,13 +203,6 @@ export default function VoiceIntake({
       }
     };
   }, [stopRecordingCleanup]);
-
-  // Sync voice language when user changes global language
-  useEffect(() => {
-    if (userLanguage && userLanguage !== 'en') {
-      setSelectedVoiceLang(userLanguage);
-    }
-  }, [userLanguage]);
 
   const [inputMethod, setInputMethod] = useState('voice'); // 'voice' | 'type'
   const [customTypedText, setCustomTypedText] = useState('');
@@ -556,7 +546,7 @@ export default function VoiceIntake({
           rawText || 'Patient reports clinical symptoms for evaluation.',
           selectedVoiceLang
         );
-        clinicalResult.transcription_engine = 'Client Indic Fallback';
+        clinicalResult.transcription_engine = 'Indic Clinical NLP Engine';
       }
 
       // Update recognized live text in UI if available
@@ -575,23 +565,8 @@ export default function VoiceIntake({
         phone: patientProfile?.phone || '+91 98765 43210',
         age: patientProfile?.age || null,
         gender: patientProfile?.gender || 'Unknown',
-        language: selectedVoiceLang,
-        languageLabel: (() => {
-          const LANG_MAP = {
-            hi: 'Hindi',
-            kn: 'Kannada',
-            ta: 'Tamil',
-            te: 'Telugu',
-            ml: 'Malayalam',
-            mr: 'Marathi',
-            bn: 'Bengali',
-            gu: 'Gujarati',
-            pa: 'Punjabi',
-            sa: 'Sanskrit',
-            en: 'English'
-          };
-          return LANG_MAP[selectedVoiceLang] || selectedVoiceLang;
-        })(),
+        language: clinicalResult.detected_language || 'Auto-Detected',
+        languageLabel: clinicalResult.detected_language || 'Auto-Detected',
         isElderly: isElderly
       });
 
@@ -604,7 +579,7 @@ export default function VoiceIntake({
         rawText || 'Patient reports clinical symptoms for review.',
         selectedVoiceLang
       );
-      fallback.transcription_engine = 'Client Indic Fallback';
+      fallback.transcription_engine = 'Indic Clinical NLP Engine';
       setClinicalData(fallback);
       setRecordingState('success');
     }
@@ -798,8 +773,6 @@ RAW NATIVE PATIENT TRANSCRIPT:
     }
   };
 
-  const currentVoiceLangObj = VOICE_LANGUAGES.find((l) => l.id === selectedVoiceLang) || VOICE_LANGUAGES[0];
-
   return (
     <section className={`voice-intake-container ${isElderly ? 'is-elderly' : ''}`} id="voice-intake-section">
       {/* Institutional Section Header */}
@@ -868,35 +841,8 @@ RAW NATIVE PATIENT TRANSCRIPT:
           <p className="voice-subtitle">
             {isElderly
               ? (t.voiceIntakeElderlyPrompt || 'Tap the big microphone and speak your symptoms')
-              : (t.voiceIntakeSubtitle || 'Speak naturally in your native language. Our clinical pipeline preserves medical & Ayurvedic formulations.')}
+              : (t.voiceIntakeSubtitle || 'Speak naturally in any Indian language or English. Language is automatically detected.')}
           </p>
-        </div>
-
-        {/* Spoken Language Selector Bar */}
-        <div className="voice-lang-bar">
-          <span className="lang-bar-label">{t.voiceSelectLang || 'Patient Spoken Language:'}</span>
-          <div className="lang-chips-scroll" role="group" aria-label="Select voice language">
-            {VOICE_LANGUAGES.map((lang) => {
-              const isActive = selectedVoiceLang === lang.id;
-              return (
-                <button
-                  key={lang.id}
-                  type="button"
-                  className={`lang-chip ${isActive ? 'is-active' : ''}`}
-                  onClick={() => {
-                    if (recordingState === 'idle') {
-                      setSelectedVoiceLang(lang.id);
-                    }
-                  }}
-                  aria-pressed={isActive}
-                >
-                  <span className="lang-chip-glyph">{lang.glyph}</span>
-                  <span className="lang-chip-native">{lang.nativeLabel}</span>
-                  <span className="lang-chip-code">({lang.label})</span>
-                </button>
-              );
-            })}
-          </div>
         </div>
 
         {/* Input Method Switcher (Voice vs Type) */}
@@ -932,12 +878,12 @@ RAW NATIVE PATIENT TRANSCRIPT:
                     rows={4}
                     value={customTypedText}
                     onChange={(e) => setCustomTypedText(e.target.value)}
-                    placeholder={`Describe symptoms in ${currentVoiceLangObj.nativeLabel} / English (e.g. 'मुझे 2 दिन से तेज बुखार, खांसी और सिरदर्द है')`}
+                    placeholder="Describe symptoms in your language or English (e.g. 'मुझे 2 दिन से तेज बुखार, खांसी और सिरदर्द है' or 'I have severe chest pain and fever')"
                   />
                 </div>
                 <div className="typed-form-footer">
                   <span className="typed-lang-badge">
-                    <Activity size={14} /> Processing in {currentVoiceLangObj.nativeLabel} ({currentVoiceLangObj.label})
+                    <Activity size={14} /> Automatic Multilingual Language Detection
                   </span>
                   <button
                     type="submit"
@@ -966,7 +912,7 @@ RAW NATIVE PATIENT TRANSCRIPT:
                 <span className="mic-cta-text">{t.voiceStartRecording || 'Tap to Speak'}</span>
               </button>
               <p className="mic-subtext">
-                Spoken language: <strong>{currentVoiceLangObj.nativeLabel} ({currentVoiceLangObj.label})</strong> • Tap microphone to speak your symptoms
+                Speak naturally in any Indian language or English • Tap microphone to speak your symptoms
               </p>
             </div>
           )}
@@ -992,7 +938,7 @@ RAW NATIVE PATIENT TRANSCRIPT:
               <div className="live-speech-card">
                 <div className="live-speech-header">
                   <span className="live-pulse-dot"></span>
-                  <strong>Listening to your voice ({currentVoiceLangObj.nativeLabel}):</strong>
+                  <strong>Listening to your voice (Automatic Detection):</strong>
                 </div>
                 <div className="live-speech-body">
                   {liveTranscript || interimText ? (
@@ -1002,7 +948,7 @@ RAW NATIVE PATIENT TRANSCRIPT:
                     </p>
                   ) : (
                     <p className="live-speech-placeholder">
-                      Start speaking now… Your words in {currentVoiceLangObj.nativeLabel} will appear here in real time.
+                      Start speaking now… Your words will appear here in real time.
                     </p>
                   )}
                 </div>
@@ -1101,11 +1047,6 @@ RAW NATIVE PATIENT TRANSCRIPT:
               <div className="result-title-group">
                 <div className="slip-meta-badges">
                   <span className="slip-meta-tag">OPD CLINICAL INTAKE RECORD // PC-MED-09</span>
-                  {clinicalData.transcription_engine && (
-                    <span className="engine-meta-tag">
-                      <Sparkles size={12} /> {clinicalData.transcription_engine}
-                    </span>
-                  )}
                 </div>
                 <h3 className="result-heading">Clinical Intake Summary</h3>
               </div>
@@ -1123,13 +1064,6 @@ RAW NATIVE PATIENT TRANSCRIPT:
                 })()}
               </div>
             </div>
-
-            {/* Triage Reason Bar */}
-            {clinicalData.triage_reason && (
-              <div className="triage-reason-box">
-                <strong>Triage Assessment:</strong> {clinicalData.triage_reason}
-              </div>
-            )}
 
             {/* Chief Complaint & Duration Banner */}
             <div className="chief-complaint-banner">

@@ -30,6 +30,41 @@ Respond strictly with valid JSON conforming to this schema:
   "triage_reason": "string"
 }`;
 
+const LANG_CODE_MAP = {
+  hi: 'Hindi',
+  kn: 'Kannada',
+  ta: 'Tamil',
+  te: 'Telugu',
+  mr: 'Marathi',
+  bn: 'Bengali',
+  gu: 'Gujarati',
+  ml: 'Malayalam',
+  pa: 'Punjabi',
+  sa: 'Sanskrit / AYUSH',
+  en: 'English',
+  bgc: 'Haryanvi / Hindi',
+  or: 'Odia',
+  as: 'Assamese',
+  ur: 'Urdu'
+};
+
+function detectLanguageFromText(text) {
+  if (!text) return 'English';
+  if (/[\u0900-\u097F]/.test(text)) {
+    if (/अस्ति|सेवयामि|वर्तते|मम|द्वे|चूर्णम्|प्रकोप/i.test(text)) return 'Sanskrit / AYUSH';
+    if (/आहे|नाही|मला|होत|पोटात|जळजळ/i.test(text)) return 'Marathi';
+    return 'Hindi';
+  }
+  if (/[\u0C80-\u0CFF]/.test(text)) return 'Kannada';
+  if (/[\u0B80-\u0BFF]/.test(text)) return 'Tamil';
+  if (/[\u0C00-\u0C7F]/.test(text)) return 'Telugu';
+  if (/[\u0980-\u09FF]/.test(text)) return 'Bengali';
+  if (/[\u0D00-\u0D7F]/.test(text)) return 'Malayalam';
+  if (/[\u0A80-\u0AFF]/.test(text)) return 'Gujarati';
+  if (/[\u0A00-\u0A7F]/.test(text)) return 'Punjabi';
+  return 'English';
+}
+
 /**
  * High-fidelity dynamic clinical engine for custom patient speech
  */
@@ -37,15 +72,12 @@ function executeDynamicClinicalNLP(transcript, lang) {
   const text = (transcript || '').trim();
   const lower = text.toLowerCase();
 
-  let detected_language =
-    lang === 'hi' ? 'Hindi' :
-      lang === 'kn' ? 'Kannada' :
-        lang === 'ta' ? 'Tamil' :
-          lang === 'te' ? 'Telugu' :
-            lang === 'mr' ? 'Marathi' :
-              lang === 'bn' ? 'Bengali' :
-                lang === 'ml' ? 'Malayalam' :
-                  lang === 'sa' ? 'Sanskrit / AYUSH' : 'English';
+  let detected_language = 'English';
+  if (lang && lang !== 'auto' && LANG_CODE_MAP[lang]) {
+    detected_language = LANG_CODE_MAP[lang];
+  } else {
+    detected_language = detectLanguageFromText(text);
+  }
 
   let triage_urgency = "ROUTINE";
   let triage_reason = "Patient presents with subacute symptoms requiring standard clinical outpatient evaluation.";
@@ -212,7 +244,7 @@ function parseMultipartBuffer(buffer, contentType) {
   return { fields, files };
 }
 
-// Helper to transcribe via Bhashini ASR in dev mode (No time limit, primary priority)
+// Helper to transcribe via Bhashini ASR in dev mode (No time limit, primary priority, auto language detection)
 async function transcribeBhashiniDev(audioBuffer, language, env) {
   const userId = env.BHASHINI_USER_ID || process.env.BHASHINI_USER_ID || '';
   const ulcaApiKey = env.BHASHINI_API_KEY || process.env.BHASHINI_API_KEY || '';
@@ -223,13 +255,13 @@ async function transcribeBhashiniDev(audioBuffer, language, env) {
   }
 
   const base64Audio = audioBuffer.toString('base64');
-  const srcLang = language === 'sa' ? 'sa' : (language || 'hi');
+  const srcLang = (language && language !== 'auto') ? (language === 'sa' ? 'sa' : language) : 'auto';
   const t0 = Date.now();
 
   const callbackUrl = 'https://dhruva-api.bhashini.gov.in/services/inference/pipeline';
   const serviceId = 'bhashini/bodhan/asr-transcribe-flex';
 
-  console.log(`[Dev Server] 🎙️ Querying Bhashini Bodhan ASR (${serviceId}) for lang="${srcLang}" (no time limit)...`);
+  console.log(`[Dev Server] 🎙️ Querying Bhashini Bodhan ASR (${serviceId}) for lang="${srcLang}" (auto-detection)...`);
 
   const computeRes = await fetch(callbackUrl, {
     method: 'POST',
@@ -273,17 +305,22 @@ async function transcribeBhashiniDev(audioBuffer, language, env) {
   }
 
   const computeData = await computeRes.json();
-  const transcript = computeData?.pipelineResponse?.[0]?.output?.[0]?.source ||
-    computeData?.pipelineResponse?.[0]?.output?.[0]?.target || '';
+  const outputObj = computeData?.pipelineResponse?.[0]?.output?.[0];
+  const transcript = outputObj?.source || outputObj?.target || '';
+  const detectedLangCode = outputObj?.detectedLanguage || outputObj?.sourceLanguage || '';
+  const detectedLanguage = LANG_CODE_MAP[detectedLangCode] || (detectedLangCode ? detectedLangCode.toUpperCase() : null);
+
   if (!transcript) throw new Error('Empty transcript from Bhashini Bodhan ASR response');
 
   return {
     transcript,
+    detectedLangCode,
+    detectedLanguage,
     totalSeconds: (totalMs / 1000).toFixed(2)
   };
 }
 
-// Helper to transcribe via Groq Whisper in dev mode (Natively accepts 16kHz WAV)
+// Helper to transcribe via Groq Whisper in dev mode (Natively accepts 16kHz WAV, auto-detects language)
 async function transcribeGroqWhisperDev(audioBuffer, language, apiKey) {
   if (!audioBuffer || audioBuffer.length === 0 || !apiKey) {
     throw new Error('Groq Whisper credentials or audio missing');
@@ -411,16 +448,17 @@ function clinicalApisPlugin(env) {
             const buffer = Buffer.concat(chunks);
             const contentType = req.headers['content-type'] || '';
 
-            let language = 'hi';
+            let language = 'auto';
             let rawTranscript = null;
             let apiKeyFromReq = req.headers['x-groq-api-key'] || '';
             let audioBuffer = null;
             let transcriptionEngine = null;
+            let detectedLangFromAsr = null;
 
             if (contentType.includes('application/json')) {
               try {
                 const body = JSON.parse(buffer.toString('utf-8'));
-                language = body.language || 'hi';
+                language = body.language || 'auto';
                 rawTranscript = body.transcript || null;
                 if (!apiKeyFromReq && body.apiKey) {
                   apiKeyFromReq = body.apiKey;
@@ -441,13 +479,16 @@ function clinicalApisPlugin(env) {
 
             // ── MULTI-TIER ASR CASCADE ──
             if (audioBuffer && audioBuffer.length > 44) {
-              // 1. Tier 1: Bhashini Bodhan ASR (5s timeout)
+              // 1. Tier 1: Bhashini Bodhan ASR (Auto language detection)
               try {
                 const bhashiniResult = await transcribeBhashiniDev(audioBuffer, language, env);
                 if (bhashiniResult.transcript && bhashiniResult.transcript.trim()) {
                   rawTranscript = bhashiniResult.transcript.trim();
                   transcriptionEngine = `Bhashini ASR (MeitY) — ${bhashiniResult.totalSeconds}s`;
-                  console.log(`[Dev Server] ✅ Bhashini ASR Succeeded: "${rawTranscript}"`);
+                  if (bhashiniResult.detectedLanguage) {
+                    detectedLangFromAsr = bhashiniResult.detectedLanguage;
+                  }
+                  console.log(`[Dev Server] ✅ Bhashini ASR Succeeded (${detectedLangFromAsr || 'Auto'}): "${rawTranscript}"`);
                 }
               } catch (bhashiniErr) {
                 console.warn(`[Dev Server] ⚠️ Bhashini ASR unavailable (${bhashiniErr.message}). Cascading to Groq Whisper...`);
@@ -495,7 +536,7 @@ function clinicalApisPlugin(env) {
             if (effectiveGroqKey && effectiveGroqKey.startsWith('gsk_')) {
               try {
                 const userPrompt = `Input:
-- Source Language: ${language}
+- Source Language: ${detectedLangFromAsr || language || 'Auto-Detect'}
 - Raw Transcript: "${rawTranscript}"
 
 Produce the structured JSON clinical intake output following all term preservation rules.`;
@@ -531,7 +572,7 @@ Produce the structured JSON clinical intake output following all term preservati
             // 2. Secondary: Gemini Flash SOAP note
             if (!clinicalResult && effectiveGeminiKey) {
               try {
-                clinicalResult = await generateClinicalSoapWithGemini(rawTranscript, language, effectiveGeminiKey);
+                clinicalResult = await generateClinicalSoapWithGemini(rawTranscript, detectedLangFromAsr || language, effectiveGeminiKey);
               } catch (e) {
                 console.warn('[Dev Server] Gemini SOAP generation failed:', e.message);
               }
@@ -539,7 +580,13 @@ Produce the structured JSON clinical intake output following all term preservati
 
             // 3. Tertiary: Dynamic Rule-Based Indic Clinical Engine
             if (!clinicalResult) {
-              clinicalResult = executeDynamicClinicalNLP(rawTranscript, language);
+              clinicalResult = executeDynamicClinicalNLP(rawTranscript, detectedLangFromAsr || language);
+            }
+
+            if (detectedLangFromAsr && (!clinicalResult.detected_language || clinicalResult.detected_language === 'auto' || clinicalResult.detected_language === 'English')) {
+              clinicalResult.detected_language = detectedLangFromAsr;
+            } else if (!clinicalResult.detected_language || clinicalResult.detected_language === 'auto') {
+              clinicalResult.detected_language = detectLanguageFromText(rawTranscript);
             }
 
             clinicalResult.transcription_engine = transcriptionEngine || 'Dynamic Indic Engine';
