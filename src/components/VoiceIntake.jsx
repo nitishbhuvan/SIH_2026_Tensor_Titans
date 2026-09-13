@@ -13,7 +13,6 @@ import {
   Printer,
   RotateCcw,
   Sparkles,
-  Settings,
   Pill,
   Stethoscope,
   Leaf,
@@ -123,7 +122,6 @@ export default function VoiceIntake({
   const [clinicalData, setClinicalData] = useState(null);
   const [activeTab, setActiveTab] = useState('clinical'); // 'clinical' | 'original'
   const [errorMessage, setErrorMessage] = useState('');
-  const [showSettings, setShowSettings] = useState(false);
 
   // Live real-time speech recognition state
   const [liveTranscript, setLiveTranscript] = useState('');
@@ -734,16 +732,6 @@ RAW NATIVE PATIENT TRANSCRIPT:
     window.print();
   };
 
-  // ── Save API Key ──
-  const handleSaveApiKey = (e) => {
-    e.preventDefault();
-    localStorage.setItem('preconsult_groq_api_key', groqApiKey.trim());
-    setShowSettings(false);
-    if (onNotify) {
-      onNotify('API Key configuration saved.', 'success');
-    }
-  };
-
   const formatTimer = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -785,53 +773,7 @@ RAW NATIVE PATIENT TRANSCRIPT:
             <span className="status-dot"></span> REAL-TIME BHASHINI & INDIC ASR
           </span>
         </div>
-        <button
-          type="button"
-          className="voice-settings-btn"
-          onClick={() => setShowSettings(!showSettings)}
-          aria-label="API Key Settings"
-          title="Configure Cloud API Keys"
-        >
-          <Settings size={16} />
-          <span>{groqApiKey ? 'Cloud AI Active' : 'AI Settings'}</span>
-        </button>
       </div>
-
-      {/* Optional API Key Configuration Drawer */}
-      {showSettings && (
-        <div className="voice-settings-drawer">
-          <form onSubmit={handleSaveApiKey} className="voice-settings-form">
-            <label htmlFor="groq-key-input">
-              <strong>Custom Cloud API Key (Groq / Bhashini / Gemini):</strong>
-            </label>
-            <div className="settings-input-group">
-              <input
-                id="groq-key-input"
-                type="password"
-                placeholder="gsk_... or Cloudflare Secret Key"
-                value={groqApiKey}
-                onChange={(e) => setGroqApiKey(e.target.value)}
-              />
-              <button type="submit" className="settings-save-btn">Save Key</button>
-              {groqApiKey && (
-                <button
-                  type="button"
-                  className="settings-clear-btn"
-                  onClick={() => {
-                    setGroqApiKey('');
-                    localStorage.removeItem('preconsult_groq_api_key');
-                  }}
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-            <p className="settings-help">
-              Browser-native speech recognition runs 100% locally in your browser for all Indian languages without requiring any API key.
-            </p>
-          </form>
-        </div>
-      )}
 
       {/* Main Interactive Stage */}
       <div className="voice-stage">
