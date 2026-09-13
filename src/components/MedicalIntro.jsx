@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import './MedicalIntro.css';
 
-export default function MedicalIntro({ onEnterPatient, onEnterDoctor, onSkip }) {
+export default function MedicalIntro({ onEnterPatient, onEnterDoctor }) {
   const stageRef = useRef(null);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [isHovered, setIsHovered] = useState(false);
@@ -18,15 +18,13 @@ export default function MedicalIntro({ onEnterPatient, onEnterDoctor, onSkip }) 
   // Keyboard navigation shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        onSkip?.();
-      } else if (e.key === 'Enter') {
+      if (e.key === 'Enter') {
         onEnterPatient?.();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onSkip, onEnterPatient]);
+  }, [onEnterPatient]);
 
   // Subtle 3D mouse parallax on stage
   const handleMouseMove = (e) => {
@@ -311,14 +309,6 @@ export default function MedicalIntro({ onEnterPatient, onEnterDoctor, onSkip }) 
             <span>Doctor Clinical Login</span>
           </button>
         </div>
-
-        <button
-          type="button"
-          className="medical-intro-skip"
-          onClick={onSkip}
-        >
-          Skip intro and choose role <kbd className="kbd-shortcut">Esc</kbd>
-        </button>
       </section>
 
       {/* Footer System Specs */}

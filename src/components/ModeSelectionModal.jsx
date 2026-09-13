@@ -1,6 +1,17 @@
-import React, { useEffect } from 'react';
-import { Accessibility, User } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import {
+  Accessibility,
+  User,
+  ShieldCheck,
+  CreditCard,
+  Phone,
+  Calendar,
+  Sparkles,
+  ArrowRight,
+  X
+} from 'lucide-react';
 import { SUPPORTED_LANGUAGES, translations } from '../translations.js';
+import { formatAbhaId, DEMO_PATIENT_PROFILE } from '../services/patientProfileService.js';
 import './ModeSelectionModal.css';
 
 export default function ModeSelectionModal({
@@ -9,10 +20,32 @@ export default function ModeSelectionModal({
   onStepChange,
   currentLanguage = 'en',
   onSelectLanguage,
-  currentMode,
+  currentMode = 'modern',
   onSelectMode,
+  patientProfile,
+  onCompleteSetup,
   onClose
 }) {
+  const [patientData, setPatientData] = useState({
+    name: '',
+    abhaId: '',
+    phone: '',
+    age: '',
+    gender: 'Male',
+  });
+
+  useEffect(() => {
+    if (patientProfile) {
+      setPatientData({
+        name: patientProfile.name || '',
+        abhaId: patientProfile.abhaId || '',
+        phone: patientProfile.phone || '',
+        age: patientProfile.age || '',
+        gender: patientProfile.gender || 'Male',
+      });
+    }
+  }, [patientProfile, isOpen]);
+
   // Lock scroll & handle Escape key
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -43,10 +76,42 @@ export default function ModeSelectionModal({
 
   const handleModeClick = (mode) => {
     if (onSelectMode) onSelectMode(mode);
+    if (onStepChange) onStepChange('abha');
   };
 
   const handleGoToStep = (newStep) => {
     if (onStepChange) onStepChange(newStep);
+  };
+
+  const handleAbhaChange = (e) => {
+    const formatted = formatAbhaId(e.target.value);
+    setPatientData((prev) => ({ ...prev, abhaId: formatted }));
+  };
+
+  const handleFillDemo = () => {
+    setPatientData({
+      name: DEMO_PATIENT_PROFILE.name,
+      abhaId: DEMO_PATIENT_PROFILE.abhaId,
+      phone: DEMO_PATIENT_PROFILE.phone,
+      age: DEMO_PATIENT_PROFILE.age,
+      gender: DEMO_PATIENT_PROFILE.gender,
+    });
+  };
+
+  const handleFinalSubmit = (e) => {
+    e.preventDefault();
+    const finalProfile = {
+      ...patientData,
+      language: currentLanguage,
+      mode: currentMode,
+      abhaAddress: patientData.name
+        ? `${patientData.name.toLowerCase().replace(/\s+/g, '.')}@abdm`
+        : 'patient@abdm',
+      isAbhaVerified: true,
+    };
+    if (onCompleteSetup) {
+      onCompleteSetup(finalProfile);
+    }
   };
 
   return (
@@ -66,16 +131,25 @@ export default function ModeSelectionModal({
               onClick={() => handleGoToStep('language')}
               aria-selected={step === 'language'}
             >
-              {t.step1Pill || '01 LANGUAGE'}
+              01 LANGUAGE
             </button>
             <span className="step-divider" aria-hidden="true">→</span>
             <button
               type="button"
-              className={`step-pill ${step === 'mode' ? 'is-active' : ''}`}
+              className={`step-pill ${step === 'mode' ? 'is-active' : (step === 'abha' ? 'is-completed' : '')}`}
               onClick={() => handleGoToStep('mode')}
               aria-selected={step === 'mode'}
             >
-              {t.step2Pill || '02 MODE'}
+              02 MODE
+            </button>
+            <span className="step-divider" aria-hidden="true">→</span>
+            <button
+              type="button"
+              className={`step-pill ${step === 'abha' ? 'is-active' : ''}`}
+              onClick={() => handleGoToStep('abha')}
+              aria-selected={step === 'abha'}
+            >
+              03 ABHA ID
             </button>
           </div>
 
@@ -86,7 +160,7 @@ export default function ModeSelectionModal({
               onClick={onClose}
               aria-label="Close"
             >
-              &times;
+              <X size={16} />
             </button>
           )}
         </div>
@@ -95,10 +169,10 @@ export default function ModeSelectionModal({
         {step === 'language' && (
           <div className="modal-content">
             <h2 id="modal-title" className="modal-title">
-              {t.langModalTitle}
+              {t.langModalTitle || 'Select Your Language'}
             </h2>
             <p className="modal-subtitle">
-              {t.langModalSubtitle}
+              {t.langModalSubtitle || 'Choose your preferred language for symptom intake and clinical audio.'}
             </p>
 
             <div className="language-grid" role="group" aria-label="Select Language">
@@ -133,45 +207,147 @@ export default function ModeSelectionModal({
               onClick={() => handleGoToStep('language')}
               aria-label="Back to language selection"
             >
-              {t.backBtn || '← Back'}
+              ← Back to Language
             </button>
 
             <h2 id="modal-title" className="modal-title">
-              {t.modeModalTitle}
+              {t.modeModalTitle || 'Select Interface Mode'}
             </h2>
             <p className="modal-subtitle">
-              {t.modeModalSubtitle}
+              {t.modeModalSubtitle || 'Choose your accessibility preference. You can change this anytime in your profile.'}
             </p>
 
             <div className="mode-grid" role="group" aria-label="Select Mode">
-              {/* Elderly */}
-              <button
-                type="button"
-                className={`mode-card ${currentMode === 'elderly' ? 'is-active' : ''}`}
-                onClick={() => handleModeClick('elderly')}
-                aria-label={`Elderly Mode: ${t.elderlyLabel}`}
-              >
-                <span className="mode-card__icon">
-                  <Accessibility size={36} />
-                </span>
-                <span className="mode-card__label">{t.elderlyLabel}</span>
-                <span className="mode-card__sublabel">{t.elderlyTagline}</span>
-              </button>
-
               {/* Modern */}
               <button
                 type="button"
                 className={`mode-card ${currentMode === 'modern' ? 'is-active' : ''}`}
                 onClick={() => handleModeClick('modern')}
-                aria-label={`Modern Mode: ${t.modernLabel}`}
+                aria-label={`Modern Mode: ${t.modernLabel || 'Modern'}`}
               >
                 <span className="mode-card__icon">
                   <User size={36} />
                 </span>
-                <span className="mode-card__label">{t.modernLabel}</span>
-                <span className="mode-card__sublabel">{t.modernTagline}</span>
+                <span className="mode-card__label">{t.modernLabel || 'Modern Mode'}</span>
+                <span className="mode-card__sublabel">{t.modernTagline || 'Standard high-density clinical layout'}</span>
+              </button>
+
+              {/* Elderly */}
+              <button
+                type="button"
+                className={`mode-card ${currentMode === 'elderly' ? 'is-active' : ''}`}
+                onClick={() => handleModeClick('elderly')}
+                aria-label={`Elderly Mode: ${t.elderlyLabel || 'Elderly'}`}
+              >
+                <span className="mode-card__icon">
+                  <Accessibility size={36} />
+                </span>
+                <span className="mode-card__label">{t.elderlyLabel || 'Elderly / Accessible'}</span>
+                <span className="mode-card__sublabel">{t.elderlyTagline || 'Larger fonts, voice guidance & simplified buttons'}</span>
               </button>
             </div>
+          </div>
+        )}
+
+        {/* ── STEP 3: ABHA ID & PATIENT REGISTRATION ── */}
+        {step === 'abha' && (
+          <div className="modal-content abha-step-content">
+            <button
+              type="button"
+              className="modal-back-btn"
+              onClick={() => handleGoToStep('mode')}
+              aria-label="Back to mode selection"
+            >
+              ← Back to Mode
+            </button>
+
+            <div className="abha-step-badge">
+              <ShieldCheck size={18} />
+              <span>Ayushman Bharat Digital Health Account</span>
+            </div>
+
+            <h2 id="modal-title" className="modal-title">
+              Enter Your ABHA Details
+            </h2>
+            <p className="modal-subtitle">
+              Link your 14-digit ABHA ID to enable seamless medical record transfer with your doctor.
+            </p>
+
+            <form onSubmit={handleFinalSubmit} className="abha-onboarding-form">
+              <div className="abha-onboarding-field">
+                <label htmlFor="onboarding-name">Full Name / पूरा नाम</label>
+                <div className="abha-input-box">
+                  <User size={16} />
+                  <input
+                    id="onboarding-name"
+                    type="text"
+                    value={patientData.name}
+                    onChange={(e) => setPatientData({ ...patientData, name: e.target.value })}
+                    placeholder="e.g. Ramesh Kumar"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="abha-onboarding-field">
+                <label htmlFor="onboarding-abha">ABHA ID / आभा संख्या (14 Digits)</label>
+                <div className="abha-input-box">
+                  <CreditCard size={16} />
+                  <input
+                    id="onboarding-abha"
+                    type="text"
+                    value={patientData.abhaId}
+                    onChange={handleAbhaChange}
+                    placeholder="91-XXXX-XXXX-XXXX"
+                    maxLength={17}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="abha-onboarding-row">
+                <div className="abha-onboarding-field">
+                  <label htmlFor="onboarding-phone">Mobile / मोबाइल</label>
+                  <div className="abha-input-box">
+                    <Phone size={16} />
+                    <input
+                      id="onboarding-phone"
+                      type="tel"
+                      value={patientData.phone}
+                      onChange={(e) => setPatientData({ ...patientData, phone: e.target.value })}
+                      placeholder="+91 98765 43210"
+                    />
+                  </div>
+                </div>
+
+                <div className="abha-onboarding-field">
+                  <label htmlFor="onboarding-age">Age / आयु</label>
+                  <div className="abha-input-box">
+                    <Calendar size={16} />
+                    <input
+                      id="onboarding-age"
+                      type="number"
+                      min="1"
+                      max="120"
+                      value={patientData.age}
+                      onChange={(e) => setPatientData({ ...patientData, age: e.target.value })}
+                      placeholder="e.g. 58"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="abha-demo-action">
+                <button type="button" className="abha-quick-demo-btn" onClick={handleFillDemo}>
+                  <Sparkles size={14} /> Use Demo ABHA Account
+                </button>
+              </div>
+
+              <button type="submit" className="abha-submit-btn">
+                <span>Enter Patient Portal</span>
+                <ArrowRight size={18} />
+              </button>
+            </form>
           </div>
         )}
       </div>

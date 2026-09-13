@@ -164,12 +164,49 @@ function saveRecords(records) {
   window.dispatchEvent(new CustomEvent('preconsult_records_updated', { detail: records }));
 }
 
+export const URGENCY_WEIGHT = {
+  RED_FLAG: 1,
+  URGENT: 2,
+  ROUTINE: 3,
+};
+
 /**
- * Get all clinical records sorted by most recent first.
+ * Sorts clinical records primarily by triage urgency (RED_FLAG -> URGENT -> ROUTINE),
+ * keeping active patients prioritized, and using arrival timestamp as tie-breaker.
+ *
+ * @param {Array} records - Array of clinical record objects
+ * @returns {Array} Sorted copy of records
+ */
+export function sortRecordsByUrgency(records) {
+  if (!Array.isArray(records)) return [];
+  return [...records].sort((a, b) => {
+    // 1. Completed consultations appear after active ones
+    const aCompleted = a?.status === 'completed' ? 1 : 0;
+    const bCompleted = b?.status === 'completed' ? 1 : 0;
+    if (aCompleted !== bCompleted) {
+      return aCompleted - bCompleted;
+    }
+
+    // 2. Primary sort: Urgency level (RED_FLAG = 1, URGENT = 2, ROUTINE = 3, other = 4)
+    const aUrgency = URGENCY_WEIGHT[a?.intake?.triage_urgency] || 4;
+    const bUrgency = URGENCY_WEIGHT[b?.intake?.triage_urgency] || 4;
+    if (aUrgency !== bUrgency) {
+      return aUrgency - bUrgency;
+    }
+
+    // 3. Secondary tie-breaker: Arrival time (most recent first)
+    const aTime = new Date(a?.timestamp || 0).getTime();
+    const bTime = new Date(b?.timestamp || 0).getTime();
+    return bTime - aTime;
+  });
+}
+
+/**
+ * Get all clinical records sorted by urgency (RED_FLAG > URGENT > ROUTINE), then timestamp.
  */
 export function getClinicalRecords() {
   const records = getRecords();
-  return [...records].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  return sortRecordsByUrgency(records);
 }
 
 /**
@@ -187,6 +224,9 @@ export function addClinicalRecord(intakeData, patientInfo = {}) {
     status: 'pending',
     patientInfo: {
       name: patientInfo.name || 'Anonymous Patient',
+      abhaId: patientInfo.abhaId || '91-8765-4321-0987',
+      abhaAddress: patientInfo.abhaAddress || (patientInfo.name ? `${patientInfo.name.toLowerCase().replace(/\s+/g, '.')}@abdm` : 'patient@abdm'),
+      phone: patientInfo.phone || '+91 98765 43210',
       age: patientInfo.age || null,
       gender: patientInfo.gender || 'Unknown',
       language: patientInfo.language || 'en',
