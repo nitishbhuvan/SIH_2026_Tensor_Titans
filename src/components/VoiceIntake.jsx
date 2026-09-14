@@ -24,9 +24,10 @@ import {
   Send,
   X
 } from 'lucide-react';
-import { addClinicalRecord } from '../services/clinicalRecordsService.js';
+import { addClinicalRecord, updateClinicalRecord } from '../services/clinicalRecordsService.js';
 import { executeClientClinicalNLP } from '../services/clinicalNlpService.js';
 import { encodeWAV, resampleAudioBuffer } from '../utils/wavEncoder.js';
+import ClinicalFollowUp from './ClinicalFollowUp.jsx';
 import './VoiceIntake.css';
 
 // Language locale mapping for SpeechRecognition API
@@ -120,6 +121,8 @@ export default function VoiceIntake({
   const [recordDuration, setRecordDuration] = useState(0);
   const [audioLevel, setAudioLevel] = useState(0);
   const [clinicalData, setClinicalData] = useState(null);
+  const [followUpRecordId, setFollowUpRecordId] = useState(null);
+  const [followUpComplete, setFollowUpComplete] = useState(false);
   const [activeTab, setActiveTab] = useState('clinical'); // 'clinical' | 'original'
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -556,7 +559,7 @@ export default function VoiceIntake({
       setRecordingState('success');
 
       // Persist to shared Doctor Portal queue
-      addClinicalRecord(clinicalResult, {
+      const recordId = addClinicalRecord(clinicalResult, {
         name: patientProfile?.name || 'Anonymous Patient',
         abhaId: patientProfile?.abhaId || '91-8765-4321-0987',
         abhaAddress: patientProfile?.abhaAddress || 'patient@abdm',
@@ -567,6 +570,8 @@ export default function VoiceIntake({
         languageLabel: clinicalResult.detected_language || 'Auto-Detected',
         isElderly: isElderly
       });
+      setFollowUpRecordId(recordId);
+      setFollowUpComplete(false);
 
       if (onNotify) {
         onNotify('Voice intake processed. SOAP note generated & attached to Doctor OPD queue.', 'success');
@@ -589,6 +594,16 @@ export default function VoiceIntake({
     if (!customTypedText.trim()) return;
     setLiveTranscript(customTypedText.trim());
     processAudioIntake(null, customTypedText.trim());
+  };
+
+  const handleFollowUpComplete = (followUpData) => {
+    const mergedClinicalData = { ...clinicalData, ...followUpData };
+    setClinicalData(mergedClinicalData);
+    setFollowUpComplete(true);
+    if (followUpRecordId) {
+      updateClinicalRecord(followUpRecordId, { intake: mergedClinicalData });
+    }
+    if (onNotify) onNotify('History of present illness and medical history added to the doctor record.', 'success');
   };
 
   // ── Execute Preset Scenario (Explicit Demo Only) ──
@@ -615,6 +630,8 @@ export default function VoiceIntake({
     setAudioCurrentTime(0);
     setAudioDuration(0);
     setClinicalData(null);
+    setFollowUpRecordId(null);
+    setFollowUpComplete(false);
     setRecordingState('idle');
     setRecordDuration(0);
     setErrorMessage('');
@@ -983,6 +1000,14 @@ RAW NATIVE PATIENT TRANSCRIPT:
             </div>
           </div>
         )} */}
+
+        {clinicalData && followUpRecordId && !followUpComplete && (
+          <ClinicalFollowUp
+            clinicalData={clinicalData}
+            userLanguage={userLanguage}
+            onComplete={handleFollowUpComplete}
+          />
+        )}
 
         {/* ── CLINICAL INTAKE RESULT CARD ── */}
         {clinicalData && (

@@ -431,6 +431,29 @@ export default function DoctorPortal({ theme, onToggleTheme, onSwitchRole, docto
                   </div>
                 </div>
 
+                {/* ── Section 4: Conversational HPI & Medical History ── */}
+                {(selectedRecord.intake?.history_of_present_illness || selectedRecord.intake?.medical_history) && (
+                  <div className="dp-section-card">
+                    <div className="dp-section-header">
+                      <Activity size={15} className="dp-section-icon" />
+                      <span className="dp-section-title">Conversational Follow-up History</span>
+                    </div>
+                    <div className="dp-section-body dp-follow-up-grid">
+                      <div className="dp-history-field">
+                        <label>History of Present Illness</label>
+                        <p><strong>Onset:</strong> {selectedRecord.intake.history_of_present_illness?.onset || 'Not recorded'}</p>
+                        <p><strong>Severity:</strong> {selectedRecord.intake.history_of_present_illness?.severity || 'Not recorded'}</p>
+                        <p><strong>Progression:</strong> {selectedRecord.intake.history_of_present_illness?.progression || 'Not recorded'}</p>
+                      </div>
+                      <div className="dp-history-field">
+                        <label>Medical History</label>
+                        <p><strong>Previous illness or operations:</strong> {selectedRecord.intake.medical_history?.previous_illnesses_or_operations || 'Not recorded'}</p>
+                        <p><strong>Medicines and allergies:</strong> {selectedRecord.intake.medical_history?.medications_and_allergies || 'Not recorded'}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* ── Section 4: Ayurvedic & AYUSH Factors ── */}
                 {selectedRecord.intake?.ayurvedic_factors && (
                   <div className="dp-section-card">
