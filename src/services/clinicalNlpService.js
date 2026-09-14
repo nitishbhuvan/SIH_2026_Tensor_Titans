@@ -6,6 +6,8 @@
  * and assigns ABDM-compliant clinical triage levels with SOAP summaries.
  */
 
+import { analyzeHpiCompleteness } from './hpiService.js';
+
 const KNOWN_MEDICATIONS = [
   { name: 'Metformin (500mg)', regex: /metformin|glycomet|glim|sugar दवा|मधुमेह/i },
   { name: 'Pantoprazole (40mg)', regex: /pantoprazole|pantocid|pan-40|pan 40|gas दवा|एसिडिटी/i },
@@ -201,6 +203,12 @@ export function executeClientClinicalNLP(transcript = '', lang = 'auto') {
     translated_clinical_english = `Patient clinical narrative: "${text || 'Patient seeks OPD consultation for clinical review.'}". Outpatient physician consultation recommended.`;
   }
 
+  const hpi_details = analyzeHpiCompleteness(text, {
+    duration,
+    chief_complaint,
+    associated_symptoms
+  }, lang);
+
   return {
     detected_language,
     original_transcript: text || 'Voice intake recorded',
@@ -213,6 +221,7 @@ export function executeClientClinicalNLP(transcript = '', lang = 'auto') {
       dosha_imbalance,
       agni_status
     },
+    hpi_details,
     triage_urgency,
     triage_reason,
     timestamp: new Date().toISOString()

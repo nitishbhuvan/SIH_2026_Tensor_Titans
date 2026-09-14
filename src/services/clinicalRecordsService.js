@@ -34,6 +34,17 @@ const SEED_RECORDS = [
         dosha_imbalance: 'Pitta-Vata aggravation with Amlapitta manifestation',
         agni_status: 'Samagni with early Vishamagni tendency',
       },
+      hpi_details: {
+        onset: 'Started 2 days ago abruptly after dinner',
+        location: 'Retrosternal chest & Epigastric region (Radiates upward toward throat)',
+        duration: '2 days, worsening post-prandially',
+        character: 'Burning / Retrosternal Pyrosis with heaviness',
+        aggravating_factors: 'Worse after oily/spicy food and lying flat',
+        relieving_factors: 'Mildly relieved with cold water and sitting upright',
+        timing: 'Aggravated 1-2 hours after dinner',
+        severity_score: 8,
+        functional_impact: 'Disturbed sleep and anxiety'
+      },
       triage_urgency: 'RED_FLAG',
       triage_reason: 'Acute chest pain with burning quality in diabetic patient — cardiac aetiology must be excluded.',
     },
@@ -65,6 +76,17 @@ const SEED_RECORDS = [
       ayurvedic_factors: {
         dosha_imbalance: 'Vata-Kapha aggravation with Krura Koshtha presentation',
         agni_status: 'Mandagni (significantly diminished digestive fire)',
+      },
+      hpi_details: {
+        onset: 'Gradual onset 3 weeks ago',
+        location: 'Lower abdomen and diffuse gastrointestinal tract',
+        duration: '3 weeks progressive',
+        character: 'Sluggish motility, severe abdominal fullness and hard stools',
+        aggravating_factors: 'Heavy dry meals, sedentary routine',
+        relieving_factors: 'Triphala churna at bedtime and warm water',
+        timing: 'Worse upon waking in morning',
+        severity_score: 5,
+        functional_impact: 'Loss of appetite and abdominal discomfort'
       },
       triage_urgency: 'ROUTINE',
       triage_reason: 'Chronic non-acute constipation with Ayurvedic overlay — stable, no red-flag features.',
@@ -101,6 +123,17 @@ const SEED_RECORDS = [
         dosha_imbalance: 'Vata-dominant Sandhivata with Shleshaka Kapha depletion',
         agni_status: 'Vishamagni (irregular digestive fire)',
       },
+      hpi_details: {
+        onset: 'Started 2 weeks ago, worsening with cold weather',
+        location: 'Bilateral knee joints and periarticular tissue',
+        duration: '2 weeks continuous',
+        character: 'Deep throbbing ache, stiffness >30 minutes, joint crepitus',
+        aggravating_factors: 'Climbing stairs, prolonged standing, cold damp weather',
+        relieving_factors: 'Warm sesame oil application and hot fomentation',
+        timing: 'Most severe in morning upon waking and after prolonged sitting',
+        severity_score: 7,
+        functional_impact: 'Difficulty walking more than 100 meters'
+      },
       triage_urgency: 'URGENT',
       triage_reason: 'Elderly patient with progressive arthropathy — septic arthritis and fracture must be urgently excluded.',
     },
@@ -132,6 +165,17 @@ const SEED_RECORDS = [
       ayurvedic_factors: {
         dosha_imbalance: 'Pitta-Vata aggravation with Ama accumulation',
         agni_status: 'Vishamagni with Ama formation',
+      },
+      hpi_details: {
+        onset: '1 week ago following exposure to rain',
+        location: 'Frontal-temporal headache radiating to cervical occipital spine',
+        duration: '1 week persistent',
+        character: 'Pulsating throbbing cephalgia with high body heat',
+        aggravating_factors: 'Bright light, loud sounds, mental exertion',
+        relieving_factors: 'Dark quiet room, cold forehead compress, paracetamol',
+        timing: 'Worse during afternoon and evening',
+        severity_score: 7,
+        functional_impact: 'Unable to work on computer screen'
       },
       triage_urgency: 'URGENT',
       triage_reason: 'Headache with neck pain and fever in young adult — meningitis must be urgently excluded.',

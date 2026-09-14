@@ -24,9 +24,10 @@ import {
   Send,
   X
 } from 'lucide-react';
-import { addClinicalRecord } from '../services/clinicalRecordsService.js';
+import { addClinicalRecord, updateClinicalRecord } from '../services/clinicalRecordsService.js';
 import { executeClientClinicalNLP } from '../services/clinicalNlpService.js';
 import { encodeWAV, resampleAudioBuffer } from '../utils/wavEncoder.js';
+import AdaptiveHpiCollector from './AdaptiveHpiCollector.jsx';
 import './VoiceIntake.css';
 
 // Language locale mapping for SpeechRecognition API
@@ -140,10 +141,25 @@ export default function VoiceIntake({
   const [audioCurrentTime, setAudioCurrentTime] = useState(0);
   const [audioDuration, setAudioDuration] = useState(0);
   const audioElementRef = useRef(null);
+  const [currentRecordId, setCurrentRecordId] = useState(null);
 
   const [groqApiKey, setGroqApiKey] = useState(() => {
     return localStorage.getItem('preconsult_groq_api_key') || '';
   });
+
+  const handleHpiUpdate = useCallback((updatedHpi) => {
+    setClinicalData((prev) => {
+      if (!prev) return prev;
+      const next = {
+        ...prev,
+        hpi_details: updatedHpi
+      };
+      if (currentRecordId) {
+        updateClinicalRecord(currentRecordId, { intake: next });
+      }
+      return next;
+    });
+  }, [currentRecordId]);
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -556,7 +572,7 @@ export default function VoiceIntake({
       setRecordingState('success');
 
       // Persist to shared Doctor Portal queue
-      addClinicalRecord(clinicalResult, {
+      const recId = addClinicalRecord(clinicalResult, {
         name: patientProfile?.name || 'Anonymous Patient',
         abhaId: patientProfile?.abhaId || '91-8765-4321-0987',
         abhaAddress: patientProfile?.abhaAddress || 'patient@abdm',
@@ -567,6 +583,7 @@ export default function VoiceIntake({
         languageLabel: clinicalResult.detected_language || 'Auto-Detected',
         isElderly: isElderly
       });
+      setCurrentRecordId(recId);
 
       if (onNotify) {
         onNotify('Voice intake processed. SOAP note generated & attached to Doctor OPD queue.', 'success');
@@ -580,6 +597,12 @@ export default function VoiceIntake({
       fallback.transcription_engine = 'Indic Clinical NLP Engine';
       setClinicalData(fallback);
       setRecordingState('success');
+      const fallbackRecId = addClinicalRecord(fallback, {
+        name: patientProfile?.name || 'Anonymous Patient',
+        language: fallback.detected_language || 'Auto-Detected',
+        isElderly: isElderly
+      });
+      setCurrentRecordId(fallbackRecId);
     }
   };
 
@@ -1025,6 +1048,17 @@ RAW NATIVE PATIENT TRANSCRIPT:
                 <strong className="cc-value">{clinicalData.duration}</strong>
               </div>
             </div>
+
+            {/* Dynamic Adaptive HPI (History of Present Illness) Collector */}
+            <AdaptiveHpiCollector
+              hpiData={clinicalData.hpi_details || {}}
+              onHpiChange={handleHpiUpdate}
+              chiefComplaint={clinicalData.chief_complaint}
+              transcript={clinicalData.original_transcript || liveTranscript}
+              userLanguage={userLanguage}
+              isElderly={isElderly}
+              patientInfo={patientProfile}
+            />
 
             {/* Tabs for SOAP Note vs Raw Native Voice Transcript */}
             <div className="result-tab-nav" role="tablist">

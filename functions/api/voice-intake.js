@@ -31,6 +31,16 @@ Respond strictly with valid JSON conforming to this schema:
     "dosha_imbalance": "string or null",
     "agni_status": "string or null"
   },
+  "hpi_details": {
+    "onset": "string or null",
+    "location": "string or null",
+    "duration": "string or null",
+    "character": "string or null",
+    "aggravating_factors": "string or null",
+    "relieving_factors": "string or null",
+    "timing": "string or null",
+    "severity_score": 1
+  },
   "triage_urgency": "RED_FLAG" | "URGENT" | "ROUTINE",
   "triage_reason": "string"
 }`;

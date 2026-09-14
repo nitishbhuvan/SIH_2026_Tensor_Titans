@@ -4,32 +4,32 @@
    ============================================================================ */
 
 :root {
-  /* ── Light Theme ── */
-  --bg-base: #F4F5F1;
+  /* ── Light Theme (Infused with Ayurvedic Herbal & Sage Green) ── */
+  --bg-base: #E8EFE8;
   --bg-surface: #FFFFFF;
-  --bg-surface-secondary: #ECEEE9;
-  --bg-surface-hover: #E8EAE4;
-  --navbar-bg: rgba(244, 245, 241, 0.92);
+  --bg-surface-secondary: #DDE7DD;
+  --bg-surface-hover: #D2E0D2;
+  --navbar-bg: rgba(232, 239, 232, 0.94);
   --navbar-btn-bg: #FFFFFF;
 
   --bg-texture: url('/textures/paper-seamless.jpg');
   --bg-texture-opacity: 0.28;
 
-  --border-default: #D7DAD3;
-  --border-strong: #B8BCB2;
-  --border-subtle: rgba(0, 0, 0, 0.06);
+  --border-default: #C8D6C8;
+  --border-strong: #A6BBA6;
+  --border-subtle: rgba(46, 75, 48, 0.08);
 
-  --text-primary: #181B18;
-  --text-secondary: #62665F;
-  --text-muted: #8A8E86;
+  --text-primary: #141D17;
+  --text-secondary: #4F5E52;
+  --text-muted: #798C7D;
 
-  --accent-primary: #526F8C;
-  --accent-primary-dark: #344E68;
-  --accent-primary-bg: #E8EEF4;
-  --accent-primary-border: #A8BFCF;
+  --accent-primary: #416B58;
+  --accent-primary-dark: #2B4E3E;
+  --accent-primary-bg: #DFECE2;
+  --accent-primary-border: #9BC0A7;
 
-  --accent-success: #667D59;
-  --accent-success-bg: #EDF2EA;
+  --accent-success: #527A45;
+  --accent-success-bg: #E1ECE0;
 
   --accent-warning: #A98245;
   --accent-warning-bg: #F5F0E5;
