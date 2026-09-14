@@ -60,27 +60,75 @@ img, svg {
   height: auto;
 }
 
-/* ── App Wrapper ── */
+/* ── App Wrapper with Paper Texture ── */
 .app-wrapper {
   min-height: 100vh;
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
   background-color: var(--bg-base);
+  position: relative;
+  isolation: isolate;
   transition: background-color 0.3s ease;
   width: 100%;
   overflow-x: hidden;
 }
 
+.app-wrapper::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  min-height: 100%;
+  background-image: var(--bg-texture, url('/textures/paper-seamless.jpg'));
+  background-size: 1100px 1100px;
+  background-repeat: repeat;
+  background-position: center top;
+  background-attachment: scroll;
+  opacity: var(--bg-texture-opacity, 0.28);
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  z-index: -1;
+  transition: opacity 0.3s ease;
+}
+
+[data-theme="dark"] .app-wrapper::before,
+body.dark-mode .app-wrapper::before {
+  opacity: 0.06;
+  mix-blend-mode: screen;
+  filter: invert(1) contrast(1.2);
+}
+
+/* ── Paper Texture Utility & Card Accents ── */
+.paper-texture-card {
+  position: relative;
+}
+
+.paper-texture-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: url('/textures/paper-texture.jpg');
+  background-size: 500px 500px;
+  opacity: 0.15;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
 /* ── Main Content ── */
 .main-content {
   flex: 1;
-  padding: clamp(1rem, 3vw, 2rem) 0 clamp(2rem, 4vw, 3rem);
+  padding: clamp(0.75rem, 2.5vw, 1.5rem) 0 clamp(1.5rem, 3.5vw, 2.5rem);
   width: 100%;
+  position: relative;
+  z-index: 1;
 }
 
 body.mode-elderly .main-content {
-  padding: clamp(1.35rem, 3.5vw, 2.5rem) 0 clamp(2.5rem, 5vw, 4rem);
+  padding: clamp(1rem, 3vw, 2rem) 0 clamp(2rem, 4vw, 3rem);
 }
 
 /* ── Focus Rings ── */
@@ -100,8 +148,8 @@ button:focus-visible {
   max-width: 1280px;
   margin-left: auto;
   margin-right: auto;
-  padding-left: clamp(1rem, 4vw, 2rem);
-  padding-right: clamp(1rem, 4vw, 2rem);
+  padding-left: clamp(0.75rem, 3.5vw, 1.75rem);
+  padding-right: clamp(0.75rem, 3.5vw, 1.75rem);
 }
 
 .container {
@@ -109,8 +157,8 @@ button:focus-visible {
   max-width: 960px;
   margin-left: auto;
   margin-right: auto;
-  padding-left: clamp(1rem, 3.5vw, 1.75rem);
-  padding-right: clamp(1rem, 3.5vw, 1.75rem);
+  padding-left: clamp(0.65rem, 3vw, 1.5rem);
+  padding-right: clamp(0.65rem, 3vw, 1.5rem);
 }
 
 /* ============================================================================
@@ -235,29 +283,88 @@ html.theme-transitioning .site-footer {
   transition-delay: 340ms !important;
 }
 
-/* ── Clinical Intake Module Switcher ── */
+/* ── Mobile-First Responsive Utilities ── */
+.hide-on-mobile {
+  display: block;
+}
+
+.show-on-mobile {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .hide-on-mobile {
+    display: none !important;
+  }
+  .show-on-mobile {
+    display: block !important;
+  }
+}
+
+/* ── Sticky Mobile Action Dock ── */
+.mobile-action-dock {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 45;
+  background: var(--bg-surface);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid var(--border-default);
+  padding: 0.75rem var(--container-padding-x) calc(0.75rem + var(--safe-bottom));
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+/* ── Clinical Intake Module Switcher (Mobile First) ── */
 .intake-module-switcher {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  margin: 1.5rem 0 1rem;
-  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  margin: 1.25rem 0 1rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  padding: 0.25rem 0.25rem 0.5rem;
+}
+
+.intake-module-switcher::-webkit-scrollbar {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .intake-module-switcher {
+    justify-content: center;
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
 }
 
 .module-switch-btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.45rem;
   background: var(--bg-surface-secondary);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  padding: 0.65rem 1.25rem;
-  font-size: 0.9rem;
+  border-radius: var(--radius-full);
+  padding: 0.6rem 1.15rem;
+  font-size: 0.86rem;
   font-weight: 600;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.2s ease;
+  white-space: nowrap;
+  scroll-snap-align: start;
+  flex-shrink: 0;
+  min-height: var(--touch-target-min, 44px);
+  touch-action: manipulation;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
 .module-switch-btn:hover {
@@ -265,18 +372,20 @@ html.theme-transitioning .site-footer {
   border-color: var(--accent-primary);
   color: var(--text-primary);
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
 .module-switch-btn.is-active {
   background: var(--btn-primary-bg);
   color: var(--btn-primary-text);
   border-color: var(--btn-primary-bg);
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.2);
+  box-shadow: 0 4px 14px rgba(52, 78, 104, 0.25);
 }
 
 body.mode-elderly .module-switch-btn {
-  font-size: 1.05rem;
-  padding: 0.85rem 1.5rem;
+  font-size: 1rem;
+  padding: 0.75rem 1.4rem;
+  min-height: 48px;
 }
 
 /* ============================================================================

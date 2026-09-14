@@ -34,6 +34,17 @@ const SEED_RECORDS = [
         dosha_imbalance: 'Pitta-Vata aggravation with Amlapitta manifestation',
         agni_status: 'Samagni with early Vishamagni tendency',
       },
+      hpi_details: {
+        onset: 'Started 2 days ago abruptly after dinner',
+        location: 'Retrosternal chest & Epigastric region (Radiates upward toward throat)',
+        duration: '2 days, worsening post-prandially',
+        character: 'Burning / Retrosternal Pyrosis with heaviness',
+        aggravating_factors: 'Worse after oily/spicy food and lying flat',
+        relieving_factors: 'Mildly relieved with cold water and sitting upright',
+        timing: 'Aggravated 1-2 hours after dinner',
+        severity_score: 8,
+        functional_impact: 'Disturbed sleep and anxiety'
+      },
       triage_urgency: 'RED_FLAG',
       triage_reason: 'Acute chest pain with burning quality in diabetic patient — cardiac aetiology must be excluded.',
     },
@@ -65,6 +76,17 @@ const SEED_RECORDS = [
       ayurvedic_factors: {
         dosha_imbalance: 'Vata-Kapha aggravation with Krura Koshtha presentation',
         agni_status: 'Mandagni (significantly diminished digestive fire)',
+      },
+      hpi_details: {
+        onset: 'Gradual onset 3 weeks ago',
+        location: 'Lower abdomen and diffuse gastrointestinal tract',
+        duration: '3 weeks progressive',
+        character: 'Sluggish motility, severe abdominal fullness and hard stools',
+        aggravating_factors: 'Heavy dry meals, sedentary routine',
+        relieving_factors: 'Triphala churna at bedtime and warm water',
+        timing: 'Worse upon waking in morning',
+        severity_score: 5,
+        functional_impact: 'Loss of appetite and abdominal discomfort'
       },
       triage_urgency: 'ROUTINE',
       triage_reason: 'Chronic non-acute constipation with Ayurvedic overlay — stable, no red-flag features.',
@@ -101,6 +123,17 @@ const SEED_RECORDS = [
         dosha_imbalance: 'Vata-dominant Sandhivata with Shleshaka Kapha depletion',
         agni_status: 'Vishamagni (irregular digestive fire)',
       },
+      hpi_details: {
+        onset: 'Started 2 weeks ago, worsening with cold weather',
+        location: 'Bilateral knee joints and periarticular tissue',
+        duration: '2 weeks continuous',
+        character: 'Deep throbbing ache, stiffness >30 minutes, joint crepitus',
+        aggravating_factors: 'Climbing stairs, prolonged standing, cold damp weather',
+        relieving_factors: 'Warm sesame oil application and hot fomentation',
+        timing: 'Most severe in morning upon waking and after prolonged sitting',
+        severity_score: 7,
+        functional_impact: 'Difficulty walking more than 100 meters'
+      },
       triage_urgency: 'URGENT',
       triage_reason: 'Elderly patient with progressive arthropathy — septic arthritis and fracture must be urgently excluded.',
     },
@@ -133,6 +166,17 @@ const SEED_RECORDS = [
         dosha_imbalance: 'Pitta-Vata aggravation with Ama accumulation',
         agni_status: 'Vishamagni with Ama formation',
       },
+      hpi_details: {
+        onset: '1 week ago following exposure to rain',
+        location: 'Frontal-temporal headache radiating to cervical occipital spine',
+        duration: '1 week persistent',
+        character: 'Pulsating throbbing cephalgia with high body heat',
+        aggravating_factors: 'Bright light, loud sounds, mental exertion',
+        relieving_factors: 'Dark quiet room, cold forehead compress, paracetamol',
+        timing: 'Worse during afternoon and evening',
+        severity_score: 7,
+        functional_impact: 'Unable to work on computer screen'
+      },
       triage_urgency: 'URGENT',
       triage_reason: 'Headache with neck pain and fever in young adult — meningitis must be urgently excluded.',
     },
@@ -164,12 +208,49 @@ function saveRecords(records) {
   window.dispatchEvent(new CustomEvent('preconsult_records_updated', { detail: records }));
 }
 
+export const URGENCY_WEIGHT = {
+  RED_FLAG: 1,
+  URGENT: 2,
+  ROUTINE: 3,
+};
+
 /**
- * Get all clinical records sorted by most recent first.
+ * Sorts clinical records primarily by triage urgency (RED_FLAG -> URGENT -> ROUTINE),
+ * keeping active patients prioritized, and using arrival timestamp as tie-breaker.
+ *
+ * @param {Array} records - Array of clinical record objects
+ * @returns {Array} Sorted copy of records
+ */
+export function sortRecordsByUrgency(records) {
+  if (!Array.isArray(records)) return [];
+  return [...records].sort((a, b) => {
+    // 1. Completed consultations appear after active ones
+    const aCompleted = a?.status === 'completed' ? 1 : 0;
+    const bCompleted = b?.status === 'completed' ? 1 : 0;
+    if (aCompleted !== bCompleted) {
+      return aCompleted - bCompleted;
+    }
+
+    // 2. Primary sort: Urgency level (RED_FLAG = 1, URGENT = 2, ROUTINE = 3, other = 4)
+    const aUrgency = URGENCY_WEIGHT[a?.intake?.triage_urgency] || 4;
+    const bUrgency = URGENCY_WEIGHT[b?.intake?.triage_urgency] || 4;
+    if (aUrgency !== bUrgency) {
+      return aUrgency - bUrgency;
+    }
+
+    // 3. Secondary tie-breaker: Arrival time (most recent first)
+    const aTime = new Date(a?.timestamp || 0).getTime();
+    const bTime = new Date(b?.timestamp || 0).getTime();
+    return bTime - aTime;
+  });
+}
+
+/**
+ * Get all clinical records sorted by urgency (RED_FLAG > URGENT > ROUTINE), then timestamp.
  */
 export function getClinicalRecords() {
   const records = getRecords();
-  return [...records].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  return sortRecordsByUrgency(records);
 }
 
 /**
@@ -187,6 +268,9 @@ export function addClinicalRecord(intakeData, patientInfo = {}) {
     status: 'pending',
     patientInfo: {
       name: patientInfo.name || 'Anonymous Patient',
+      abhaId: patientInfo.abhaId || '91-8765-4321-0987',
+      abhaAddress: patientInfo.abhaAddress || (patientInfo.name ? `${patientInfo.name.toLowerCase().replace(/\s+/g, '.')}@abdm` : 'patient@abdm'),
+      phone: patientInfo.phone || '+91 98765 43210',
       age: patientInfo.age || null,
       gender: patientInfo.gender || 'Unknown',
       language: patientInfo.language || 'en',
