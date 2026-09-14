@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Mic,
   MicOff,
@@ -19,13 +19,7 @@ import {
   ChevronRight,
   FileText,
   Lock,
-<<<<<<< HEAD
   X
-=======
-  X,
-  Send,
-  Edit3
->>>>>>> main
 } from 'lucide-react';
 import { VOICE_LANGUAGES } from '../translations.js';
 import { addClinicalRecord } from '../services/clinicalRecordsService.js';
@@ -96,7 +90,6 @@ export default function VoiceIntake({
   // Live real-time speech recognition state
   const [liveTranscript, setLiveTranscript] = useState('');
   const [interimText, setInterimText] = useState('');
-  const [isSpeechRecognitionSupported, setIsSpeechRecognitionSupported] = useState(true);
 
   // Microphone permission modal states
   const [showPermissionModal, setShowPermissionModal] = useState(false);
@@ -115,35 +108,7 @@ export default function VoiceIntake({
   const recognitionRef = useRef(null);
   const finalTranscriptAccumulatorRef = useRef('');
 
-  // Sync voice language when user changes global language
-  useEffect(() => {
-    if (userLanguage && userLanguage !== 'en') {
-      setSelectedVoiceLang(userLanguage);
-    }
-  }, [userLanguage]);
-
-<<<<<<< HEAD
-  function stopRecordingCleanup() {
-=======
-  // Clean up Web Audio and Timer on unmount
-  useEffect(() => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      setIsSpeechRecognitionSupported(false);
-    }
-
-    return () => {
-      stopRecordingCleanup();
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.stop();
-        } catch (_) {}
-      }
-    };
-  }, []);
-
-  const stopRecordingCleanup = () => {
->>>>>>> main
+  const stopRecordingCleanup = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
     if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
@@ -155,14 +120,26 @@ export default function VoiceIntake({
       } catch (_) {}
     }
     setAudioLevel(0);
-  }
+  }, []);
+
+  // Sync voice language when user changes global language
+  useEffect(() => {
+    if (userLanguage && userLanguage !== 'en') {
+      setSelectedVoiceLang(userLanguage);
+    }
+  }, [userLanguage]);
 
   // Clean up Web Audio and Timer on unmount
   useEffect(() => {
     return () => {
       stopRecordingCleanup();
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (_) {}
+      }
     };
-  }, []);
+  }, [stopRecordingCleanup]);
 
   // ── Handle Mic Click ──
   const handleMicButtonClick = async () => {

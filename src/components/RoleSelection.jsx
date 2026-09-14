@@ -1,5 +1,5 @@
 import React from 'react';
-import { Heart, Stethoscope, ChevronRight, Activity, Mic, Shield, Leaf } from 'lucide-react';
+import { Heart, Stethoscope, ChevronRight, Activity, Shield } from 'lucide-react';
 import ThemeToggle from './ThemeToggle.jsx';
 import './RoleSelection.css';
 

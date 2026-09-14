@@ -17,9 +17,7 @@ body.mode-elderly [role="button"] {
 }
 
 /* ── Elderly Mode: Stronger borders globally ── */
-body.mode-elderly .action-card,
 body.mode-elderly .hero-section,
-body.mode-elderly .mode-banner,
 body.mode-elderly .modal-box {
   border-width: 2px;
 }
