@@ -239,7 +239,7 @@ Electronically Signed by: Dr. S. K. Sharma, MD (Pathology)`
   }
 ];
 
-export default function MedicalOcr({ isElderly = false, t = {}, onNotify }) {
+export default function MedicalOcr({ isElderly = false, t = {}, onNotify, patientProfile }) {
   const [selectedPresetId, setSelectedPresetId] = useState(OCR_SAMPLE_PRESETS[0].id);
   const [customImageSrc, setCustomImageSrc] = useState(null);
   const [customImageName, setCustomImageName] = useState('');
@@ -249,6 +249,7 @@ export default function MedicalOcr({ isElderly = false, t = {}, onNotify }) {
   const [zoomLevel, setZoomLevel] = useState(1);
   const [isDragOver, setIsDragOver] = useState(false);
   const [transferredToDoctor, setTransferredToDoctor] = useState(false);
+  const [mobileOcrTab, setMobileOcrTab] = useState('data'); // 'image' | 'data'
 
   const fileInputRef = useRef(null);
 
@@ -386,7 +387,10 @@ Vitals noted: BP 130/84 mmHg, P 76/min.`
     };
 
     addClinicalRecord(intakePayload, {
-      name: extractedData.patient || 'OPD Patient',
+      name: extractedData.patient || patientProfile?.name || 'OPD Patient',
+      abhaId: patientProfile?.abhaId || '91-8765-4321-0987',
+      abhaAddress: patientProfile?.abhaAddress || 'patient@abdm',
+      phone: patientProfile?.phone || '+91 98765 43210',
       age: extractedData.patientAgeSex?.includes('58') ? 58 : extractedData.patientAgeSex?.includes('65') ? 65 : 45,
       gender: extractedData.patientAgeSex?.includes('Male') ? 'Male' : 'Female',
       language: 'en',
@@ -509,8 +513,28 @@ Vitals noted: BP 130/84 mmHg, P 76/min.`
           </div>
         </div>
 
+        {/* ── Mobile Tab Switcher (Image vs Digitized Data) ── */}
+        <div className="ocr-mobile-tab-switch show-on-mobile">
+          <button
+            type="button"
+            className={`ocr-mobile-tab-btn ${mobileOcrTab === 'image' ? 'is-active' : ''}`}
+            onClick={() => setMobileOcrTab('image')}
+          >
+            <ImageIcon size={15} />
+            <span>Prescription Image</span>
+          </button>
+          <button
+            type="button"
+            className={`ocr-mobile-tab-btn ${mobileOcrTab === 'data' ? 'is-active' : ''}`}
+            onClick={() => setMobileOcrTab('data')}
+          >
+            <FileText size={15} />
+            <span>Digitized Rx & Entities</span>
+          </button>
+        </div>
+
         {/* ── SPLIT VIEW: ORIGINAL PICTURE vs TRANSCRIBED DATA ── */}
-        <div className="ocr-split-container">
+        <div className={`ocr-split-container mobile-active-${mobileOcrTab}`}>
           {/* LEFT PANEL: Original Image Viewer */}
           <div className="ocr-split-panel ocr-viewer-panel">
             <div className="panel-header">

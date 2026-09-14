@@ -23,8 +23,8 @@ import {
   updateClinicalRecord,
   subscribeToRecords,
   getTriageSummary,
+  sortRecordsByUrgency,
 } from '../services/clinicalRecordsService.js';
-import { changeDoctorPassword } from '../services/doctorAuthService.js';
 import './DoctorPortal.css';
 
 const TRIAGE_ICONS = {
@@ -78,11 +78,6 @@ export default function DoctorPortal({ theme, onToggleTheme, onSwitchRole, docto
   const [rxMed, setRxMed] = useState('');
   const [rxDose, setRxDose] = useState('');
   const [rxFreq, setRxFreq] = useState('');
-  const [showPasswordPanel, setShowPasswordPanel] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmNewPassword, setConfirmNewPassword] = useState('');
-  const [passwordMessage, setPasswordMessage] = useState('');
 
   // Load records
   const refreshRecords = useCallback(() => {
@@ -94,7 +89,7 @@ export default function DoctorPortal({ theme, onToggleTheme, onSwitchRole, docto
   useEffect(() => {
     refreshRecords();
     const unsub = subscribeToRecords((updated) => {
-      const sorted = [...updated].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      const sorted = sortRecordsByUrgency(updated);
       setRecords(sorted);
       setSummary(getTriageSummary());
     });
@@ -165,28 +160,6 @@ export default function DoctorPortal({ theme, onToggleTheme, onSwitchRole, docto
     window.print();
   };
 
-  const handleChangePassword = async (event) => {
-    event.preventDefault();
-    setPasswordMessage('');
-    if (newPassword.length < 8) {
-      setPasswordMessage('New password must contain at least 8 characters.');
-      return;
-    }
-    if (newPassword !== confirmNewPassword) {
-      setPasswordMessage('New passwords do not match.');
-      return;
-    }
-    try {
-      await changeDoctorPassword(doctorProfile.username, currentPassword, newPassword);
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmNewPassword('');
-      setPasswordMessage('Password changed successfully.');
-    } catch (error) {
-      setPasswordMessage(error.message);
-    }
-  };
-
   return (
     <div className="doctor-portal">
       {/* ── Header ── */}
@@ -204,84 +177,33 @@ export default function DoctorPortal({ theme, onToggleTheme, onSwitchRole, docto
           <div className="dp-header-actions">
             <button
               type="button"
-              className="dp-switch-role-btn"
-              onClick={() => onSwitchRole('role-select')}
+              className="dp-doctor-profile"
+              onClick={() => onSwitchRole('doctor-profile')}
+              title="Click to view & edit Doctor Profile and ABDM HPR credentials"
+              aria-label="View Doctor Profile"
             >
-              <ArrowLeft size={14} />
-              Switch Role
-            </button>
-            <div className="dp-doctor-profile" aria-label="Signed-in doctor profile">
               <span className="dp-doctor-avatar">{doctorProfile?.name?.replace('Dr. ', '').charAt(0) || 'D'}</span>
               <span className="dp-doctor-profile-copy">
                 <strong>{doctorProfile?.name || 'Doctor'}</strong>
                 <small>{doctorProfile?.registration || 'Verified clinician'}</small>
               </span>
-            </div>
+            </button>
             <ThemeToggle theme={theme} onToggle={onToggleTheme} />
           </div>
         </div>
       </header>
 
-      <div className="dp-account-actions">
-        <span>Account settings</span>
-        <button type="button" className="dp-account-btn" onClick={() => setShowPasswordPanel((visible) => !visible)}>
-          Change Password
-        </button>
-        <button type="button" className="dp-account-btn dp-logout-btn" onClick={onLogout}>
-          Log Out
-        </button>
-      </div>
-
-      {showPasswordPanel && (
-        <form className="dp-password-panel" onSubmit={handleChangePassword}>
-          <strong>Change Password</strong>
-          <input type="password" placeholder="Current password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} required />
-          <input type="password" placeholder="New password (8+ characters)" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} required />
-          <input type="password" placeholder="Confirm new password" value={confirmNewPassword} onChange={(event) => setConfirmNewPassword(event.target.value)} required />
-          <button type="submit" className="dp-btn-save">Update Password</button>
-          {passwordMessage && <span className="dp-password-message">{passwordMessage}</span>}
-        </form>
-      )}
-
-      {/* ── Triage Metrics Bar ── */}
-      <div className="dp-metrics-bar" role="status" aria-label="OPD triage summary">
-        <div className="dp-metric metric-total">
-          <span className="dp-metric-value">{summary.total}</span>
-          <span className="dp-metric-label">Total</span>
-        </div>
-        <div className="dp-metrics-divider" />
-        <div className="dp-metric metric-redflag">
-          <AlertOctagon size={14} />
-          <span className="dp-metric-value">{summary.red_flag}</span>
-          <span className="dp-metric-label">Red Flag</span>
-        </div>
-        <div className="dp-metric metric-urgent">
-          <AlertTriangle size={14} />
-          <span className="dp-metric-value">{summary.urgent}</span>
-          <span className="dp-metric-label">Urgent</span>
-        </div>
-        <div className="dp-metric metric-routine">
-          <CheckCircle2 size={14} />
-          <span className="dp-metric-value">{summary.routine}</span>
-          <span className="dp-metric-label">Routine</span>
-        </div>
-        <div className="dp-metrics-divider" />
-        <div className="dp-metric metric-completed">
-          <span className="dp-metric-value">{summary.completed}</span>
-          <span className="dp-metric-label">Completed</span>
-        </div>
-        <div className="dp-live-badge">
-          <span className="dp-live-dot" />
-          Live Sync
-        </div>
-      </div>
-
-      {/* ── Main Layout ── */}
-      <div className="dp-main">
+      {/* ── Main Layout (Responsive Master-Detail on Mobile) ── */}
+      <div className={`dp-main ${selectedId ? 'has-selected-patient' : 'no-patient-selected'}`}>
         {/* ── Left: Triage Queue ── */}
         <aside className="dp-queue-panel">
           <div className="dp-queue-header">
-            <span className="dp-queue-title">OPD Triage Queue</span>
+            <div className="dp-queue-title-row">
+              <span className="dp-queue-title">OPD Triage Queue</span>
+              <span className="dp-queue-order-badge" title="Queue is prioritized by clinical urgency (Red Flag → Urgent → Routine)">
+                <AlertOctagon size={11} /> Urgency Priority
+              </span>
+            </div>
 
             {/* Search */}
             <div className="dp-search-wrap">
@@ -341,6 +263,11 @@ export default function DoctorPortal({ theme, onToggleTheme, onSwitchRole, docto
                       )}
                     </div>
                     <div className="dp-queue-item-meta">
+                      {rec.patientInfo?.abhaId && (
+                        <span style={{ color: 'var(--accent-primary)', fontWeight: 600, display: 'inline-block', marginRight: '0.3rem' }}>
+                          ABHA: {rec.patientInfo.abhaId} •{' '}
+                        </span>
+                      )}
                       {rec.patientInfo?.age && `${rec.patientInfo.age}yr `}
                       {rec.patientInfo?.gender} •{' '}
                       {rec.patientInfo?.languageLabel || rec.patientInfo?.language}
@@ -367,6 +294,20 @@ export default function DoctorPortal({ theme, onToggleTheme, onSwitchRole, docto
 
         {/* ── Right: Clinical Workspace ── */}
         <section className="dp-workspace">
+          {/* Mobile Back Button */}
+          {selectedRecord && (
+            <div className="dp-mobile-back-bar">
+              <button
+                type="button"
+                className="dp-mobile-back-btn"
+                onClick={() => setSelectedId(null)}
+              >
+                <ArrowLeft size={16} />
+                <span>← Back to Patient Queue</span>
+              </button>
+            </div>
+          )}
+
           {!selectedRecord ? (
             <div className="dp-workspace-empty">
               <FileText size={48} />
@@ -382,6 +323,11 @@ export default function DoctorPortal({ theme, onToggleTheme, onSwitchRole, docto
                     {selectedRecord.patientInfo?.name || 'Anonymous Patient'}
                     {selectedRecord.patientInfo?.isElderly && ' 🧓'}
                   </span>
+                  {selectedRecord.patientInfo?.abhaId && (
+                    <span className="dp-patient-details" style={{ color: 'var(--accent-success)', fontWeight: 700, background: 'rgba(21, 128, 61, 0.1)', padding: '0.15rem 0.5rem', borderRadius: 'var(--radius-full)' }}>
+                      🛡️ ABHA: {selectedRecord.patientInfo.abhaId}
+                    </span>
+                  )}
                   <span className="dp-patient-details">
                     {selectedRecord.patientInfo?.age && `${selectedRecord.patientInfo.age} yr`}
                     {selectedRecord.patientInfo?.gender && ` • ${selectedRecord.patientInfo.gender}`}
