@@ -48,6 +48,8 @@ export default function ModeSelectionModal({
     }
   }, [patientProfile, isOpen]);
 
+  const [previewingLangId, setPreviewingLangId] = useState(null);
+
   // Lock scroll & handle Escape key
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -69,7 +71,7 @@ export default function ModeSelectionModal({
 
   if (!isOpen) return null;
 
-  const [previewingLangId, setPreviewingLangId] = useState(null);
+  const t = translations[currentLanguage] || translations.en;
 
   const handlePreviewVoice = (e, langId) => {
     e.stopPropagation();
