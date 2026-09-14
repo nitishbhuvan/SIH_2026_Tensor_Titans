@@ -28,6 +28,7 @@ import { addClinicalRecord, updateClinicalRecord } from '../services/clinicalRec
 import { executeClientClinicalNLP } from '../services/clinicalNlpService.js';
 import { encodeWAV, resampleAudioBuffer } from '../utils/wavEncoder.js';
 import ClinicalFollowUp from './ClinicalFollowUp.jsx';
+import { VOICE_LANGUAGES } from '../translations.js';
 import './VoiceIntake.css';
 
 // Language locale mapping for SpeechRecognition API
@@ -43,6 +44,17 @@ const SPEECH_LANG_MAP = {
   pa: 'pa-IN',
   sa: 'hi-IN',
   en: 'en-IN'
+};
+
+const DETECTED_LANGUAGE_CODES = {
+  Hindi: 'hi',
+  Kannada: 'kn',
+  Tamil: 'ta',
+  Telugu: 'te',
+  Malayalam: 'ml',
+  Marathi: 'mr',
+  Bengali: 'bn',
+  English: 'en'
 };
 
 // Cross-platform audio format detector for Mobile (iOS Safari / Android Chrome) & Desktop
@@ -115,7 +127,9 @@ export default function VoiceIntake({
   onNotify,
   patientProfile
 }) {
-  const [selectedVoiceLang, setSelectedVoiceLang] = useState('auto');
+  const [selectedVoiceLang, setSelectedVoiceLang] = useState(() => (
+    SPEECH_LANG_MAP[userLanguage] ? userLanguage : 'en'
+  ));
 
   const [recordingState, setRecordingState] = useState('idle'); // 'idle' | 'recording' | 'transcribing' | 'analyzing' | 'success' | 'error'
   const [recordDuration, setRecordDuration] = useState(0);
@@ -807,6 +821,19 @@ RAW NATIVE PATIENT TRANSCRIPT:
         {/* Input Method Switcher & Recording Console (Visible when not viewing clinical summary) */}
         {!clinicalData && (
           <>
+            <div className="voice-language-selector">
+              <label htmlFor="voice-language-select">Questions and voice language</label>
+              <select
+                id="voice-language-select"
+                value={selectedVoiceLang}
+                onChange={(event) => setSelectedVoiceLang(event.target.value)}
+              >
+                {VOICE_LANGUAGES.map((language) => (
+                  <option key={language.id} value={language.id}>{language.nativeLabel} ({language.label})</option>
+                ))}
+              </select>
+              <span>AI follow-up questions will be spoken in this language.</span>
+            </div>
             <div style={{ display: 'flex', justifyContent: 'center' }}>
               <div className="intake-method-toggle-bar">
                 <button
@@ -1004,7 +1031,9 @@ RAW NATIVE PATIENT TRANSCRIPT:
         {clinicalData && followUpRecordId && !followUpComplete && (
           <ClinicalFollowUp
             clinicalData={clinicalData}
-            userLanguage={userLanguage}
+            userLanguage={selectedVoiceLang === 'auto'
+              ? (DETECTED_LANGUAGE_CODES[clinicalData.detected_language] || userLanguage)
+              : selectedVoiceLang}
             onComplete={handleFollowUpComplete}
           />
         )}

@@ -12,6 +12,8 @@
 .follow-up-speak-btn { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.55rem; border: 1px solid var(--border-default); border-radius: var(--radius-sm); color: var(--accent-primary); background: var(--bg-surface-secondary); font: 600 0.72rem var(--font-body); cursor: pointer; }
 .follow-up-question-card h4 { margin-top: 1rem; color: var(--text-primary); font-size: 1.1rem; }
 .follow-up-prompt { margin-top: 0.3rem; color: var(--text-secondary); line-height: 1.5; }
+.follow-up-start-voice { display: inline-flex; align-items: center; gap: 0.45rem; margin-top: 1rem; padding: 0.65rem 0.85rem; border: 0; border-radius: var(--radius-md); color: #fff; background: var(--accent-primary); font: 600 0.84rem var(--font-body); cursor: pointer; }
+.follow-up-start-voice:hover { background: var(--accent-primary-dark); }
 .follow-up-options { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
 .follow-up-options button { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.55rem 0.7rem; border: 1px solid var(--accent-primary-border); border-radius: 999px; color: var(--accent-primary-dark); background: var(--accent-primary-bg); font: 600 0.78rem var(--font-body); cursor: pointer; }
 .follow-up-options button:hover { color: #fff; background: var(--accent-primary); }

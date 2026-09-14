@@ -438,6 +438,46 @@ function clinicalApisPlugin(env) {
     name: 'clinical-apis-dev',
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
+        // ── /api/bhashini-tts ──
+        if (req.url?.startsWith('/api/bhashini-tts') && req.method === 'POST') {
+          try {
+            const chunks = [];
+            for await (const chunk of req) chunks.push(chunk);
+            const body = JSON.parse(Buffer.concat(chunks).toString('utf-8'));
+            const language = ['en', 'hi', 'kn', 'ta', 'te', 'ml'].includes(body.language) ? body.language : 'en';
+            const apiKey = env.BHASHINI_API_KEY || '';
+            const userId = env.BHASHINI_USER_ID || '';
+            const pipelineId = env.BHASHINI_PIPELINE_ID || '';
+            const serviceId = env.BHASHINI_TTS_SERVICE_ID || '';
+            if (!body.text || !apiKey || !userId || !pipelineId || !serviceId) {
+              res.statusCode = 503;
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ success: false, error: 'Bhashini TTS is not configured.' }));
+              return;
+            }
+            const bhashiniResponse = await fetch('https://dhruva-api.bhashini.gov.in/services/inference/pipeline', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', userID: userId, ulcaApiKey: apiKey },
+              body: JSON.stringify({
+                pipelineId,
+                pipelineTasks: [{ taskType: 'tts', config: { language: { sourceLanguage: language }, serviceId, gender: 'female', samplingRate: 8000 } }],
+                inputData: { input: [{ source: String(body.text) }] },
+              }),
+            });
+            const data = await bhashiniResponse.json();
+            const audio = data?.pipelineResponse?.find((item) => item.taskType === 'tts')?.audio?.[0];
+            res.statusCode = bhashiniResponse.ok && audio?.audioContent ? 200 : 502;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify(audio?.audioContent ? { success: true, audioContent: audio.audioContent, audioFormat: audio.audioFormat || 'wav' } : { success: false, error: 'Bhashini returned no audio.' }));
+            return;
+          } catch (error) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ success: false, error: error.message }));
+            return;
+          }
+        }
+
         // ── /api/voice-intake ──
         if (req.url?.startsWith('/api/voice-intake') && req.method === 'POST') {
           try {

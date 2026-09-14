@@ -1870,3 +1870,39 @@
 }
 
 
+.voice-language-selector {
+  display: grid;
+  grid-template-columns: auto minmax(170px, 240px) 1fr;
+  align-items: center;
+  gap: 0.65rem;
+  margin: 1rem auto;
+  max-width: 760px;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-secondary);
+}
+
+.voice-language-selector label {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.voice-language-selector select {
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  background: var(--bg-surface);
+  font: 0.82rem var(--font-body);
+}
+
+.voice-language-selector span {
+  color: var(--text-muted);
+  font-size: 0.74rem;
+}
+
+@media (max-width: 620px) {
+  .voice-language-selector { grid-template-columns: 1fr; }
+}
