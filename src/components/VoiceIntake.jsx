@@ -29,6 +29,7 @@ import { executeClientClinicalNLP } from '../services/clinicalNlpService.js';
 import { encodeWAV, resampleAudioBuffer } from '../utils/wavEncoder.js';
 import ClinicalFollowUp from './ClinicalFollowUp.jsx';
 import { VOICE_LANGUAGES } from '../translations.js';
+import { speakTextWithBhashini, stopCurrentSpeech, playLanguageSample, isSpeechPlaying } from '../services/bhashiniTtsService.js';
 import './VoiceIntake.css';
 
 // Language locale mapping for SpeechRecognition API
@@ -705,24 +706,63 @@ export default function VoiceIntake({
     }
   };
 
-  // ── Text-to-Speech (Read Aloud) ──
+  const [isReadingSummary, setIsReadingSummary] = useState(false);
+  const [isPlayingSample, setIsPlayingSample] = useState(false);
+
+  // ── Sample Voice Preview via Bhashini TTS ──
+  const handlePlayLanguageSample = () => {
+    if (isPlayingSample) {
+      stopCurrentSpeech();
+      setIsPlayingSample(false);
+      return;
+    }
+    const langObj = VOICE_LANGUAGES.find((l) => l.id === selectedVoiceLang) || { label: selectedVoiceLang, nativeLabel: selectedVoiceLang };
+    if (onNotify) onNotify(`Synthesizing voice greeting in ${langObj.nativeLabel} (${langObj.label}) via Bhashini Indic TTS…`, 'info');
+    setIsPlayingSample(true);
+
+    playLanguageSample(selectedVoiceLang, {
+      onStart: () => setIsPlayingSample(true),
+      onEnd: () => setIsPlayingSample(false),
+      onError: () => setIsPlayingSample(false)
+    });
+  };
+
+  // ── Text-to-Speech (Read Aloud via Bhashini) ──
   const handleSpeakAloud = () => {
     if (!clinicalData) return;
-    const textToSpeak =
-      activeTab === 'clinical'
-        ? `Chief complaint: ${clinicalData.chief_complaint}. Duration: ${clinicalData.duration}. Summary: ${clinicalData.translated_clinical_english}`
-        : clinicalData.original_transcript;
-
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(textToSpeak);
-      utterance.rate = 0.95;
-      utterance.pitch = 1.0;
-      window.speechSynthesis.speak(utterance);
-      if (onNotify) {
-        onNotify('Reading clinical summary aloud…', 'info');
-      }
+    if (isReadingSummary) {
+      stopCurrentSpeech();
+      setIsReadingSummary(false);
+      return;
     }
+
+    let targetLang = 'en';
+    let textToSpeak = '';
+
+    if (activeTab === 'clinical') {
+      targetLang = 'en';
+      textToSpeak = `Chief complaint: ${clinicalData.chief_complaint}. Duration: ${clinicalData.duration}. Summary: ${clinicalData.translated_clinical_english}`;
+    } else {
+      const detectedKey = Object.keys(DETECTED_LANGUAGE_CODES).find(
+        (k) => (clinicalData.detected_language || '').toLowerCase().includes(k.toLowerCase())
+      );
+      const detectedCode = detectedKey ? DETECTED_LANGUAGE_CODES[detectedKey] : null;
+      targetLang = detectedCode || (selectedVoiceLang !== 'auto' ? selectedVoiceLang : userLanguage) || 'hi';
+      textToSpeak = clinicalData.original_transcript || clinicalData.chief_complaint;
+    }
+
+    setIsReadingSummary(true);
+    speakTextWithBhashini({
+      text: textToSpeak,
+      language: targetLang,
+      gender: 'female',
+      onStart: () => {
+        setIsReadingSummary(true);
+        if (onNotify) onNotify(`Reading ${activeTab === 'clinical' ? 'clinical note (English)' : `patient transcript (${targetLang.toUpperCase()})`} via Bhashini Indic TTS…`, 'info');
+      },
+      onEnd: () => setIsReadingSummary(false),
+      onError: () => setIsReadingSummary(false)
+    });
   };
 
   // ── Copy Clinical SOAP Note ──
@@ -822,17 +862,38 @@ RAW NATIVE PATIENT TRANSCRIPT:
         {!clinicalData && (
           <>
             <div className="voice-language-selector">
-              <label htmlFor="voice-language-select">Questions and voice language</label>
-              <select
-                id="voice-language-select"
-                value={selectedVoiceLang}
-                onChange={(event) => setSelectedVoiceLang(event.target.value)}
+              <div className="voice-lang-left">
+                <label htmlFor="voice-language-select">
+                  <Volume2 size={16} />
+                  <span>Spoken Voice Language:</span>
+                </label>
+                <select
+                  id="voice-language-select"
+                  value={selectedVoiceLang}
+                  onChange={(event) => {
+                    const newLang = event.target.value;
+                    setSelectedVoiceLang(newLang);
+                    if (isPlayingSample) {
+                      stopCurrentSpeech();
+                      setIsPlayingSample(false);
+                    }
+                  }}
+                >
+                  {VOICE_LANGUAGES.map((language) => (
+                    <option key={language.id} value={language.id}>{language.nativeLabel} ({language.label})</option>
+                  ))}
+                </select>
+              </div>
+              <button
+                type="button"
+                className={`voice-sample-btn ${isPlayingSample ? 'is-playing' : ''}`}
+                onClick={handlePlayLanguageSample}
+                title="Listen to sample voice greeting in selected language with Bhashini Indic TTS"
               >
-                {VOICE_LANGUAGES.map((language) => (
-                  <option key={language.id} value={language.id}>{language.nativeLabel} ({language.label})</option>
-                ))}
-              </select>
-              <span>AI follow-up questions will be spoken in this language.</span>
+                <Volume2 size={15} />
+                <span>{isPlayingSample ? 'Speaking Bhashini TTS…' : '🔊 Listen Sample Voice'}</span>
+              </button>
+              <span className="voice-lang-hint">Bhashini Indic AI will articulate medical queries & spoken voice in this language.</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'center' }}>
               <div className="intake-method-toggle-bar">
