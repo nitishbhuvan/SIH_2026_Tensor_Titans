@@ -1,5 +1,5 @@
 import React from 'react';
-import { Heart, Stethoscope, ChevronRight, Activity, Mic, Shield } from 'lucide-react';
+import { Heart, Stethoscope, ChevronRight, Activity, Mic, Shield, Leaf } from 'lucide-react';
 import ThemeToggle from './ThemeToggle.jsx';
 import './RoleSelection.css';
 
@@ -8,8 +8,25 @@ export default function RoleSelection({ theme, onToggleTheme, onSelectRole }) {
     <div className="role-selection-page">
       {/* Fixed Top Bar */}
       <header className="rs-topbar">
-        <span className="rs-topbar-brand">PreConsult</span>
-        <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+        <button
+          type="button"
+          className="rs-topbar-brand rs-brand-btn"
+          onClick={() => onSelectRole('intro')}
+          title="Return to Intro Animation"
+        >
+          PreConsult
+        </button>
+        <div className="rs-topbar-actions">
+          <button
+            type="button"
+            className="rs-topbar-intro-btn"
+            onClick={() => onSelectRole('intro')}
+            title="Play Intro Animation"
+          >
+            ✨ Intro Animation
+          </button>
+          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+        </div>
       </header>
 
       <div className="rs-topbar-spacer" />
@@ -17,9 +34,14 @@ export default function RoleSelection({ theme, onToggleTheme, onSelectRole }) {
       <div className="role-selection-inner">
         {/* Brand / Logo */}
         <div className="rs-brand-area">
-          <div className="rs-brand-logo">
+          <button
+            type="button"
+            className="rs-brand-logo rs-brand-btn"
+            onClick={() => onSelectRole('intro')}
+            title="Return to Intro Animation"
+          >
             Pre<span>Consult</span>
-          </div>
+          </button>
           <p className="rs-brand-tagline">
             Integrated Digital Pre-Consultation Platform • SIH 2026 — Tensor Titans
           </p>
@@ -55,25 +77,25 @@ export default function RoleSelection({ theme, onToggleTheme, onSelectRole }) {
             <ul className="rs-card-features">
               <li>
                 <span className="rs-feature-dot" />
+                AYUSETU 25-Section Adaptive Questionnaire (Dashavidha Pariksha &amp; Ahara-Vihara)
+              </li>
+              <li>
+                <span className="rs-feature-dot" />
                 Multilingual Indic Voice Symptom Intake (Hindi, Kannada, Tamil, Telugu &amp; more)
               </li>
               <li>
                 <span className="rs-feature-dot" />
-                Elderly-accessible mode with large text &amp; high contrast
+                Prescription &amp; Lab Document OCR Digitizer with automated extraction
               </li>
               <li>
                 <span className="rs-feature-dot" />
-                AI-powered SOAP note generation with Ayurvedic term preservation
-              </li>
-              <li>
-                <span className="rs-feature-dot" />
-                Emergency helpline &amp; OPD consultation booking
+                Elderly-accessible mode with large text, high contrast &amp; audio read-aloud
               </li>
             </ul>
 
             <span className="rs-card-cta">
-              <Mic size={15} />
-              Enter as Patient
+              <Heart size={15} />
+              Enter Patient Portal
               <ChevronRight size={15} />
             </span>
           </button>
@@ -101,7 +123,7 @@ export default function RoleSelection({ theme, onToggleTheme, onSelectRole }) {
               </li>
               <li>
                 <span className="rs-feature-dot" />
-                Structured SOAP notes from patient voice intake in seconds
+                Structured SOAP notes and Dashavidha Pariksha profiles in seconds
               </li>
               <li>
                 <span className="rs-feature-dot" />

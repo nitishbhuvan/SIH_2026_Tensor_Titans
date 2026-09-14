@@ -401,6 +401,88 @@
   margin: 0;
 }
 
+/* ── Live Speech Card ── */
+.live-speech-card {
+  width: 100%;
+  max-width: 620px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  padding: 1rem 1.25rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  text-align: left;
+  animation: fadeInDown 0.25s ease;
+}
+
+.live-speech-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--accent-primary);
+  margin-bottom: 0.5rem;
+}
+
+.live-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-emergency);
+  animation: blinkDot 0.8s infinite;
+}
+
+.live-speech-body {
+  min-height: 54px;
+}
+
+.live-speech-text {
+  font-size: 1.05rem;
+  line-height: 1.5;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.final-text {
+  font-weight: 500;
+}
+
+.interim-text {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.live-speech-placeholder {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  font-style: italic;
+  margin: 0;
+}
+
+.processed-snippet-box {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  max-width: 540px;
+  font-size: 0.85rem;
+  text-align: left;
+}
+
+.processed-snippet-box span {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-family: var(--font-mono);
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.processed-snippet-box p {
+  margin: 0;
+  color: var(--text-primary);
+  font-style: italic;
+}
+
 /* ── Processing State ── */
 .processing-indicator {
   display: flex;

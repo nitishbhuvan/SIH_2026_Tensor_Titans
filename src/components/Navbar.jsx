@@ -68,7 +68,7 @@ export default function Navbar({
               </span>
             </button>
 
-            {/* Doctor Portal Link */}
+            {/* Switch Role Link */}
             {onSwitchRole && (
               <button
                 type="button"
