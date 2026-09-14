@@ -129,6 +129,13 @@ export default function VoiceIntake({
   const [interimText, setInterimText] = useState('');
   const [transcribeElapsedSec, setTranscribeElapsedSec] = useState(0);
 
+  // Sync selected voice language when user changes preferred language
+  useEffect(() => {
+    if (userLanguage && userLanguage !== 'en') {
+      setSelectedVoiceLang(userLanguage);
+    }
+  }, [userLanguage]);
+
   // Microphone permission modal states
   const [showPermissionModal, setShowPermissionModal] = useState(false);
   const [permissionBlocked, setPermissionBlocked] = useState(false);
