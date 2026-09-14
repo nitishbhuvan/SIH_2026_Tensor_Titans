@@ -4,7 +4,7 @@
   display: grid;
   place-items: center;
   padding: 1.5rem;
-  background: var(--bg-base);
+  background: transparent;
 }
 
 .doctor-login-card {
@@ -151,4 +151,32 @@
   background: transparent;
   font: 600 0.82rem var(--font-body);
   cursor: pointer;
+  min-height: 44px;
+  touch-action: manipulation;
+}
+
+@media (max-width: 480px) {
+  .doctor-login-page {
+    padding: 1rem 0.75rem;
+    align-items: center;
+  }
+
+  .doctor-login-card {
+    padding: 1.5rem 1.15rem;
+    border-radius: var(--radius-lg);
+  }
+
+  .doctor-login-card h1 {
+    font-size: 1.45rem;
+  }
+
+  .doctor-login-input-wrap,
+  .doctor-login-form > input {
+    min-height: 48px;
+  }
+
+  .doctor-login-submit {
+    min-height: 50px;
+    font-size: 0.95rem;
+  }
 }

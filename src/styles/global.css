@@ -3,9 +3,7 @@
    Reset, base elements, containers, and theme transitions
    ============================================================================ */
 
-*,
-*::before,
-*::after {
+*, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -48,8 +46,7 @@ body {
   flex-direction: column;
 }
 
-a,
-button {
+a, button {
   touch-action: manipulation;
 }
 
@@ -58,33 +55,80 @@ a {
   text-decoration: none;
 }
 
-img,
-svg {
+img, svg {
   max-width: 100%;
   height: auto;
 }
 
-/* ── App Wrapper ── */
+/* ── App Wrapper with Paper Texture ── */
 .app-wrapper {
   min-height: 100vh;
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
   background-color: var(--bg-base);
+  position: relative;
+  isolation: isolate;
   transition: background-color 0.3s ease;
   width: 100%;
   overflow-x: hidden;
 }
 
+.app-wrapper::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  min-height: 100%;
+  background-image: var(--bg-texture, url('/textures/paper-seamless.jpg'));
+  background-size: 1100px 1100px;
+  background-repeat: repeat;
+  background-position: center top;
+  background-attachment: scroll;
+  opacity: var(--bg-texture-opacity, 0.28);
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  z-index: -1;
+  transition: opacity 0.3s ease;
+}
+
+[data-theme="dark"] .app-wrapper::before,
+body.dark-mode .app-wrapper::before {
+  opacity: 0.06;
+  mix-blend-mode: screen;
+  filter: invert(1) contrast(1.2);
+}
+
+/* ── Paper Texture Utility & Card Accents ── */
+.paper-texture-card {
+  position: relative;
+}
+
+.paper-texture-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: url('/textures/paper-texture.jpg');
+  background-size: 500px 500px;
+  opacity: 0.15;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
 /* ── Main Content ── */
 .main-content {
   flex: 1;
-  padding: clamp(1rem, 3vw, 2rem) 0 clamp(2rem, 4vw, 3rem);
+  padding: clamp(0.75rem, 2.5vw, 1.5rem) 0 clamp(1.5rem, 3.5vw, 2.5rem);
   width: 100%;
+  position: relative;
+  z-index: 1;
 }
 
 body.mode-elderly .main-content {
-  padding: clamp(1.35rem, 3.5vw, 2.5rem) 0 clamp(2.5rem, 5vw, 4rem);
+  padding: clamp(1rem, 3vw, 2rem) 0 clamp(2rem, 4vw, 3rem);
 }
 
 /* ── Focus Rings ── */
@@ -104,8 +148,8 @@ button:focus-visible {
   max-width: 1280px;
   margin-left: auto;
   margin-right: auto;
-  padding-left: clamp(1rem, 4vw, 2rem);
-  padding-right: clamp(1rem, 4vw, 2rem);
+  padding-left: clamp(0.75rem, 3.5vw, 1.75rem);
+  padding-right: clamp(0.75rem, 3.5vw, 1.75rem);
 }
 
 .container {
@@ -113,8 +157,8 @@ button:focus-visible {
   max-width: 960px;
   margin-left: auto;
   margin-right: auto;
-  padding-left: clamp(1rem, 3.5vw, 1.75rem);
-  padding-right: clamp(1rem, 3.5vw, 1.75rem);
+  padding-left: clamp(0.65rem, 3vw, 1.5rem);
+  padding-right: clamp(0.65rem, 3vw, 1.5rem);
 }
 
 /* ============================================================================
@@ -136,7 +180,6 @@ button:focus-visible {
   0% {
     clip-path: inset(0 0 100% 0);
   }
-
   100% {
     clip-path: inset(0 0 0 0);
   }
@@ -157,13 +200,13 @@ button:focus-visible {
 .theme-sweep-bar.to-dark {
   background: linear-gradient(90deg, var(--accent-primary-dark, #344E68), var(--accent-primary, #7E9FBE), #FFFFFF, var(--accent-primary, #7E9FBE), var(--accent-primary-dark, #344E68));
   box-shadow: 0 0 12px 2px rgba(82, 111, 140, 0.7),
-    0 0 32px 8px rgba(126, 159, 190, 0.35);
+              0 0 32px 8px rgba(126, 159, 190, 0.35);
 }
 
 .theme-sweep-bar.to-light {
   background: linear-gradient(90deg, var(--accent-warning, #A98245), #E8C97A, #FFFFFF, #E8C97A, var(--accent-warning, #A98245));
   box-shadow: 0 0 12px 2px rgba(169, 130, 69, 0.7),
-    0 0 32px 8px rgba(194, 160, 97, 0.35);
+              0 0 32px 8px rgba(194, 160, 97, 0.35);
 }
 
 .theme-sweep-bar::before {
@@ -190,17 +233,14 @@ button:focus-visible {
     opacity: 0;
     transform: scaleX(0.96);
   }
-
   10% {
     opacity: 1;
     transform: scaleX(1);
   }
-
   90% {
     opacity: 1;
     transform: scaleX(1);
   }
-
   100% {
     top: 100vh;
     opacity: 0;
@@ -214,37 +254,31 @@ html.theme-transitioning *,
 html.theme-transitioning *::before,
 html.theme-transitioning *::after {
   transition: background-color 0.35s cubic-bezier(0.16, 1, 0.3, 1),
-    color 0.3s ease,
-    border-color 0.3s ease,
-    box-shadow 0.35s ease,
-    fill 0.3s ease,
-    stroke 0.3s ease !important;
+              color 0.3s ease,
+              border-color 0.3s ease,
+              box-shadow 0.35s ease,
+              fill 0.3s ease,
+              stroke 0.3s ease !important;
 }
 
 html.theme-transitioning .navbar-wrapper {
   transition-delay: 0ms !important;
 }
-
 html.theme-transitioning .mode-banner {
   transition-delay: 60ms !important;
 }
-
 html.theme-transitioning .hero-section {
   transition-delay: 120ms !important;
 }
-
 html.theme-transitioning .service-grid .action-card:nth-child(1) {
   transition-delay: 180ms !important;
 }
-
 html.theme-transitioning .service-grid .action-card:nth-child(2) {
   transition-delay: 220ms !important;
 }
-
 html.theme-transitioning .service-grid .action-card:nth-child(3) {
   transition-delay: 260ms !important;
 }
-
 html.theme-transitioning .site-footer {
   transition-delay: 340ms !important;
 }
@@ -262,7 +296,6 @@ html.theme-transitioning .site-footer {
   .hide-on-mobile {
     display: none !important;
   }
-
   .show-on-mobile {
     display: block !important;
   }
@@ -359,10 +392,7 @@ body.mode-elderly .module-switch-btn {
    REDUCED MOTION
    ============================================================================ */
 @media (prefers-reduced-motion: reduce) {
-
-  *,
-  *::before,
-  *::after {
+  *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

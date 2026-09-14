@@ -209,25 +209,7 @@ export default function DoctorProfile({
           </div>
 
           <div className="doc-header-actions">
-            {onSwitchRole && (
-              <button
-                type="button"
-                className="doc-switch-role-btn"
-                onClick={() => onSwitchRole('intro')}
-              >
-                Exit / Switch Role
-              </button>
-            )}
             <ThemeToggle theme={currentTheme} onToggle={onToggleTheme} />
-            <button
-              type="button"
-              className="doc-logout-btn"
-              onClick={onLogout}
-              aria-label="Log Out Doctor Session"
-            >
-              <LogOut size={15} />
-              <span>Log Out</span>
-            </button>
           </div>
         </div>
       </header>
@@ -799,14 +781,38 @@ export default function DoctorProfile({
 
             {/* Bottom Floating/Sticky Action Bar */}
             <div className="doc-form-actions-bar">
-              <button
-                type="button"
-                className="doc-btn-secondary"
-                onClick={onBack}
-              >
-                <ArrowLeft size={14} />
-                <span>Return to OPD Queue</span>
-              </button>
+              <div className="doc-form-actions-left">
+                <button
+                  type="button"
+                  className="doc-btn-secondary"
+                  onClick={onBack}
+                >
+                  <ArrowLeft size={14} />
+                  <span>Return to OPD Queue</span>
+                </button>
+                {onSwitchRole && (
+                  <button
+                    type="button"
+                    className="doc-btn-secondary"
+                    onClick={() => onSwitchRole('intro')}
+                    title="Exit Doctor Portal and Switch Role"
+                  >
+                    <ArrowLeft size={14} />
+                    <span>Exit / Switch Role</span>
+                  </button>
+                )}
+                {onLogout && (
+                  <button
+                    type="button"
+                    className="doc-btn-secondary doc-btn-logout-action"
+                    onClick={onLogout}
+                    title="Log Out Doctor Session"
+                  >
+                    <LogOut size={14} />
+                    <span>Log Out</span>
+                  </button>
+                )}
+              </div>
 
               <div className="doc-form-actions-right">
                 {saveSuccess && (

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { flushSync } from 'react-dom';
-import { Mic, FileText, Activity, Leaf } from 'lucide-react';
 import Navbar from './components/Navbar.jsx';
 import ModeSelectionModal from './components/ModeSelectionModal.jsx';
 import ProfilePage from './components/ProfilePage.jsx';
@@ -10,11 +9,15 @@ import MedicalOcr from './components/MedicalOcr.jsx';
 import AyusetuIntakeMode from './components/AyusetuIntakeMode.jsx';
 import ToastContainer from './components/Toast.jsx';
 import Footer from './components/Footer.jsx';
-import RoleSelection from './components/RoleSelection.jsx';
 import DoctorPortal from './components/DoctorPortal.jsx';
-import DoctorLogin, { DEMO_DOCTOR_PROFILE } from './components/DoctorLogin.jsx';
+import DoctorProfile from './components/DoctorProfile.jsx';
+import DoctorLogin from './components/DoctorLogin.jsx';
 import MedicalIntro from './components/MedicalIntro.jsx';
 import { translations } from './translations.js';
+import {
+  DEFAULT_DOCTOR_PROFILE,
+  saveDoctorProfile as persistDoctorProfile
+} from './services/doctorAuthService.js';
 import {
   getPatientProfile,
   savePatientProfile,
@@ -32,19 +35,12 @@ let toastIdCounter = 0;
 
 function getInitialRole() {
   const hash = window.location.hash.toLowerCase();
+  if (hash === '#/doctor-profile' || hash === '#doctor-profile' || hash === '#/doctor/profile' || hash === '#doctor/profile') return 'doctor-profile';
   if (hash === '#/doctor' || hash === '#doctor') return 'doctor';
   if (hash === '#/profile' || hash === '#profile') return 'profile';
   if (hash === '#/patient' || hash === '#patient' || hash === '#/ayusetu' || hash === '#ayusetu' || hash === '#/ayush' || hash === '#ayush') return 'patient';
-  if (hash === '#/role-select' || hash === '#role-select') return 'role-select';
-  if (hash === '#/intro' || hash === '#intro') return 'intro';
 
-  // Returning user: If role is saved in storage, directly enter their role without showing intro
-  const savedRole = localStorage.getItem(ROLE_STORAGE_KEY);
-  if (savedRole === 'patient' || savedRole === 'doctor') {
-    return savedRole;
-  }
-
-  // First visit / logged out: Default to animated intro screen
+  // Default: Always start from the animated medical intro screen
   return 'intro';
 }
 
@@ -55,7 +51,7 @@ function getInitialIntakeModule() {
 }
 
 export default function App() {
-  // Current active view / role: 'intro' | 'role-select' | 'patient' | 'doctor'
+  // Current active view / role: 'intro' | 'patient' | 'doctor' | 'profile' | 'doctor-profile'
   const [currentRole, setCurrentRole] = useState(getInitialRole);
 
   // Active intake module in Patient portal: 'ayusetu' | 'voice' | 'ocr' | 'all'
@@ -111,7 +107,9 @@ export default function App() {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.toLowerCase();
-      if (hash === '#/doctor' || hash === '#doctor') {
+      if (hash === '#/doctor-profile' || hash === '#doctor-profile' || hash === '#/doctor/profile' || hash === '#doctor/profile') {
+        setCurrentRole('doctor-profile');
+      } else if (hash === '#/doctor' || hash === '#doctor') {
         setCurrentRole('doctor');
       } else if (hash === '#/profile' || hash === '#profile') {
         setCurrentRole('profile');
@@ -120,15 +118,8 @@ export default function App() {
         setActiveIntakeModule('ayusetu');
       } else if (hash === '#/patient' || hash === '#patient') {
         setCurrentRole('patient');
-      } else if (hash === '#/role-select' || hash === '#role-select') {
-        setCurrentRole('role-select');
-      } else if (hash === '#/intro' || hash === '#intro' || hash === '' || hash === '#/') {
-        const savedRole = localStorage.getItem(ROLE_STORAGE_KEY);
-        if (savedRole === 'patient' || savedRole === 'doctor') {
-          setCurrentRole(savedRole);
-        } else {
-          setCurrentRole('intro');
-        }
+      } else if (hash === '#/intro' || hash === '#intro' || hash === '' || hash === '#/' || hash === '#') {
+        setCurrentRole('intro');
       }
     };
 
@@ -152,6 +143,9 @@ export default function App() {
       window.location.hash = '#/doctor';
       localStorage.setItem(ROLE_STORAGE_KEY, 'doctor');
       setCurrentRole('doctor');
+    } else if (role === 'doctor-profile') {
+      window.location.hash = '#/doctor-profile';
+      setCurrentRole('doctor-profile');
     } else if (role === 'profile') {
       window.location.hash = '#/profile';
       setCurrentRole('profile');
@@ -173,12 +167,9 @@ export default function App() {
         const el = document.getElementById('ayusetu-intake-section');
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 80);
-    } else if (role === 'intro') {
+    } else {
       window.location.hash = '#/intro';
       setCurrentRole('intro');
-    } else {
-      window.location.hash = '#/role-select';
-      setCurrentRole('role-select');
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -266,6 +257,12 @@ export default function App() {
     addToast('Profile & ABHA details saved.', 'success');
   };
 
+  // ── Doctor Profile Update Handler ──
+  const handleSaveDoctorProfile = (updatedProfile) => {
+    const saved = persistDoctorProfile(updatedProfile);
+    setDoctorSession(saved);
+  };
+
   // ── Patient Onboarding Complete (Step 1 -> 2 -> 3) ──
   const handleCompleteOnboarding = (profileData) => {
     const saved = savePatientProfile(profileData);
@@ -323,22 +320,7 @@ export default function App() {
       <MedicalIntro
         onEnterPatient={() => navigateToRole('patient')}
         onEnterDoctor={() => navigateToRole('doctor')}
-        onSkip={() => navigateToRole('role-select')}
       />
-    );
-  }
-
-  // ── Render Role Gate View ──
-  if (currentRole === 'role-select') {
-    return (
-      <div className={`app-wrapper ${theme === 'dark' ? 'theme-dark' : 'theme-light'}`}>
-        <RoleSelection
-          theme={theme}
-          onToggleTheme={handleToggleTheme}
-          onSelectRole={navigateToRole}
-        />
-        <ToastContainer toasts={toasts} onDismiss={dismissToast} />
-      </div>
     );
   }
 
@@ -353,7 +335,7 @@ export default function App() {
               localStorage.setItem(ROLE_STORAGE_KEY, 'doctor');
               setDoctorSession(profile);
             }}
-            onBack={() => navigateToRole('role-select')}
+            onBack={() => navigateToRole('intro')}
           />
           <ToastContainer toasts={toasts} onDismiss={dismissToast} />
         </div>
@@ -366,8 +348,43 @@ export default function App() {
           theme={theme}
           onToggleTheme={handleToggleTheme}
           onSwitchRole={navigateToRole}
-          doctorProfile={doctorSession || DEMO_DOCTOR_PROFILE}
+          doctorProfile={doctorSession || DEFAULT_DOCTOR_PROFILE}
           onLogout={handleLogout}
+        />
+        <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+      </div>
+    );
+  }
+
+  // ── Render Doctor Profile & ABDM HPR Page ──
+  if (currentRole === 'doctor-profile') {
+    if (!doctorSession) {
+      return (
+        <div className={`app-wrapper ${theme === 'dark' ? 'theme-dark' : 'theme-light'}`}>
+          <DoctorLogin
+            onLogin={(profile) => {
+              localStorage.setItem(DOCTOR_SESSION_KEY, JSON.stringify(profile));
+              localStorage.setItem(ROLE_STORAGE_KEY, 'doctor');
+              setDoctorSession(profile);
+            }}
+            onBack={() => navigateToRole('intro')}
+          />
+          <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+        </div>
+      );
+    }
+
+    return (
+      <div className={`app-wrapper ${theme === 'dark' ? 'theme-dark' : 'theme-light'}`}>
+        <DoctorProfile
+          doctorProfile={doctorSession || DEFAULT_DOCTOR_PROFILE}
+          onSaveProfile={handleSaveDoctorProfile}
+          onLogout={handleLogout}
+          onBack={() => navigateToRole('doctor')}
+          onSwitchRole={navigateToRole}
+          currentTheme={theme}
+          onToggleTheme={handleToggleTheme}
+          onNotify={(msg, type) => addToast(msg, type)}
         />
         <ToastContainer toasts={toasts} onDismiss={dismissToast} />
       </div>
@@ -435,42 +452,6 @@ export default function App() {
             onOcrIntake={scrollToOcrIntake}
           />
 
-          {/* Clinical Module Switcher */}
-          <div className="intake-module-switcher">
-            <button
-              type="button"
-              className={`module-switch-btn ${activeIntakeModule === 'ayusetu' ? 'is-active' : ''}`}
-              onClick={() => setActiveIntakeModule('ayusetu')}
-            >
-              <Leaf size={18} style={{ color: '#16A34A' }} />
-              <span>{isElderly ? 'पूर्व-परामर्श (Pre-Consultation)' : 'Pre-Consultation'}</span>
-            </button>
-            <button
-              type="button"
-              className={`module-switch-btn ${activeIntakeModule === 'voice' ? 'is-active' : ''}`}
-              onClick={() => setActiveIntakeModule('voice')}
-            >
-              <Mic size={18} />
-              <span>{isElderly ? 'माइक से लक्षण बताएं (Voice Intake)' : 'Multilingual Voice Intake'}</span>
-            </button>
-            <button
-              type="button"
-              className={`module-switch-btn ${activeIntakeModule === 'ocr' ? 'is-active' : ''}`}
-              onClick={() => setActiveIntakeModule('ocr')}
-            >
-              <FileText size={18} />
-              <span>{isElderly ? 'दवा पर्ची स्कैन करें (Prescription OCR)' : 'Prescription & Lab OCR Digitizer'}</span>
-            </button>
-            <button
-              type="button"
-              className={`module-switch-btn ${activeIntakeModule === 'all' ? 'is-active' : ''}`}
-              onClick={() => setActiveIntakeModule('all')}
-            >
-              <Activity size={18} />
-              <span>View All Clinical Tools</span>
-            </button>
-          </div>
-
           {/* Module 0: Pre-Consultation Protocol with Dashavidha Pariksha & Dataset Explorer */}
           {(activeIntakeModule === 'ayusetu' || activeIntakeModule === 'all') && (
             <div id="ayusetu-intake-section">
@@ -480,7 +461,7 @@ export default function App() {
                 patientProfile={patientProfile}
                 onNotify={(msg, type) => addToast(msg, type)}
                 onSwitchToDoctor={() => navigateToRole('doctor')}
-                onBackToMain={() => navigateToRole('role-select')}
+                onBackToMain={() => navigateToRole('intro')}
               />
             </div>
           )}
