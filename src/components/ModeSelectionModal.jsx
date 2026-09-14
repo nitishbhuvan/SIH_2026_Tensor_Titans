@@ -141,7 +141,7 @@ export default function ModeSelectionModal({
               onClick={() => handleGoToStep('language')}
               aria-selected={step === 'language'}
             >
-              01 LANGUAGE
+              {t.step1Pill || '01 LANGUAGE'}
             </button>
             <span className="step-divider" aria-hidden="true">→</span>
             <button
@@ -150,7 +150,7 @@ export default function ModeSelectionModal({
               onClick={() => handleGoToStep('mode')}
               aria-selected={step === 'mode'}
             >
-              02 MODE
+              {t.step2Pill || '02 MODE'}
             </button>
             <span className="step-divider" aria-hidden="true">→</span>
             <button
@@ -159,7 +159,7 @@ export default function ModeSelectionModal({
               onClick={() => handleGoToStep('abha')}
               aria-selected={step === 'abha'}
             >
-              03 ABHA ID
+              {t.step3Pill || '03 ABHA ID'}
             </button>
           </div>
 
@@ -217,7 +217,7 @@ export default function ModeSelectionModal({
               onClick={() => handleGoToStep('language')}
               aria-label="Back to language selection"
             >
-              ← Back to Language
+              {t.backBtn || '← Back'}
             </button>
 
             <h2 id="modal-title" className="modal-title">
@@ -268,24 +268,24 @@ export default function ModeSelectionModal({
               onClick={() => handleGoToStep('mode')}
               aria-label="Back to mode selection"
             >
-              ← Back to Mode
+              {t.backBtn || '← Back'}
             </button>
 
             <div className="abha-step-badge">
               <ShieldCheck size={18} />
-              <span>Ayushman Bharat Digital Health Account</span>
+              <span>{t.abhaModalBadge || 'Ayushman Bharat Digital Health Account'}</span>
             </div>
 
             <h2 id="modal-title" className="modal-title">
-              Enter Your ABHA Details
+              {t.abhaModalTitle || 'Enter Your ABHA Details'}
             </h2>
             <p className="modal-subtitle">
-              Link your 14-digit ABHA ID to enable seamless medical record transfer with your doctor.
+              {t.abhaModalSubtitle || 'Link your 14-digit ABHA ID to enable seamless medical record transfer with your doctor.'}
             </p>
 
             <form onSubmit={handleFinalSubmit} className="abha-onboarding-form">
               <div className="abha-onboarding-field">
-                <label htmlFor="onboarding-name">Full Name / पूरा नाम</label>
+                <label htmlFor="onboarding-name">{t.fullNameLabel || 'Full Name'}</label>
                 <div className="abha-input-box">
                   <User size={16} />
                   <input
@@ -293,14 +293,14 @@ export default function ModeSelectionModal({
                     type="text"
                     value={patientData.name}
                     onChange={(e) => setPatientData({ ...patientData, name: e.target.value })}
-                    placeholder="e.g. Ramesh Kumar"
+                    placeholder={t.fullNamePlaceholder || 'e.g. Ramesh Kumar'}
                     required
                   />
                 </div>
               </div>
 
               <div className="abha-onboarding-field">
-                <label htmlFor="onboarding-abha">ABHA ID / आभा संख्या (14 Digits)</label>
+                <label htmlFor="onboarding-abha">{t.abhaIdInputLabel || 'ABHA ID (14 Digits)'}</label>
                 <div className="abha-input-box">
                   <CreditCard size={16} />
                   <input
@@ -317,7 +317,7 @@ export default function ModeSelectionModal({
 
               <div className="abha-onboarding-row">
                 <div className="abha-onboarding-field">
-                  <label htmlFor="onboarding-phone">Mobile / मोबाइल</label>
+                  <label htmlFor="onboarding-phone">{t.mobileLabel || 'Mobile'}</label>
                   <div className="abha-input-box">
                     <Phone size={16} />
                     <input
@@ -331,7 +331,7 @@ export default function ModeSelectionModal({
                 </div>
 
                 <div className="abha-onboarding-field">
-                  <label htmlFor="onboarding-age">Age / आयु</label>
+                  <label htmlFor="onboarding-age">{t.ageInputLabel || 'Age'}</label>
                   <div className="abha-input-box">
                     <Calendar size={16} />
                     <input
@@ -349,12 +349,12 @@ export default function ModeSelectionModal({
 
               <div className="abha-demo-action">
                 <button type="button" className="abha-quick-demo-btn" onClick={handleFillDemo}>
-                  <Sparkles size={14} /> Use Demo ABHA Account
+                  <Sparkles size={14} /> {t.useDemoAbhaBtn || 'Use Demo ABHA Account'}
                 </button>
               </div>
 
               <button type="submit" className="abha-submit-btn">
-                <span>Enter Patient Portal</span>
+                <span>{t.enterPatientPortalBtn || 'Enter Patient Portal'}</span>
                 <ArrowRight size={18} />
               </button>
             </form>

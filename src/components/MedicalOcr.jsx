@@ -537,10 +537,10 @@ Vitals noted: BP 130/84 mmHg, P 76/min.`
         <div className="ocr-intro">
           <div className="ocr-title-row">
             <Sparkles size={18} className="ocr-sparkle-icon" />
-            <h2 className="ocr-title">Prescription & Medical Report Digitizer</h2>
+            <h2 className="ocr-title">{t.ocrTitle || 'Prescription & Medical Report Digitizer'}</h2>
           </div>
           <p className="ocr-subtitle">
-            Upload or capture any doctor prescription, Ayurvedic botanical slip, or lab report for instant clinical digitization.
+            {t.ocrSubtitle || 'Upload or capture any doctor prescription, Ayurvedic botanical slip, or lab report for instant clinical digitization.'}
           </p>
         </div>
 
@@ -568,7 +568,7 @@ Vitals noted: BP 130/84 mmHg, P 76/min.`
               onClick={() => cameraInputRef.current?.click()}
             >
               <Camera size={16} />
-              <span>Take Photo</span>
+              <span>{t.takePhotoBtn || 'Take Photo'}</span>
             </button>
 
             <button
@@ -577,15 +577,15 @@ Vitals noted: BP 130/84 mmHg, P 76/min.`
               onClick={() => fileInputRef.current?.click()}
             >
               <Upload size={16} />
-              <span>{customImageName ? `Change (${customImageName.slice(0, 16)}…)` : 'Upload Image'}</span>
+              <span>{customImageName ? `Change (${customImageName.slice(0, 16)}…)` : (t.uploadImageBtn || 'Upload Image')}</span>
             </button>
 
-            <span className="ocr-drop-hint">or drop image file here</span>
+            <span className="ocr-drop-hint">{t.dropImageHint || 'or drop image file here'}</span>
           </div>
 
           {/* Sample Presets as compact pills */}
           <div className="ocr-sample-chips">
-            <span className="sample-chips-label">Samples:</span>
+            <span className="sample-chips-label">{t.samplesLabel || 'Samples:'}</span>
             {OCR_SAMPLE_PRESETS.map((preset) => {
               const isSelected = selectedPresetId === preset.id;
               return (
@@ -600,10 +600,10 @@ Vitals noted: BP 130/84 mmHg, P 76/min.`
                   {preset.id === 'sample-labreport' && <Activity size={13} />}
                   <span>
                     {preset.id === 'sample-allopathic'
-                      ? 'Allopathic OPD'
+                      ? (t.sampleAllopathic || 'Allopathic OPD')
                       : preset.id === 'sample-ayurvedic'
-                      ? 'Ayurvedic Rx'
-                      : 'Lab Report'}
+                      ? (t.sampleAyurvedic || 'Ayurvedic Rx')
+                      : (t.sampleLabReport || 'Lab Report')}
                   </span>
                 </button>
               );
@@ -758,7 +758,7 @@ Vitals noted: BP 130/84 mmHg, P 76/min.`
                 onClick={() => setOcrActiveTab('structured')}
               >
                 <Pill size={14} />
-                <span>Medications ({extractedData?.medications?.length || 0})</span>
+                <span>{t.tabMedications || 'Medications'} ({extractedData?.medications?.length || 0})</span>
               </button>
               <button
                 type="button"
@@ -766,7 +766,7 @@ Vitals noted: BP 130/84 mmHg, P 76/min.`
                 onClick={() => setOcrActiveTab('summary')}
               >
                 <Activity size={14} />
-                <span>Advice & Vitals</span>
+                <span>{t.tabAdvice || 'Advice & Vitals'}</span>
               </button>
               <button
                 type="button"
@@ -774,7 +774,7 @@ Vitals noted: BP 130/84 mmHg, P 76/min.`
                 onClick={() => setOcrActiveTab('raw')}
               >
                 <FileText size={14} />
-                <span>Raw Text</span>
+                <span>{t.tabRawText || 'Raw Text'}</span>
               </button>
             </div>
 
@@ -786,7 +786,7 @@ Vitals noted: BP 130/84 mmHg, P 76/min.`
                   {/* Medication Toolbar with Edit / Add controls */}
                   <div className="rx-section-toolbar">
                     <span className="section-inline-title">
-                      Active Medications ({extractedData?.medications?.length || 0}):
+                      {t.tabMedications || 'Active Medications'} ({extractedData?.medications?.length || 0}):
                     </span>
                     <div className="rx-toolbar-actions">
                       <button
@@ -797,12 +797,12 @@ Vitals noted: BP 130/84 mmHg, P 76/min.`
                         {isEditingRx ? (
                           <>
                             <Check size={13} />
-                            <span>Done Editing</span>
+                            <span>{t.doneEditingBtn || 'Done Editing'}</span>
                           </>
                         ) : (
                           <>
                             <Edit3 size={13} />
-                            <span>Edit Rx</span>
+                            <span>{t.editRxBtn || 'Edit Rx'}</span>
                           </>
                         )}
                       </button>
@@ -812,7 +812,7 @@ Vitals noted: BP 130/84 mmHg, P 76/min.`
                         onClick={handleAddMedication}
                       >
                         <Plus size={13} />
-                        <span>Add Medicine</span>
+                        <span>{t.addMedicineBtn || 'Add Medicine'}</span>
                       </button>
                     </div>
                   </div>
@@ -1150,11 +1150,11 @@ Vitals noted: BP 130/84 mmHg, P 76/min.`
               <div className="actions-left">
                 <button type="button" className="ocr-action-btn" onClick={handleCopyOcr}>
                   <Copy size={14} />
-                  <span>Copy Rx</span>
+                  <span>{t.copyRxBtn || 'Copy Rx'}</span>
                 </button>
                 <button type="button" className="ocr-action-btn" onClick={handlePrint}>
                   <Printer size={14} />
-                  <span>Print</span>
+                  <span>{t.printSlipBtn || 'Print Slip'}</span>
                 </button>
               </div>
 
@@ -1167,12 +1167,12 @@ Vitals noted: BP 130/84 mmHg, P 76/min.`
                   {transferredToDoctor ? (
                     <>
                       <CheckCircle2 size={15} />
-                      <span>Transferred to Doctor Queue</span>
+                      <span>{t.transferredToDoctorBtn || 'Transferred to Doctor Queue'}</span>
                     </>
                   ) : (
                     <>
                       <Send size={15} />
-                      <span>Send to Doctor Portal</span>
+                      <span>{t.sendToDoctorBtn || 'Send to Doctor Portal'}</span>
                     </>
                   )}
                 </button>
