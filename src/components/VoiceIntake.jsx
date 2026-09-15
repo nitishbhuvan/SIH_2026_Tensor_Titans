@@ -27,7 +27,6 @@ import {
 import { addClinicalRecord, updateClinicalRecord } from '../services/clinicalRecordsService.js';
 import { executeClientClinicalNLP } from '../services/clinicalNlpService.js';
 import { encodeWAV, resampleAudioBuffer } from '../utils/wavEncoder.js';
-import AdaptiveHpiCollector from './AdaptiveHpiCollector.jsx';
 import ClinicalFollowUp from './ClinicalFollowUp.jsx';
 import { VOICE_LANGUAGES } from '../translations.js';
 import { speakTextWithBhashini, stopCurrentSpeech, playLanguageSample, isSpeechPlaying } from '../services/bhashiniTtsService.js';
@@ -166,25 +165,7 @@ export default function VoiceIntake({
   const [audioCurrentTime, setAudioCurrentTime] = useState(0);
   const [audioDuration, setAudioDuration] = useState(0);
   const audioElementRef = useRef(null);
-  const [currentRecordId, setCurrentRecordId] = useState(null);
 
-  const [groqApiKey, setGroqApiKey] = useState(() => {
-    return localStorage.getItem('preconsult_groq_api_key') || '';
-  });
-
-  const handleHpiUpdate = useCallback((updatedHpi) => {
-    setClinicalData((prev) => {
-      if (!prev) return prev;
-      const next = {
-        ...prev,
-        hpi_details: updatedHpi
-      };
-      if (currentRecordId) {
-        updateClinicalRecord(currentRecordId, { intake: next });
-      }
-      return next;
-    });
-  }, [currentRecordId]);
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -608,7 +589,6 @@ export default function VoiceIntake({
         languageLabel: clinicalResult.detected_language || 'Auto-Detected',
         isElderly: isElderly
       });
-      setCurrentRecordId(recordId);
       setFollowUpRecordId(recordId);
       setFollowUpComplete(false);
 
@@ -629,7 +609,8 @@ export default function VoiceIntake({
         language: fallback.detected_language || 'Auto-Detected',
         isElderly: isElderly
       });
-      setCurrentRecordId(fallbackRecId);
+      setFollowUpRecordId(fallbackRecId);
+      setFollowUpComplete(false);
     }
   };
 
@@ -1171,16 +1152,7 @@ RAW NATIVE PATIENT TRANSCRIPT:
               </div>
             </div>
 
-            {/* Dynamic Adaptive HPI (History of Present Illness) Collector */}
-            <AdaptiveHpiCollector
-              hpiData={clinicalData.hpi_details || {}}
-              onHpiChange={handleHpiUpdate}
-              chiefComplaint={clinicalData.chief_complaint}
-              transcript={clinicalData.original_transcript || liveTranscript}
-              userLanguage={userLanguage}
-              isElderly={isElderly}
-              patientInfo={patientProfile}
-            />
+
 
             {/* Tabs for SOAP Note vs Raw Native Voice Transcript */}
             <div className="result-tab-nav" role="tablist">
