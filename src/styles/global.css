@@ -121,14 +121,14 @@ body.dark-mode .app-wrapper::before {
 /* ── Main Content ── */
 .main-content {
   flex: 1;
-  padding: clamp(1rem, 3vw, 2rem) 0 clamp(2rem, 4vw, 3rem);
+  padding: clamp(0.75rem, 2.5vw, 1.5rem) 0 clamp(1.5rem, 3.5vw, 2.5rem);
   width: 100%;
   position: relative;
   z-index: 1;
 }
 
 body.mode-elderly .main-content {
-  padding: clamp(1.35rem, 3.5vw, 2.5rem) 0 clamp(2.5rem, 5vw, 4rem);
+  padding: clamp(1rem, 3vw, 2rem) 0 clamp(2rem, 4vw, 3rem);
 }
 
 /* ── Focus Rings ── */
@@ -148,8 +148,8 @@ button:focus-visible {
   max-width: 1280px;
   margin-left: auto;
   margin-right: auto;
-  padding-left: clamp(1rem, 4vw, 2rem);
-  padding-right: clamp(1rem, 4vw, 2rem);
+  padding-left: clamp(0.75rem, 3.5vw, 1.75rem);
+  padding-right: clamp(0.75rem, 3.5vw, 1.75rem);
 }
 
 .container {
@@ -157,8 +157,8 @@ button:focus-visible {
   max-width: 960px;
   margin-left: auto;
   margin-right: auto;
-  padding-left: clamp(1rem, 3.5vw, 1.75rem);
-  padding-right: clamp(1rem, 3.5vw, 1.75rem);
+  padding-left: clamp(0.65rem, 3vw, 1.5rem);
+  padding-right: clamp(0.65rem, 3vw, 1.5rem);
 }
 
 /* ============================================================================

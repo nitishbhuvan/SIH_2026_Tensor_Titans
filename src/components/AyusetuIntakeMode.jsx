@@ -30,6 +30,8 @@ import {
   getDatasetStats
 } from '../data/ayusetuQuestionnaireDataset.js';
 import { addClinicalRecord } from '../services/clinicalRecordsService.js';
+import { synthesizeHpiNarrative } from '../services/hpiService.js';
+import { translations } from '../translations.js';
 import './AyusetuIntakeMode.css';
 
 export default function AyusetuIntakeMode({
@@ -40,6 +42,8 @@ export default function AyusetuIntakeMode({
   onBackToMain,
   patientProfile
 }) {
+  const t = translations[userLanguage] || translations.en;
+
   // Main View: 'interview' (Live AI Clinical Flow) | 'dataset-explorer' (Browse PDF Dataset)
   const [activeTab, setActiveTab] = useState('interview');
 
@@ -82,6 +86,19 @@ export default function AyusetuIntakeMode({
     // Nidana
     q_nid_trigger_main: 'Yes, clear change preceded symptoms'
   });
+
+  // Sync patient profile when provided/updated
+  useEffect(() => {
+    if (patientProfile) {
+      setResponses((prev) => ({
+        ...prev,
+        q_name: patientProfile.name || prev.q_name,
+        q_age: patientProfile.age ? String(patientProfile.age) : prev.q_age,
+        q_gender: patientProfile.gender || prev.q_gender,
+        q_abha_id: patientProfile.abhaId || prev.q_abha_id
+      }));
+    }
+  }, [patientProfile]);
 
   // Red Flag Alert state
   const [redFlagDetected, setRedFlagDetected] = useState(false);
@@ -239,58 +256,74 @@ export default function AyusetuIntakeMode({
 
     const recordId = `AYUSETU-${Date.now().toString().slice(-5)}`;
 
-    // Build structured SOAP & Dashavidha profile
-    const clinicalPayload = {
-      id: recordId,
-      timestamp: new Date().toISOString(),
-      status: 'pending',
-      protocol: 'AYUSETU_SIH_2026',
-      patientInfo: {
-        name: responses.q_name || patientProfile?.name || 'Anonymous Patient',
-        age: parseInt(responses.q_age, 10) || (patientProfile?.age ? parseInt(patientProfile.age, 10) : 45),
-        gender: responses.q_gender || patientProfile?.gender || 'Not specified',
-        language: responses.q_language || patientProfile?.language || 'Hindi',
-        languageLabel: responses.q_language || 'Hindi',
-        occupation: responses.q_occupation || 'Unspecified',
-        abhaId: responses.q_abha_id || patientProfile?.abhaId || '91-8765-4321-0987',
-        abhaAddress: patientProfile?.abhaAddress || 'patient@abdm',
-        phone: patientProfile?.phone || '+91 98765 43210',
-        isElderly: isElderly || (parseInt(responses.q_age, 10) >= 60)
-      },
-      intake: {
-        original_transcript: responses.q_chief_complaint_main,
-        translated_clinical_english: `Patient ${responses.q_name}, ${responses.q_age}y ${responses.q_gender} presented with: ${responses.q_chief_complaint_main}. HPI indicates onset ${responses.q_hpi_onset_when || 'gradual'}, severity rated as ${responses.q_hpi_severity_scale}.`,
-        chief_complaint: responses.q_chief_complaint_main,
-        duration: responses.q_hpi_duration || 'Recent onset',
-        detected_language: responses.q_language || 'Hindi',
-        associated_symptoms: [
-          responses.q_hpi_assoc_symptoms,
-          responses.q_ros_fever !== 'No fever' ? responses.q_ros_fever : null,
-          responses.q_ros_cough !== 'No cough' ? responses.q_ros_cough : null,
-          responses.q_ros_bowels !== 'Normal regular bowels' ? responses.q_ros_bowels : null
-        ].filter(Boolean),
-        medications_mentioned: [
-          responses.q_med_name,
-          responses.q_med_ayurvedic,
-          responses.q_med_supplements
-        ].filter(Boolean),
-        ayurvedic_factors: {
-          prakriti_assessment: responses.q_pra_body_build || 'Vata-dominant',
-          vikriti_state: responses.q_vik_recent_changes || 'Acute imbalance reported',
-          agni_status: responses.q_agni_appetite || 'Vishamagni / Mandagni',
-          koshtha_status: responses.q_kosh_constipation || 'Krura Koshtha tendency',
-          ahara_patterns: responses.q_ah_daily_diet || 'Standard diet',
-          vihara_stress: responses.q_vih_stress_level || 'Moderate',
-          dashavidha_summary: 'Comprehensive Dashavidha Pariksha captured via AYUSETU protocol.'
+      const hpi_details = {
+        onset: `${responses.q_hpi_onset_when || 'Recent onset'} (${responses.q_hpi_onset_type || 'gradual'})`,
+        location: responses.q_ab_joint_swelling || responses.q_ab_chest_location || responses.q_ab_gi_pain_loc || 'Localized to primary complaint site',
+        duration: responses.q_hpi_duration || responses.q_hpi_onset_when || 'Recent onset',
+        character: responses.q_ab_chest_character || responses.q_ab_joint_stiffness || responses.q_ab_cough_type || 'Progressive discomfort',
+        aggravating_factors: [responses.q_hpi_aggravating_what, responses.q_hpi_agg_food, responses.q_hpi_agg_activity].filter(Boolean).join(', ') || 'Exertion / Diet triggers',
+        relieving_factors: [responses.q_hpi_relieving_what, responses.q_hpi_rel_rest].filter(Boolean).join(', ') || 'Rest and warm fluids',
+        timing: responses.q_hpi_continuity || 'Daily pattern',
+        severity_score: responses.q_hpi_severity_scale?.includes('Mild') ? 3 : responses.q_hpi_severity_scale?.includes('Severe') ? 8 : responses.q_hpi_severity_scale?.includes('Excruciating') ? 10 : 5,
+        functional_impact: responses.q_hpi_daily_activities || 'Mild interference with daily activities'
+      };
+
+      const clinicalPayload = {
+        id: recordId,
+        timestamp: new Date().toISOString(),
+        status: 'pending',
+        protocol: 'AYUSETU_SIH_2026',
+        patientInfo: {
+          name: responses.q_name || patientProfile?.name || 'Anonymous Patient',
+          age: parseInt(responses.q_age, 10) || (patientProfile?.age ? parseInt(patientProfile.age, 10) : 45),
+          gender: responses.q_gender || patientProfile?.gender || 'Not specified',
+          language: responses.q_language || patientProfile?.language || 'Hindi',
+          languageLabel: responses.q_language || 'Hindi',
+          occupation: responses.q_occupation || 'Unspecified',
+          abhaId: responses.q_abha_id || patientProfile?.abhaId || '91-8765-4321-0987',
+          abhaAddress: patientProfile?.abhaAddress || 'patient@abdm',
+          phone: patientProfile?.phone || '+91 98765 43210',
+          isElderly: isElderly || (parseInt(responses.q_age, 10) >= 60)
         },
-        triage_urgency: redFlagDetected ? 'RED_FLAG' : 'ROUTINE',
-        triage_reason: redFlagDetected
-          ? `EMERGENCY ALERT: Triggered red flags (${triggeredRedFlags.join(', ')}). Immediate doctor assessment required.`
-          : 'Standard clinical pre-consultation completed via AYUSETU 25-section questionnaire.'
-      },
-      doctorNote: '',
-      prescription: []
-    };
+        intake: {
+          original_transcript: responses.q_chief_complaint_main,
+          translated_clinical_english: synthesizeHpiNarrative(hpi_details, {
+            name: responses.q_name || patientProfile?.name,
+            age: responses.q_age,
+            gender: responses.q_gender
+          }) || `Patient ${responses.q_name}, ${responses.q_age}y ${responses.q_gender} presented with: ${responses.q_chief_complaint_main}.`,
+          chief_complaint: responses.q_chief_complaint_main,
+          duration: responses.q_hpi_duration || 'Recent onset',
+          detected_language: responses.q_language || 'Hindi',
+          associated_symptoms: [
+            responses.q_hpi_assoc_symptoms,
+            responses.q_ros_fever !== 'No fever' ? responses.q_ros_fever : null,
+            responses.q_ros_cough !== 'No cough' ? responses.q_ros_cough : null,
+            responses.q_ros_bowels !== 'Normal regular bowels' ? responses.q_ros_bowels : null
+          ].filter(Boolean),
+          medications_mentioned: [
+            responses.q_med_name,
+            responses.q_med_ayurvedic,
+            responses.q_med_supplements
+          ].filter(Boolean),
+          ayurvedic_factors: {
+            prakriti_assessment: responses.q_pra_body_build || 'Vata-dominant',
+            vikriti_state: responses.q_vik_recent_changes || 'Acute imbalance reported',
+            agni_status: responses.q_agni_appetite || 'Vishamagni / Mandagni',
+            koshtha_status: responses.q_kosh_constipation || 'Krura Koshtha tendency',
+            ahara_patterns: responses.q_ah_daily_diet || 'Standard diet',
+            vihara_stress: responses.q_vih_stress_level || 'Moderate',
+            dashavidha_summary: 'Comprehensive Dashavidha Pariksha captured via AYUSETU protocol.'
+          },
+          hpi_details,
+          triage_urgency: redFlagDetected ? 'RED_FLAG' : 'ROUTINE',
+          triage_reason: redFlagDetected
+            ? `EMERGENCY ALERT: Triggered red flags (${triggeredRedFlags.join(', ')}). Immediate doctor assessment required.`
+            : 'Standard clinical pre-consultation completed via AYUSETU 25-section questionnaire.'
+        },
+        doctorNote: '',
+        prescription: []
+      };
 
     // Save to shared clinical records service
     addClinicalRecord(clinicalPayload);
@@ -392,11 +425,11 @@ export default function AyusetuIntakeMode({
         <div className="ayusetu-brand-title">
           <div className="ayusetu-badge">
             <Leaf size={15} />
-            <span>SIH 2026 AI Standard</span>
+            <span>{t.ayusetuBadge || 'SIH 2026 AI Standard'}</span>
           </div>
-          <h2>Pre-Consultation: Clinical &amp; AYUSH Intake</h2>
+          <h2>{t.ayusetuTitle || 'Pre-Consultation: Clinical & AYUSH Intake'}</h2>
           <p className="ayusetu-subtitle">
-            Adaptive 10-Stage Clinical Assessment with Dashavidha Pariksha &amp; Ahara-Vihara Dataset
+            {t.ayusetuSubtitle || 'Adaptive 10-Stage Clinical Assessment with Dashavidha Pariksha & Ahara-Vihara Dataset'}
           </p>
         </div>
 
@@ -409,7 +442,7 @@ export default function AyusetuIntakeMode({
               onClick={() => setActiveTab('interview')}
             >
               <Activity size={16} />
-              <span>Interactive Clinical Assistant</span>
+              <span>{t.tabInteractiveAssistant || 'Interactive Clinical Assistant'}</span>
             </button>
             <button
               type="button"
@@ -417,7 +450,7 @@ export default function AyusetuIntakeMode({
               onClick={() => setActiveTab('dataset-explorer')}
             >
               <Database size={16} />
-              <span>Dataset Explorer ({stats.totalSections} Sec / {stats.totalQuestions} Qs)</span>
+              <span>{t.tabDatasetExplorer || 'Dataset Explorer'} ({stats.totalSections} Sec / {stats.totalQuestions} Qs)</span>
             </button>
           </div>
 
@@ -430,7 +463,7 @@ export default function AyusetuIntakeMode({
               title="Quickly fill sample Ayurvedic Sandhivata patient data"
             >
               <Sparkles size={15} />
-              <span>Load Demo Case (Sandhivata)</span>
+              <span>{t.loadDemoCase || 'Load Demo Case (Sandhivata)'}</span>
             </button>
           )}
 
@@ -440,7 +473,7 @@ export default function AyusetuIntakeMode({
               className="ayusetu-back-nav-btn"
               onClick={onBackToMain}
             >
-              Back
+              {t.backNavBtn || 'Back'}
             </button>
           )}
         </div>
@@ -454,6 +487,15 @@ export default function AyusetuIntakeMode({
             {PRIMARY_STAGES.map((stg) => {
               const isCompleted = currentStage > stg.index;
               const isCurrent = currentStage === stg.index;
+              const localizedStageTitle =
+                stg.index === 1 ? (t.sec1Title || stg.title) :
+                stg.index === 2 ? (t.sec2Title || stg.title) :
+                stg.index === 3 ? (t.sec3Title || stg.title) :
+                stg.index === 4 ? (t.sec4Title || stg.title) :
+                stg.index === 5 ? (t.sec5Title || stg.title) :
+                stg.index === 10 ? (t.sec10Title || stg.title) :
+                stg.title;
+
               return (
                 <div
                   key={stg.id}
@@ -461,10 +503,10 @@ export default function AyusetuIntakeMode({
                   onClick={() => {
                     if (isCompleted) setCurrentStage(stg.index);
                   }}
-                  title={stg.title}
+                  title={localizedStageTitle}
                 >
                   <span className="step-num">{isCompleted ? '✓' : stg.index}</span>
-                  <span className="step-label">{stg.title}</span>
+                  <span className="step-label">{localizedStageTitle}</span>
                 </div>
               );
             })}
@@ -524,22 +566,22 @@ export default function AyusetuIntakeMode({
             {currentStage === 1 && (
               <div className="stage-content">
                 <div className="stage-header-meta">
-                  <span className="stage-tag">Section 1 &bull; Clinical Journey Entry</span>
-                  <h3>Patient Identification &amp; Demographics</h3>
-                  <p>Collect baseline demographic and health identification details before entering consultation.</p>
+                  <span className="stage-tag">{t.sec1Tag || 'Section 1 • Clinical Journey Entry'}</span>
+                  <h3>{t.sec1Title || 'Patient Identification & Demographics'}</h3>
+                  <p>{t.sec1Desc || 'Collect baseline demographic and health identification details before entering consultation.'}</p>
                 </div>
 
                 <div className="questions-grid">
                   <div className="question-field">
                     <label>
-                      What is your full name? <span className="req">*</span>
+                      {t.nameFieldLabel || 'What is your full name?'} <span className="req">*</span>
                     </label>
                     <div className="input-with-voice">
                       <input
                         type="text"
                         value={responses.q_name}
                         onChange={(e) => handleResponseChange('q_name', e.target.value)}
-                        placeholder="Enter full legal name"
+                        placeholder={t.fullNamePlaceholder || 'Enter full legal name'}
                       />
                       <button
                         type="button"
@@ -555,7 +597,7 @@ export default function AyusetuIntakeMode({
                   <div className="question-field-row">
                     <div className="question-field">
                       <label>
-                        What is your age? <span className="req">*</span>
+                        {t.ageFieldLabel || 'What is your age?'} <span className="req">*</span>
                       </label>
                       <input
                         type="number"
@@ -563,12 +605,12 @@ export default function AyusetuIntakeMode({
                         max="120"
                         value={responses.q_age}
                         onChange={(e) => handleResponseChange('q_age', e.target.value)}
-                        placeholder="Age in years"
+                        placeholder={t.ageInputLabel || 'Age in years'}
                       />
                     </div>
 
                     <div className="question-field">
-                      <label>What is your gender?</label>
+                      <label>{t.genderFieldLabel || 'What is your gender?'}</label>
                       <select
                         value={responses.q_gender}
                         onChange={(e) => handleResponseChange('q_gender', e.target.value)}
@@ -583,7 +625,7 @@ export default function AyusetuIntakeMode({
 
                   <div className="question-field-row">
                     <div className="question-field">
-                      <label>What is your occupation?</label>
+                      <label>{t.occupationFieldLabel || 'What is your occupation?'}</label>
                       <input
                         type="text"
                         value={responses.q_occupation}
@@ -593,7 +635,7 @@ export default function AyusetuIntakeMode({
                     </div>
 
                     <div className="question-field">
-                      <label>Preferred Language for Consultation?</label>
+                      <label>{t.languageFieldLabel || 'Preferred Language for Consultation?'}</label>
                       <select
                         value={responses.q_language}
                         onChange={(e) => handleResponseChange('q_language', e.target.value)}
@@ -613,9 +655,9 @@ export default function AyusetuIntakeMode({
 
                   <div className="question-field-row">
                     <div className="question-field">
-                      <label>Is this your first visit?</label>
+                      <label>{t.firstVisitFieldLabel || 'Is this your first visit?'}</label>
                       <div className="pill-choice-group">
-                        {['Yes, First Visit', 'No, Follow-up Visit'].map((opt) => (
+                        {[t.firstVisitYes || 'Yes, First Visit', t.firstVisitNo || 'No, Follow-up Visit'].map((opt) => (
                           <button
                             key={opt}
                             type="button"
@@ -629,7 +671,7 @@ export default function AyusetuIntakeMode({
                     </div>
 
                     <div className="question-field">
-                      <label>Do you have an ABHA ID / Ayushman Bharat Health Account?</label>
+                      <label>{t.abhaFieldLabel || 'Do you have an ABHA ID / Ayushman Bharat Health Account?'}</label>
                       <input
                         type="text"
                         value={responses.q_abha_id}
@@ -648,7 +690,7 @@ export default function AyusetuIntakeMode({
                 <div className="consent-icon-badge">
                   <Shield size={44} />
                 </div>
-                <h3>Patient Consent for Digital Consultation</h3>
+                <h3>{t.sec2Title || 'Patient Consent for Digital Consultation'}</h3>
                 <p className="consent-directive">
                   &ldquo;For your software, this should be a separate consent screen, not just an ordinary medical question.&rdquo;
                 </p>
@@ -656,7 +698,7 @@ export default function AyusetuIntakeMode({
                 <div className="consent-statement-card">
                   <h4>Mandatory Informed Consent</h4>
                   <p className="consent-quote">
-                    &ldquo;Do you consent to providing your health information for this consultation?&rdquo;
+                    &ldquo;{t.consentQuestion || 'Do you consent to providing your health information for this consultation?'}&rdquo;
                   </p>
                   <p className="consent-subtext">
                     Under the Ayushman Bharat Digital Mission (ABDM) and Data Privacy guidelines, your responses will be used solely for AI clinical history-taking, triaging and physician review. No data is sold or shared without clinical authorization.
@@ -666,24 +708,24 @@ export default function AyusetuIntakeMode({
                 <div className="consent-options-grid">
                   <button
                     type="button"
-                    className={`consent-choice-card ${responses.q_consent_given === 'Yes, I give informed consent' ? 'is-granted' : ''}`}
-                    onClick={() => handleResponseChange('q_consent_given', 'Yes, I give informed consent')}
+                    className={`consent-choice-card ${responses.q_consent_given === (t.consentYes || 'Yes, I give informed consent') || responses.q_consent_given === 'Yes, I give informed consent' ? 'is-granted' : ''}`}
+                    onClick={() => handleResponseChange('q_consent_given', t.consentYes || 'Yes, I give informed consent')}
                   >
                     <CheckCircle2 size={24} />
                     <div className="choice-text">
-                      <strong>Yes, I give informed consent</strong>
+                      <strong>{t.consentYes || 'Yes, I give informed consent'}</strong>
                       <span>Proceed with digital clinical intake and doctor review</span>
                     </div>
                   </button>
 
                   <button
                     type="button"
-                    className={`consent-choice-card ${responses.q_consent_given === 'No, I decline' ? 'is-declined' : ''}`}
-                    onClick={() => handleResponseChange('q_consent_given', 'No, I decline')}
+                    className={`consent-choice-card ${responses.q_consent_given === (t.consentNo || 'No, I decline') || responses.q_consent_given === 'No, I decline' ? 'is-declined' : ''}`}
+                    onClick={() => handleResponseChange('q_consent_given', t.consentNo || 'No, I decline')}
                   >
                     <AlertOctagon size={24} />
                     <div className="choice-text">
-                      <strong>No, I decline</strong>
+                      <strong>{t.consentNo || 'No, I decline'}</strong>
                       <span>Exit without collecting clinical health data</span>
                     </div>
                   </button>
@@ -695,20 +737,20 @@ export default function AyusetuIntakeMode({
             {currentStage === 3 && (
               <div className="stage-content">
                 <div className="stage-header-meta">
-                  <span className="stage-tag">Section 3 &bull; Open-Ended Inquiry</span>
-                  <h3>Chief Complaint &mdash; MOST IMPORTANT</h3>
-                  <p>The first medical question should be open-ended. The AI identifies the complaint and dynamically branches into relevant questions.</p>
+                  <span className="stage-tag">{t.sec3Tag || 'Section 3 • Open-Ended Inquiry'}</span>
+                  <h3>{t.sec3Title || 'Chief Complaint — Main Problem'}</h3>
+                  <p>{t.sec3Desc || 'The first medical question should be open-ended. The AI identifies the complaint and dynamically branches into relevant questions.'}</p>
                 </div>
 
                 <div className="question-field">
                   <div className="field-title-row">
                     <label>
-                      &ldquo;What health problem brought you here today?&rdquo; <span className="req">*</span>
+                      &ldquo;{t.chiefComplaintQuestion || 'What health problem brought you here today?'}&rdquo; <span className="req">*</span>
                     </label>
                     <button
                       type="button"
                       className="listen-question-btn"
-                      onClick={() => handleSpeakText('What health problem brought you here today?')}
+                      onClick={() => handleSpeakText(t.chiefComplaintQuestion || 'What health problem brought you here today?')}
                       title="Read question aloud"
                     >
                       <Volume2 size={15} />
@@ -721,7 +763,7 @@ export default function AyusetuIntakeMode({
                       rows="4"
                       value={responses.q_chief_complaint_main}
                       onChange={(e) => handleResponseChange('q_chief_complaint_main', e.target.value)}
-                      placeholder="Speak or type your main symptoms (e.g. Severe knee joint pain when walking, chest burning sensation, acidity for 2 weeks...)"
+                      placeholder={t.chiefComplaintPlaceholder || 'Speak or type your main symptoms (e.g. Severe knee joint pain when walking, chest burning sensation, acidity for 2 weeks...)'}
                     />
                     <button
                       type="button"
@@ -1454,9 +1496,9 @@ export default function AyusetuIntakeMode({
               <div className="stage-content">
                 <div className="stage-header-meta">
                   <span className="stage-tag">Section 25 &bull; Clinical Summary</span>
-                  <h3>The Final Question &amp; Clinical Review</h3>
+                  <h3>{t.summaryTitle || 'Clinical Intake Summary & Verification'}</h3>
                   <p>
-                    &ldquo;This fits the requirement that the generated history be editable/verifiable by the physician rather than treated as an autonomous diagnosis.&rdquo;
+                    {t.summarySubtitle || 'Review your aggregated clinical details before transferring to your doctor.'}
                   </p>
                 </div>
 
@@ -1519,7 +1561,7 @@ export default function AyusetuIntakeMode({
                     disabled={isSubmitting}
                   >
                     <UserCheck size={20} />
-                    <span>{isSubmitting ? 'Transmitting to Doctor Queue...' : 'Confirm & Send to Doctor Portal'}</span>
+                    <span>{isSubmitting ? 'Transmitting to Doctor Queue...' : (t.submitToDoctorBtn || 'Confirm & Send to Doctor Portal')}</span>
                   </button>
                 </div>
               </div>
@@ -1531,12 +1573,12 @@ export default function AyusetuIntakeMode({
                 <div className="success-icon-circle">
                   <Check size={40} />
                 </div>
-                <h3>Intake Submitted Successfully!</h3>
+                <h3>{t.successTitle || 'Intake Submitted Successfully!'}</h3>
                 <p className="success-ticket">
                   Case Record ID: <strong>{submittedRecordId}</strong>
                 </p>
                 <p className="success-desc">
-                  Your clinical history and Dashavidha Pariksha assessment have been safely recorded and synced to the OPD Doctor Portal queue for physical/teleconsultation review.
+                  {t.successSubtitle || 'Your clinical pre-consultation summary is ready for the doctor OPD queue.'}
                 </p>
 
                 <div className="success-btn-row">
@@ -1587,7 +1629,7 @@ export default function AyusetuIntakeMode({
                   disabled={currentStage === 1}
                 >
                   <ChevronLeft size={18} />
-                  <span>Previous</span>
+                  <span>{t.prevSectionBtn || 'Previous'}</span>
                 </button>
 
                 <div className="nav-page-indicator">
@@ -1601,7 +1643,7 @@ export default function AyusetuIntakeMode({
                     onClick={handleNextStage}
                     disabled={redFlagDetected && currentStage === 4}
                   >
-                    <span>{currentStage === 10 ? 'Review & Submit' : 'Next Step'}</span>
+                    <span>{currentStage === 10 ? (t.submitToDoctorBtn || 'Review & Submit') : (t.nextSectionBtn || 'Next Section →')}</span>
                     <ChevronRight size={18} />
                   </button>
                 ) : null}

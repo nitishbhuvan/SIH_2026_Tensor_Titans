@@ -96,8 +96,8 @@ export default function MedicalIntro({ onEnterPatient, onEnterDoctor }) {
       <header className="medical-intro-header">
         <div className="medical-intro-brand">
           <span className="brand-dot" />
-          Pre<span>Consult</span>
-          <span className="brand-badge">AYUSETU</span>
+          AYU<span>SETU</span>
+          <span className="brand-badge">SIH 2026</span>
         </div>
         <div className="medical-intro-telemetry">
           <span className="telemetry-pill">
@@ -314,7 +314,7 @@ export default function MedicalIntro({ onEnterPatient, onEnterDoctor }) {
       {/* Footer System Specs */}
       <footer className="medical-intro-footer">
         <div className="footer-left">
-          <span>PRECONSULT / NIDAN-AI</span>
+          <span>AYUSETU / NIDAN-AI</span>
           <span className="footer-dot">•</span>
           <span>SIH 2026 CLINICAL ACCESS</span>
         </div>

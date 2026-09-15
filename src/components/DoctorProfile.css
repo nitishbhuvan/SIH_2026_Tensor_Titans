@@ -6,7 +6,7 @@
 .doc-profile-root {
   min-height: 100vh;
   min-height: 100dvh;
-  background-color: var(--bg-base);
+  background-color: transparent;
   color: var(--text-primary);
   display: flex;
   flex-direction: column;
@@ -1068,6 +1068,13 @@
   margin-top: 0.5rem;
 }
 
+.doc-form-actions-left {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
 .doc-form-actions-right {
   display: flex;
   align-items: center;
@@ -1096,5 +1103,22 @@
   .doc-form-actions-bar {
     border-radius: var(--radius-md);
     bottom: 0.5rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.65rem;
+    padding: 0.85rem;
+  }
+  .doc-form-actions-left,
+  .doc-form-actions-right {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+  .doc-form-actions-left button,
+  .doc-form-actions-right button {
+    width: 100%;
+    justify-content: center;
+    min-height: 46px;
   }
 }

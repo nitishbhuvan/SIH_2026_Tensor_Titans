@@ -22,10 +22,17 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-# Environment variables
+# Environment Variables & Secrets
 .env
 .env.*
 .env.local
 .env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
 !.env.example
+SIH_AYUSETU_Presentation_Content.md
+SIH_OTH_Presentation_Content.md
 
+SIH_AYUSETU_Presentation_Content.md
+SIH_OTH_Presentation_Content.md

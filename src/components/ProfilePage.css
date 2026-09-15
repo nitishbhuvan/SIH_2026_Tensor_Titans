@@ -921,6 +921,76 @@
   color: #FFFFFF;
 }
 
+@media (max-width: 640px) {
+  .profile-page-header {
+    padding: calc(0.45rem + var(--safe-top)) 0 0.45rem;
+  }
+
+  .profile-header-container {
+    padding: 0 0.85rem;
+  }
+
+  .profile-page-main {
+    padding: 1.25rem 0 3rem;
+  }
+
+  .profile-container {
+    padding: 0 0.85rem;
+  }
+
+  .profile-hero-banner {
+    margin-bottom: 1.25rem;
+  }
+
+  .profile-hero-title {
+    font-size: 1.45rem;
+  }
+
+  .profile-hero-sub {
+    font-size: 0.86rem;
+  }
+
+  .profile-form-row {
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+  }
+
+  .field-input-wrap,
+  .field-select {
+    min-height: 48px;
+    font-size: 1rem;
+  }
+
+  .profile-lang-chips-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+
+  .profile-lang-pill {
+    min-height: 44px;
+    padding: 0.5rem 0.65rem;
+  }
+
+  .profile-footer-right {
+    flex-direction: column;
+    width: 100%;
+    gap: 0.5rem;
+  }
+
+  .profile-footer-cancel,
+  .profile-footer-save {
+    width: 100%;
+    justify-content: center;
+    min-height: 48px;
+    font-size: 0.95rem;
+  }
+
+  .profile-footer-logout {
+    width: 100%;
+    min-height: 48px;
+  }
+}
+
 /* ── ELDERLY MODE OVERRIDES FOR PROFILE PAGE ── */
 body.mode-elderly .profile-page-root {
   --base-font-size: 19px;

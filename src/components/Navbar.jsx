@@ -37,10 +37,10 @@ export default function Navbar({
               e.preventDefault();
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
-            aria-label="PreConsult — Go to top"
+            aria-label="AYUSETU — Go to top"
           >
-            <span className="brand-name">PreConsult</span>
-            <span className="brand-sublabel" aria-hidden="true">Digital Health Services</span>
+            <span className="brand-name">AYUSETU</span>
+            <span className="brand-sublabel" aria-hidden="true">{t.brandSublabel || 'Digital Health Services'}</span>
           </a>
 
           {/* Actions */}

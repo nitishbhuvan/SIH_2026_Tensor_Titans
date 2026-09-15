@@ -13,7 +13,6 @@ import {
   Printer,
   RotateCcw,
   Sparkles,
-  Settings,
   Pill,
   Stethoscope,
   Leaf,
@@ -25,10 +24,10 @@ import {
   Send,
   X
 } from 'lucide-react';
-import { VOICE_LANGUAGES } from '../translations.js';
-import { addClinicalRecord } from '../services/clinicalRecordsService.js';
+import { addClinicalRecord, updateClinicalRecord } from '../services/clinicalRecordsService.js';
 import { executeClientClinicalNLP } from '../services/clinicalNlpService.js';
 import { encodeWAV, resampleAudioBuffer } from '../utils/wavEncoder.js';
+import AdaptiveHpiCollector from './AdaptiveHpiCollector.jsx';
 import './VoiceIntake.css';
 
 // Language locale mapping for SpeechRecognition API
@@ -116,9 +115,7 @@ export default function VoiceIntake({
   onNotify,
   patientProfile
 }) {
-  const [selectedVoiceLang, setSelectedVoiceLang] = useState(() => {
-    return userLanguage === 'en' ? 'hi' : userLanguage;
-  });
+  const [selectedVoiceLang, setSelectedVoiceLang] = useState('auto');
 
   const [recordingState, setRecordingState] = useState('idle'); // 'idle' | 'recording' | 'transcribing' | 'analyzing' | 'success' | 'error'
   const [recordDuration, setRecordDuration] = useState(0);
@@ -126,12 +123,18 @@ export default function VoiceIntake({
   const [clinicalData, setClinicalData] = useState(null);
   const [activeTab, setActiveTab] = useState('clinical'); // 'clinical' | 'original'
   const [errorMessage, setErrorMessage] = useState('');
-  const [showSettings, setShowSettings] = useState(false);
 
   // Live real-time speech recognition state
   const [liveTranscript, setLiveTranscript] = useState('');
   const [interimText, setInterimText] = useState('');
   const [transcribeElapsedSec, setTranscribeElapsedSec] = useState(0);
+
+  // Sync selected voice language when user changes preferred language
+  useEffect(() => {
+    if (userLanguage && userLanguage !== 'en') {
+      setSelectedVoiceLang(userLanguage);
+    }
+  }, [userLanguage]);
 
   // Microphone permission modal states
   const [showPermissionModal, setShowPermissionModal] = useState(false);
@@ -145,10 +148,25 @@ export default function VoiceIntake({
   const [audioCurrentTime, setAudioCurrentTime] = useState(0);
   const [audioDuration, setAudioDuration] = useState(0);
   const audioElementRef = useRef(null);
+  const [currentRecordId, setCurrentRecordId] = useState(null);
 
   const [groqApiKey, setGroqApiKey] = useState(() => {
     return localStorage.getItem('preconsult_groq_api_key') || '';
   });
+
+  const handleHpiUpdate = useCallback((updatedHpi) => {
+    setClinicalData((prev) => {
+      if (!prev) return prev;
+      const next = {
+        ...prev,
+        hpi_details: updatedHpi
+      };
+      if (currentRecordId) {
+        updateClinicalRecord(currentRecordId, { intake: next });
+      }
+      return next;
+    });
+  }, [currentRecordId]);
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -206,13 +224,6 @@ export default function VoiceIntake({
       }
     };
   }, [stopRecordingCleanup]);
-
-  // Sync voice language when user changes global language
-  useEffect(() => {
-    if (userLanguage && userLanguage !== 'en') {
-      setSelectedVoiceLang(userLanguage);
-    }
-  }, [userLanguage]);
 
   const [inputMethod, setInputMethod] = useState('voice'); // 'voice' | 'type'
   const [customTypedText, setCustomTypedText] = useState('');
@@ -556,7 +567,7 @@ export default function VoiceIntake({
           rawText || 'Patient reports clinical symptoms for evaluation.',
           selectedVoiceLang
         );
-        clinicalResult.transcription_engine = 'Client Indic Fallback';
+        clinicalResult.transcription_engine = 'Indic Clinical NLP Engine';
       }
 
       // Update recognized live text in UI if available
@@ -568,32 +579,18 @@ export default function VoiceIntake({
       setRecordingState('success');
 
       // Persist to shared Doctor Portal queue
-      addClinicalRecord(clinicalResult, {
+      const recId = addClinicalRecord(clinicalResult, {
         name: patientProfile?.name || 'Anonymous Patient',
         abhaId: patientProfile?.abhaId || '91-8765-4321-0987',
         abhaAddress: patientProfile?.abhaAddress || 'patient@abdm',
         phone: patientProfile?.phone || '+91 98765 43210',
         age: patientProfile?.age || null,
         gender: patientProfile?.gender || 'Unknown',
-        language: selectedVoiceLang,
-        languageLabel: (() => {
-          const LANG_MAP = {
-            hi: 'Hindi',
-            kn: 'Kannada',
-            ta: 'Tamil',
-            te: 'Telugu',
-            ml: 'Malayalam',
-            mr: 'Marathi',
-            bn: 'Bengali',
-            gu: 'Gujarati',
-            pa: 'Punjabi',
-            sa: 'Sanskrit',
-            en: 'English'
-          };
-          return LANG_MAP[selectedVoiceLang] || selectedVoiceLang;
-        })(),
+        language: clinicalResult.detected_language || 'Auto-Detected',
+        languageLabel: clinicalResult.detected_language || 'Auto-Detected',
         isElderly: isElderly
       });
+      setCurrentRecordId(recId);
 
       if (onNotify) {
         onNotify('Voice intake processed. SOAP note generated & attached to Doctor OPD queue.', 'success');
@@ -604,9 +601,15 @@ export default function VoiceIntake({
         rawText || 'Patient reports clinical symptoms for review.',
         selectedVoiceLang
       );
-      fallback.transcription_engine = 'Client Indic Fallback';
+      fallback.transcription_engine = 'Indic Clinical NLP Engine';
       setClinicalData(fallback);
       setRecordingState('success');
+      const fallbackRecId = addClinicalRecord(fallback, {
+        name: patientProfile?.name || 'Anonymous Patient',
+        language: fallback.detected_language || 'Auto-Detected',
+        isElderly: isElderly
+      });
+      setCurrentRecordId(fallbackRecId);
     }
   };
 
@@ -759,16 +762,6 @@ RAW NATIVE PATIENT TRANSCRIPT:
     window.print();
   };
 
-  // ── Save API Key ──
-  const handleSaveApiKey = (e) => {
-    e.preventDefault();
-    localStorage.setItem('preconsult_groq_api_key', groqApiKey.trim());
-    setShowSettings(false);
-    if (onNotify) {
-      onNotify('API Key configuration saved.', 'success');
-    }
-  };
-
   const formatTimer = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -798,8 +791,6 @@ RAW NATIVE PATIENT TRANSCRIPT:
     }
   };
 
-  const currentVoiceLangObj = VOICE_LANGUAGES.find((l) => l.id === selectedVoiceLang) || VOICE_LANGUAGES[0];
-
   return (
     <section className={`voice-intake-container ${isElderly ? 'is-elderly' : ''}`} id="voice-intake-section">
       {/* Institutional Section Header */}
@@ -812,53 +803,7 @@ RAW NATIVE PATIENT TRANSCRIPT:
             <span className="status-dot"></span> REAL-TIME BHASHINI & INDIC ASR
           </span>
         </div>
-        <button
-          type="button"
-          className="voice-settings-btn"
-          onClick={() => setShowSettings(!showSettings)}
-          aria-label="API Key Settings"
-          title="Configure Cloud API Keys"
-        >
-          <Settings size={16} />
-          <span>{groqApiKey ? 'Cloud AI Active' : 'AI Settings'}</span>
-        </button>
       </div>
-
-      {/* Optional API Key Configuration Drawer */}
-      {showSettings && (
-        <div className="voice-settings-drawer">
-          <form onSubmit={handleSaveApiKey} className="voice-settings-form">
-            <label htmlFor="groq-key-input">
-              <strong>Custom Cloud API Key (Groq / Bhashini / Gemini):</strong>
-            </label>
-            <div className="settings-input-group">
-              <input
-                id="groq-key-input"
-                type="password"
-                placeholder="gsk_... or Cloudflare Secret Key"
-                value={groqApiKey}
-                onChange={(e) => setGroqApiKey(e.target.value)}
-              />
-              <button type="submit" className="settings-save-btn">Save Key</button>
-              {groqApiKey && (
-                <button
-                  type="button"
-                  className="settings-clear-btn"
-                  onClick={() => {
-                    setGroqApiKey('');
-                    localStorage.removeItem('preconsult_groq_api_key');
-                  }}
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-            <p className="settings-help">
-              Browser-native speech recognition runs 100% locally in your browser for all Indian languages without requiring any API key.
-            </p>
-          </form>
-        </div>
-      )}
 
       {/* Main Interactive Stage */}
       <div className="voice-stage">
@@ -868,199 +813,175 @@ RAW NATIVE PATIENT TRANSCRIPT:
           <p className="voice-subtitle">
             {isElderly
               ? (t.voiceIntakeElderlyPrompt || 'Tap the big microphone and speak your symptoms')
-              : (t.voiceIntakeSubtitle || 'Speak naturally in your native language. Our clinical pipeline preserves medical & Ayurvedic formulations.')}
+              : (t.voiceIntakeSubtitle || 'Speak naturally in any Indian language or English. Language is automatically detected.')}
           </p>
         </div>
 
-        {/* Spoken Language Selector Bar */}
-        <div className="voice-lang-bar">
-          <span className="lang-bar-label">{t.voiceSelectLang || 'Patient Spoken Language:'}</span>
-          <div className="lang-chips-scroll" role="group" aria-label="Select voice language">
-            {VOICE_LANGUAGES.map((lang) => {
-              const isActive = selectedVoiceLang === lang.id;
-              return (
+        {/* Input Method Switcher & Recording Console (Visible when not viewing clinical summary) */}
+        {!clinicalData && (
+          <>
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <div className="intake-method-toggle-bar">
                 <button
-                  key={lang.id}
                   type="button"
-                  className={`lang-chip ${isActive ? 'is-active' : ''}`}
-                  onClick={() => {
-                    if (recordingState === 'idle') {
-                      setSelectedVoiceLang(lang.id);
-                    }
-                  }}
-                  aria-pressed={isActive}
+                  className={`method-toggle-btn ${inputMethod === 'voice' ? 'is-active' : ''}`}
+                  onClick={() => setInputMethod('voice')}
                 >
-                  <span className="lang-chip-glyph">{lang.glyph}</span>
-                  <span className="lang-chip-native">{lang.nativeLabel}</span>
-                  <span className="lang-chip-code">({lang.label})</span>
+                  <Mic size={16} />
+                  <span>Voice Microphone</span>
                 </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Input Method Switcher (Voice vs Type) */}
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <div className="intake-method-toggle-bar">
-            <button
-              type="button"
-              className={`method-toggle-btn ${inputMethod === 'voice' ? 'is-active' : ''}`}
-              onClick={() => setInputMethod('voice')}
-            >
-              <Mic size={16} />
-              <span>Voice Microphone</span>
-            </button>
-            <button
-              type="button"
-              className={`method-toggle-btn ${inputMethod === 'type' ? 'is-active' : ''}`}
-              onClick={() => setInputMethod('type')}
-            >
-              <Edit3 size={16} />
-              <span>Type / Paste Symptoms</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Microphone / Typing Recording Console */}
-        <div className="voice-recording-console">
-          {inputMethod === 'type' && recordingState === 'idle' && (
-            <div className="typed-action-box">
-              <form onSubmit={handleTypedSubmit} className="typed-input-form">
-                <div className="typed-textarea-wrap">
-                  <textarea
-                    className="typed-symptoms-input"
-                    rows={4}
-                    value={customTypedText}
-                    onChange={(e) => setCustomTypedText(e.target.value)}
-                    placeholder={`Describe symptoms in ${currentVoiceLangObj.nativeLabel} / English (e.g. 'मुझे 2 दिन से तेज बुखार, खांसी और सिरदर्द है')`}
-                  />
-                </div>
-                <div className="typed-form-footer">
-                  <span className="typed-lang-badge">
-                    <Activity size={14} /> Processing in {currentVoiceLangObj.nativeLabel} ({currentVoiceLangObj.label})
-                  </span>
-                  <button
-                    type="submit"
-                    className="typed-submit-btn"
-                    disabled={!customTypedText.trim() || recordingState === 'transcribing' || recordingState === 'analyzing'}
-                  >
-                    <Send size={16} />
-                    <span>Analyze & Generate SOAP Note</span>
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
-
-          {inputMethod === 'voice' && recordingState === 'idle' && (
-            <div className="mic-action-box">
-              <button
-                type="button"
-                className="big-mic-button mic-idle"
-                onClick={handleMicButtonClick}
-                aria-label={t.voiceStartRecording || 'Tap to Speak'}
-              >
-                <div className="mic-icon-wrap">
-                  <Mic size={isElderly ? 52 : 44} />
-                </div>
-                <span className="mic-cta-text">{t.voiceStartRecording || 'Tap to Speak'}</span>
-              </button>
-              <p className="mic-subtext">
-                Spoken language: <strong>{currentVoiceLangObj.nativeLabel} ({currentVoiceLangObj.label})</strong> • Tap microphone to speak your symptoms
-              </p>
-            </div>
-          )}
-
-          {recordingState === 'recording' && (
-            <div className="mic-action-box is-active-recording">
-              <div className="recording-visualizer">
-                <div className="audio-wave-bars">
-                  <span className="wave-bar" style={{ height: `${Math.max(15, audioLevel * 0.9)}%` }}></span>
-                  <span className="wave-bar" style={{ height: `${Math.max(25, audioLevel * 1.3)}%` }}></span>
-                  <span className="wave-bar" style={{ height: `${Math.max(10, audioLevel * 0.7)}%` }}></span>
-                  <span className="wave-bar" style={{ height: `${Math.max(30, audioLevel * 1.5)}%` }}></span>
-                  <span className="wave-bar" style={{ height: `${Math.max(18, audioLevel * 1.0)}%` }}></span>
-                </div>
-                <div className="recording-timer">
-                  <span className="recording-pulse-dot"></span>
-                  <Clock size={16} />
-                  <span>{formatTimer(recordDuration)}</span>
-                </div>
+                <button
+                  type="button"
+                  className={`method-toggle-btn ${inputMethod === 'type' ? 'is-active' : ''}`}
+                  onClick={() => setInputMethod('type')}
+                >
+                  <Edit3 size={16} />
+                  <span>Type / Paste Symptoms</span>
+                </button>
               </div>
+            </div>
 
-              {/* LIVE TRANSCRIPTION SPEECH BUBBLE */}
-              <div className="live-speech-card">
-                <div className="live-speech-header">
-                  <span className="live-pulse-dot"></span>
-                  <strong>Listening to your voice ({currentVoiceLangObj.nativeLabel}):</strong>
+            <div className="voice-recording-console">
+              {inputMethod === 'type' && recordingState === 'idle' && (
+                <div className="typed-action-box">
+                  <form onSubmit={handleTypedSubmit} className="typed-input-form">
+                    <div className="typed-textarea-wrap">
+                      <textarea
+                        className="typed-symptoms-input"
+                        rows={4}
+                        value={customTypedText}
+                        onChange={(e) => setCustomTypedText(e.target.value)}
+                        placeholder="Describe symptoms in your language or English (e.g. 'मुझे 2 दिन से तेज बुखार, खांसी और सिरदर्द है' or 'I have severe chest pain and fever')"
+                      />
+                    </div>
+                    <div className="typed-form-footer">
+                      <span className="typed-lang-badge">
+                        <Activity size={14} /> Automatic Multilingual Language Detection
+                      </span>
+                      <button
+                        type="submit"
+                        className="typed-submit-btn"
+                        disabled={!customTypedText.trim() || recordingState === 'transcribing' || recordingState === 'analyzing'}
+                      >
+                        <Send size={16} />
+                        <span>Analyze & Generate SOAP Note</span>
+                      </button>
+                    </div>
+                  </form>
                 </div>
-                <div className="live-speech-body">
-                  {liveTranscript || interimText ? (
-                    <p className="live-speech-text">
-                      <span className="final-text">{liveTranscript}</span>
-                      <span className="interim-text"> {interimText}</span>
-                    </p>
-                  ) : (
-                    <p className="live-speech-placeholder">
-                      Start speaking now… Your words in {currentVoiceLangObj.nativeLabel} will appear here in real time.
-                    </p>
+              )}
+
+              {inputMethod === 'voice' && recordingState === 'idle' && (
+                <div className="mic-action-box">
+                  <button
+                    type="button"
+                    className="big-mic-button mic-idle"
+                    onClick={handleMicButtonClick}
+                    aria-label={t.voiceStartRecording || 'Tap to Speak'}
+                  >
+                    <div className="mic-icon-wrap">
+                      <Mic size={isElderly ? 52 : 44} />
+                    </div>
+                    <span className="mic-cta-text">{t.voiceStartRecording || 'Tap to Speak'}</span>
+                  </button>
+                  <p className="mic-subtext">
+                    Speak naturally in any Indian language or English • Tap microphone to speak your symptoms
+                  </p>
+                </div>
+              )}
+
+              {recordingState === 'recording' && (
+                <div className="mic-action-box is-active-recording">
+                  <div className="recording-visualizer">
+                    <div className="audio-wave-bars">
+                      <span className="wave-bar" style={{ height: `${Math.max(15, audioLevel * 0.9)}%` }}></span>
+                      <span className="wave-bar" style={{ height: `${Math.max(25, audioLevel * 1.3)}%` }}></span>
+                      <span className="wave-bar" style={{ height: `${Math.max(10, audioLevel * 0.7)}%` }}></span>
+                      <span className="wave-bar" style={{ height: `${Math.max(30, audioLevel * 1.5)}%` }}></span>
+                      <span className="wave-bar" style={{ height: `${Math.max(18, audioLevel * 1.0)}%` }}></span>
+                    </div>
+                    <div className="recording-timer">
+                      <span className="recording-pulse-dot"></span>
+                      <Clock size={16} />
+                      <span>{formatTimer(recordDuration)}</span>
+                    </div>
+                  </div>
+
+                  {/* LIVE TRANSCRIPTION SPEECH BUBBLE */}
+                  <div className="live-speech-card">
+                    <div className="live-speech-header">
+                      <span className="live-pulse-dot"></span>
+                      <strong>Listening to your voice (Automatic Detection):</strong>
+                    </div>
+                    <div className="live-speech-body">
+                      {liveTranscript || interimText ? (
+                        <p className="live-speech-text">
+                          <span className="final-text">{liveTranscript}</span>
+                          <span className="interim-text"> {interimText}</span>
+                        </p>
+                      ) : (
+                        <p className="live-speech-placeholder">
+                          Start speaking now… Your words will appear here in real time.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="big-mic-button mic-recording"
+                    onClick={stopRecording}
+                    aria-label={t.voiceStopRecording || 'Tap to Stop'}
+                  >
+                    <div className="mic-icon-wrap stop-pulse">
+                      <MicOff size={isElderly ? 52 : 44} />
+                    </div>
+                    <span className="mic-cta-text">{t.voiceStopRecording || 'Tap to Finish'}</span>
+                  </button>
+
+                  <p className="recording-instruction">
+                    {t.voiceStatusRecording || 'Listening… Speak clearly into your microphone'}
+                  </p>
+                </div>
+              )}
+
+              {(recordingState === 'transcribing' || recordingState === 'analyzing') && (
+                <div className="processing-indicator">
+                  <div className="spinner-orbit">
+                    <Sparkles size={36} className="spin-icon" />
+                  </div>
+                  <h3 className="processing-heading">
+                    {recordingState === 'transcribing'
+                      ? `Transcribing voice with Bhashini Bodhan ASR... (${transcribeElapsedSec}s)`
+                      : (t.voiceStatusAnalyzing || 'Generating SOAP Note & Preserving Ayurvedic Formulations…')}
+                  </h3>
+                  {liveTranscript && (
+                    <div className="processed-snippet-box">
+                      <span>Detected Speech:</span>
+                      <p>"{liveTranscript}"</p>
+                    </div>
                   )}
                 </div>
-              </div>
+              )}
 
-              <button
-                type="button"
-                className="big-mic-button mic-recording"
-                onClick={stopRecording}
-                aria-label={t.voiceStopRecording || 'Tap to Stop'}
-              >
-                <div className="mic-icon-wrap stop-pulse">
-                  <MicOff size={isElderly ? 52 : 44} />
-                </div>
-                <span className="mic-cta-text">{t.voiceStopRecording || 'Tap to Finish'}</span>
-              </button>
-
-              <p className="recording-instruction">
-                {t.voiceStatusRecording || 'Listening… Speak clearly into your microphone'}
-              </p>
-            </div>
-          )}
-
-          {(recordingState === 'transcribing' || recordingState === 'analyzing') && (
-            <div className="processing-indicator">
-              <div className="spinner-orbit">
-                <Sparkles size={36} className="spin-icon" />
-              </div>
-              <h3 className="processing-heading">
-                {recordingState === 'transcribing'
-                  ? `Transcribing voice with Bhashini Bodhan ASR... (${transcribeElapsedSec}s)`
-                  : (t.voiceStatusAnalyzing || 'Generating SOAP Note & Preserving Ayurvedic Formulations…')}
-              </h3>
-              {liveTranscript && (
-                <div className="processed-snippet-box">
-                  <span>Detected Speech:</span>
-                  <p>"{liveTranscript}"</p>
+              {errorMessage && (
+                <div className="voice-error-box">
+                  <AlertTriangle size={20} />
+                  <div className="error-text-wrap">
+                    <span>{errorMessage}</span>
+                    <button
+                      type="button"
+                      className="error-action-link"
+                      onClick={() => setShowPermissionModal(true)}
+                    >
+                      View Permission Guide
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
-          )}
-
-          {errorMessage && (
-            <div className="voice-error-box">
-              <AlertTriangle size={20} />
-              <div className="error-text-wrap">
-                <span>{errorMessage}</span>
-                <button
-                  type="button"
-                  className="error-action-link"
-                  onClick={() => setShowPermissionModal(true)}
-                >
-                  View Permission Guide
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+          </>
+        )}
 
         {/*
           ── SAMPLE PRESETS TEMPORARILY COMMENTED OUT FOR TESTING ──
@@ -1101,11 +1022,6 @@ RAW NATIVE PATIENT TRANSCRIPT:
               <div className="result-title-group">
                 <div className="slip-meta-badges">
                   <span className="slip-meta-tag">OPD CLINICAL INTAKE RECORD // PC-MED-09</span>
-                  {clinicalData.transcription_engine && (
-                    <span className="engine-meta-tag">
-                      <Sparkles size={12} /> {clinicalData.transcription_engine}
-                    </span>
-                  )}
                 </div>
                 <h3 className="result-heading">Clinical Intake Summary</h3>
               </div>
@@ -1124,13 +1040,6 @@ RAW NATIVE PATIENT TRANSCRIPT:
               </div>
             </div>
 
-            {/* Triage Reason Bar */}
-            {clinicalData.triage_reason && (
-              <div className="triage-reason-box">
-                <strong>Triage Assessment:</strong> {clinicalData.triage_reason}
-              </div>
-            )}
-
             {/* Chief Complaint & Duration Banner */}
             <div className="chief-complaint-banner">
               <div className="cc-item">
@@ -1146,6 +1055,17 @@ RAW NATIVE PATIENT TRANSCRIPT:
                 <strong className="cc-value">{clinicalData.duration}</strong>
               </div>
             </div>
+
+            {/* Dynamic Adaptive HPI (History of Present Illness) Collector */}
+            <AdaptiveHpiCollector
+              hpiData={clinicalData.hpi_details || {}}
+              onHpiChange={handleHpiUpdate}
+              chiefComplaint={clinicalData.chief_complaint}
+              transcript={clinicalData.original_transcript || liveTranscript}
+              userLanguage={userLanguage}
+              isElderly={isElderly}
+              patientInfo={patientProfile}
+            />
 
             {/* Tabs for SOAP Note vs Raw Native Voice Transcript */}
             <div className="result-tab-nav" role="tablist">

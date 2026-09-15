@@ -6,6 +6,8 @@
  * and assigns ABDM-compliant clinical triage levels with SOAP summaries.
  */
 
+import { analyzeHpiCompleteness } from './hpiService.js';
+
 const KNOWN_MEDICATIONS = [
   { name: 'Metformin (500mg)', regex: /metformin|glycomet|glim|sugar दवा|मधुमेह/i },
   { name: 'Pantoprazole (40mg)', regex: /pantoprazole|pantocid|pan-40|pan 40|gas दवा|एसिडिटी/i },
@@ -23,7 +25,33 @@ const KNOWN_MEDICATIONS = [
   { name: 'Yogaraj Guggulu', regex: /yogaraj|योगराज/i }
 ];
 
-export function executeClientClinicalNLP(transcript = '', lang = 'en') {
+export function detectLanguageFromText(text, fallbackLang = 'en') {
+  if (!text) return 'English';
+  // Devanagari script: Hindi, Sanskrit, Marathi
+  if (/[\u0900-\u097F]/.test(text)) {
+    if (/अस्ति|सेवयामि|वर्तते|मम|द्वे|चूर्णम्|प्रकोप/i.test(text)) return 'Sanskrit / AYUSH (संस्कृतम्)';
+    if (/आहे|नाही|मला|होत|पोटात|जळजळ/i.test(text)) return 'Marathi (मराठी)';
+    return 'Hindi (हिन्दी)';
+  }
+  // Kannada script
+  if (/[\u0C80-\u0CFF]/.test(text)) return 'Kannada (ಕನ್ನಡ)';
+  // Tamil script
+  if (/[\u0B80-\u0BFF]/.test(text)) return 'Tamil (தமிழ்)';
+  // Telugu script
+  if (/[\u0C00-\u0C7F]/.test(text)) return 'Telugu (తెలుగు)';
+  // Bengali script
+  if (/[\u0980-\u09FF]/.test(text)) return 'Bengali (বাংলা)';
+  // Malayalam script
+  if (/[\u0D00-\u0D7F]/.test(text)) return 'Malayalam (മലയാളം)';
+  // Gujarati script
+  if (/[\u0A80-\u0AFF]/.test(text)) return 'Gujarati (ગુજરાતી)';
+  // Punjabi script
+  if (/[\u0A00-\u0A7F]/.test(text)) return 'Punjabi (ਪੰਜਾਬੀ)';
+  
+  return 'English';
+}
+
+export function executeClientClinicalNLP(transcript = '', lang = 'auto') {
   const text = (transcript || '').trim();
   const lower = text.toLowerCase();
 
@@ -41,7 +69,9 @@ export function executeClientClinicalNLP(transcript = '', lang = 'en') {
     en: 'English'
   };
 
-  const detected_language = langNames[lang] || 'English / Indic';
+  const detected_language = (lang && lang !== 'auto' && langNames[lang])
+    ? langNames[lang]
+    : detectLanguageFromText(text, lang);
 
   let triage_urgency = 'ROUTINE';
   let triage_reason = 'Patient presents with subacute symptoms requiring standard clinical outpatient evaluation.';
@@ -173,6 +203,12 @@ export function executeClientClinicalNLP(transcript = '', lang = 'en') {
     translated_clinical_english = `Patient clinical narrative: "${text || 'Patient seeks OPD consultation for clinical review.'}". Outpatient physician consultation recommended.`;
   }
 
+  const hpi_details = analyzeHpiCompleteness(text, {
+    duration,
+    chief_complaint,
+    associated_symptoms
+  }, lang);
+
   return {
     detected_language,
     original_transcript: text || 'Voice intake recorded',
@@ -185,6 +221,7 @@ export function executeClientClinicalNLP(transcript = '', lang = 'en') {
       dosha_imbalance,
       agni_status
     },
+    hpi_details,
     triage_urgency,
     triage_reason,
     timestamp: new Date().toISOString()

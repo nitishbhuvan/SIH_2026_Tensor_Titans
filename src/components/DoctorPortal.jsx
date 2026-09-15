@@ -25,6 +25,7 @@ import {
   getTriageSummary,
   sortRecordsByUrgency,
 } from '../services/clinicalRecordsService.js';
+import { synthesizeHpiNarrative } from '../services/hpiService.js';
 import './DoctorPortal.css';
 
 const TRIAGE_ICONS = {
@@ -177,14 +178,6 @@ export default function DoctorPortal({ theme, onToggleTheme, onSwitchRole, docto
           <div className="dp-header-actions">
             <button
               type="button"
-              className="dp-switch-role-btn"
-              onClick={() => onSwitchRole('intro')}
-            >
-              <ArrowLeft size={14} />
-              Exit / Switch Role
-            </button>
-            <button
-              type="button"
               className="dp-doctor-profile"
               onClick={() => onSwitchRole('doctor-profile')}
               title="Click to view & edit Doctor Profile and ABDM HPR credentials"
@@ -200,54 +193,6 @@ export default function DoctorPortal({ theme, onToggleTheme, onSwitchRole, docto
           </div>
         </div>
       </header>
-
-      <div className="dp-account-actions">
-        <span>Account settings</span>
-        <button
-          type="button"
-          className="dp-account-btn dp-account-profile-btn"
-          onClick={() => onSwitchRole('doctor-profile')}
-        >
-          <User size={13} style={{ display: 'inline', marginRight: '0.35rem', verticalAlign: 'middle' }} />
-          Doctor Profile &amp; HPR Card
-        </button>
-        <button type="button" className="dp-account-btn dp-logout-btn" onClick={onLogout}>
-          Log Out
-        </button>
-      </div>
-
-      {/* ── Triage Metrics Bar ── */}
-      <div className="dp-metrics-bar" role="status" aria-label="OPD triage summary">
-        <div className="dp-metric metric-total">
-          <span className="dp-metric-value">{summary.total}</span>
-          <span className="dp-metric-label">Total</span>
-        </div>
-        <div className="dp-metrics-divider" />
-        <div className="dp-metric metric-redflag">
-          <AlertOctagon size={14} />
-          <span className="dp-metric-value">{summary.red_flag}</span>
-          <span className="dp-metric-label">Red Flag</span>
-        </div>
-        <div className="dp-metric metric-urgent">
-          <AlertTriangle size={14} />
-          <span className="dp-metric-value">{summary.urgent}</span>
-          <span className="dp-metric-label">Urgent</span>
-        </div>
-        <div className="dp-metric metric-routine">
-          <CheckCircle2 size={14} />
-          <span className="dp-metric-value">{summary.routine}</span>
-          <span className="dp-metric-label">Routine</span>
-        </div>
-        <div className="dp-metrics-divider" />
-        <div className="dp-metric metric-completed">
-          <span className="dp-metric-value">{summary.completed}</span>
-          <span className="dp-metric-label">Completed</span>
-        </div>
-        <div className="dp-live-badge">
-          <span className="dp-live-dot" />
-          Live Sync
-        </div>
-      </div>
 
       {/* ── Main Layout (Responsive Master-Detail on Mobile) ── */}
       <div className={`dp-main ${selectedId ? 'has-selected-patient' : 'no-patient-selected'}`}>
@@ -446,20 +391,79 @@ export default function DoctorPortal({ theme, onToggleTheme, onSwitchRole, docto
                   </div>
                 </div>
 
-                {/* ── Section 3: Structured SOAP Data ── */}
-                <div className="dp-section-card">
+                {/* ── Section 3: Structured HPI (History of Present Illness) ── */}
+                <div className="dp-section-card dp-hpi-card">
                   <div className="dp-section-header">
-                    <FileText size={15} className="dp-section-icon" />
-                    <span className="dp-section-title">Clinical Intake — SOAP</span>
+                    <Clock size={15} className="dp-section-icon text-accent" />
+                    <span className="dp-section-title">History of Present Illness (HPI — OLD CARTS)</span>
+                    <button
+                      type="button"
+                      className="dp-hpi-copy-btn"
+                      onClick={() => {
+                        const narrative = synthesizeHpiNarrative(
+                          selectedRecord.intake?.hpi_details || {},
+                          selectedRecord.patientInfo || {}
+                        );
+                        navigator.clipboard?.writeText(narrative || selectedRecord.intake?.translated_clinical_english || '');
+                        setSaveSuccess(true);
+                        setTimeout(() => setSaveSuccess(false), 2000);
+                      }}
+                      title="Copy structured HPI for Hospital EMR / EHR"
+                    >
+                      Copy HPI for EMR
+                    </button>
                   </div>
                   <div className="dp-section-body">
-                    <div className="dp-section-body-field">
+                    {/* Synthesized Chronological HPI Narrative */}
+                    <div className="dp-hpi-narrative-box">
+                      <div className="dp-hpi-narrative-label">Chronological Clinical Summary</div>
+                      <p className="dp-hpi-narrative-text">
+                        {synthesizeHpiNarrative(
+                          selectedRecord.intake?.hpi_details || {},
+                          selectedRecord.patientInfo || {}
+                        ) || selectedRecord.intake?.translated_clinical_english || 'No structured HPI provided.'}
+                      </p>
+                    </div>
+
+                    {/* OLD CARTS Structured Grid */}
+                    {selectedRecord.intake?.hpi_details && (
+                      <div className="dp-oldcarts-grid">
+                        <div className="dp-oldcarts-item">
+                          <span className="dp-oldcarts-key">Onset &amp; Manner</span>
+                          <span className="dp-oldcarts-val">{selectedRecord.intake.hpi_details.onset || selectedRecord.intake.duration || '—'}</span>
+                        </div>
+                        <div className="dp-oldcarts-item">
+                          <span className="dp-oldcarts-key">Location &amp; Radiation</span>
+                          <span className="dp-oldcarts-val">{selectedRecord.intake.hpi_details.location || '—'}</span>
+                        </div>
+                        <div className="dp-oldcarts-item">
+                          <span className="dp-oldcarts-key">Character / Quality</span>
+                          <span className="dp-oldcarts-val">{selectedRecord.intake.hpi_details.character || '—'}</span>
+                        </div>
+                        <div className="dp-oldcarts-item">
+                          <span className="dp-oldcarts-key">Aggravating (Anupashaya)</span>
+                          <span className="dp-oldcarts-val">{selectedRecord.intake.hpi_details.aggravating_factors || '—'}</span>
+                        </div>
+                        <div className="dp-oldcarts-item">
+                          <span className="dp-oldcarts-key">Relieving (Upashaya)</span>
+                          <span className="dp-oldcarts-val">{selectedRecord.intake.hpi_details.relieving_factors || '—'}</span>
+                        </div>
+                        <div className="dp-oldcarts-item">
+                          <span className="dp-oldcarts-key">Timing &amp; Diurnal</span>
+                          <span className="dp-oldcarts-val">{selectedRecord.intake.hpi_details.timing || '—'}</span>
+                        </div>
+                        <div className="dp-oldcarts-item">
+                          <span className="dp-oldcarts-key">VAS Severity (1-10)</span>
+                          <span className="dp-oldcarts-val" style={{ fontWeight: 700, color: 'var(--accent-primary)' }}>
+                            {selectedRecord.intake.hpi_details.severity_score ? `${selectedRecord.intake.hpi_details.severity_score} / 10` : '—'}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="dp-section-body-field" style={{ marginTop: '0.75rem' }}>
                       <div className="dp-soap-label">Chief Complaint</div>
                       <div className="dp-soap-value" style={{ fontWeight: 600 }}>{selectedRecord.intake?.chief_complaint || '—'}</div>
-                    </div>
-                    <div className="dp-section-body-field">
-                      <div className="dp-soap-label">Duration</div>
-                      <div className="dp-soap-value">{selectedRecord.intake?.duration || '—'}</div>
                     </div>
                     {selectedRecord.intake?.associated_symptoms?.length > 0 && (
                       <div className="dp-section-body-field">
