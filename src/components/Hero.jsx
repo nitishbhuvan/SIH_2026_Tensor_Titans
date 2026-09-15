@@ -40,7 +40,7 @@ export default function Hero({ isElderly, t, onVoiceIntake, onOcrIntake, onAyuse
             type="button"
             className="hero-cta hero-cta-ayusetu"
             onClick={onAyusetuIntake}
-            aria-label="Start Pre-Consultation"
+            aria-label="Start AYUSETU Clinical Intake"
           >
             <Leaf size={isElderly ? 22 : 18} aria-hidden="true" />
             <span>{t.heroPreConsultCta || 'Pre-Consultation (AYUSETU Protocol)'}</span>

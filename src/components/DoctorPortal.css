@@ -1137,6 +1137,16 @@
   margin-bottom: 0.75rem;
 }
 
+.dp-follow-up-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.dp-history-field { padding: 0.8rem; border: 1px solid var(--border-default); border-radius: var(--radius-md); background: var(--bg-surface-secondary); }
+.dp-history-field label { display: block; margin-bottom: 0.5rem; color: var(--accent-primary); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; }
+.dp-history-field p { color: var(--text-primary); font-size: 0.84rem; line-height: 1.5; }
+.dp-history-field p + p { margin-top: 0.45rem; }
+
+@media (max-width: 700px) {
+  .dp-follow-up-grid { grid-template-columns: 1fr; }
+}
+
 .dp-queue-time {
   font-family: var(--font-mono);
   font-size: 0.68rem;

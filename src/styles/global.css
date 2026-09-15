@@ -389,6 +389,46 @@ body.mode-elderly .module-switch-btn {
 }
 
 /* ============================================================================
+   MOBILE PHONE UX & TOUCH OPTIMIZATIONS (< 640px)
+   ============================================================================ */
+@media (max-width: 640px) {
+  /* Prevent iOS Safari 16px auto-zoom on input focus */
+  input,
+  textarea,
+  select,
+  button {
+    font-size: 16px !important;
+  }
+
+  body {
+    -webkit-text-size-adjust: 100%;
+    overscroll-behavior-y: none;
+  }
+
+  .container-wide {
+    padding-left: clamp(0.65rem, 3vw, 1rem) !important;
+    padding-right: clamp(0.65rem, 3vw, 1rem) !important;
+  }
+
+  /* Touch active press response */
+  button:active,
+  .btn-action:active,
+  .language-card:active,
+  .module-switch-btn:active {
+    transform: scale(0.97);
+  }
+
+  /* Smooth momentum touch scrolling for all scroll areas */
+  .lang-chips-scroll,
+  .presets-chips,
+  .module-switch-bar,
+  .modal-box {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+}
+
+/* ============================================================================
    REDUCED MOTION
    ============================================================================ */
 @media (prefers-reduced-motion: reduce) {

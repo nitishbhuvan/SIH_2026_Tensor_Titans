@@ -438,6 +438,76 @@ function clinicalApisPlugin(env) {
     name: 'clinical-apis-dev',
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
+        // ── /api/bhashini-tts ──
+        if (req.url?.startsWith('/api/bhashini-tts') && req.method === 'POST') {
+          try {
+            const chunks = [];
+            for await (const chunk of req) chunks.push(chunk);
+            const body = JSON.parse(Buffer.concat(chunks).toString('utf-8'));
+            const text = String(body.text || '').trim();
+            const rawLang = String(body.language || 'en').toLowerCase().trim();
+            const gender = body.gender === 'male' ? 'male' : 'female';
+            const bhashiniLang = (rawLang === 'sa' || rawLang === 'sanskrit') ? 'hi' : rawLang;
+
+            const apiKey = env.BHASHINI_API_KEY || process.env.BHASHINI_API_KEY || '';
+            const userId = env.BHASHINI_USER_ID || process.env.BHASHINI_USER_ID || '';
+            const inferenceKey = env.BHASHINI_INFERENCE_KEY || process.env.BHASHINI_INFERENCE_KEY || '';
+
+            const dravidianLangs = new Set(['kn', 'ta', 'te', 'ml']);
+            const miscLangs = new Set(['en', 'ur']);
+            let serviceId = 'ai4bharat/indic-tts-coqui-indo_aryan-gpu--t4';
+            if (dravidianLangs.has(bhashiniLang)) {
+              serviceId = 'ai4bharat/indic-tts-coqui-dravidian-gpu--t4';
+            } else if (miscLangs.has(bhashiniLang)) {
+              serviceId = 'ai4bharat/indic-tts-coqui-misc-gpu--t4';
+            }
+
+            if (!text || !apiKey || !userId) {
+              res.statusCode = 503;
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ success: false, error: 'Bhashini TTS credentials or text missing.' }));
+              return;
+            }
+
+            const bhashiniResponse = await fetch('https://dhruva-api.bhashini.gov.in/services/inference/pipeline', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': inferenceKey || apiKey,
+                'InferenceApiKey': inferenceKey || apiKey,
+                'ulcaApiKey': apiKey,
+                'userID': userId
+              },
+              body: JSON.stringify({
+                pipelineTasks: [
+                  {
+                    taskType: 'tts',
+                    config: {
+                      language: { sourceLanguage: bhashiniLang },
+                      serviceId: serviceId,
+                      gender: gender,
+                      samplingRate: 8000
+                    }
+                  }
+                ],
+                inputData: { input: [{ source: text }] },
+              }),
+            });
+
+            const data = await bhashiniResponse.json();
+            const audio = data?.pipelineResponse?.[0]?.audio?.[0];
+            res.statusCode = bhashiniResponse.ok && audio?.audioContent ? 200 : 502;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify(audio?.audioContent ? { success: true, audioContent: audio.audioContent, audioFormat: audio.audioFormat || 'wav', language: rawLang } : { success: false, error: data?.message || data?.detail?.message || 'Bhashini returned no audio stream.' }));
+            return;
+          } catch (error) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ success: false, error: error.message }));
+            return;
+          }
+        }
+
         // ── /api/voice-intake ──
         if (req.url?.startsWith('/api/voice-intake') && req.method === 'POST') {
           try {

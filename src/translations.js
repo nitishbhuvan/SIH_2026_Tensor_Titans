@@ -69,6 +69,9 @@ export const VOICE_LANGUAGES = [
   { id: 'te', label: 'Telugu', nativeLabel: 'తెలుగు', glyph: 'అ' },
   { id: 'mr', label: 'Marathi', nativeLabel: 'मराठी', glyph: 'म' },
   { id: 'bn', label: 'Bengali', nativeLabel: 'বাংলা', glyph: 'ব' },
+  { id: 'ml', label: 'Malayalam', nativeLabel: 'മലയാളം', glyph: 'അ' },
+  { id: 'gu', label: 'Gujarati', nativeLabel: 'ગુજરાતી', glyph: 'ગ' },
+  { id: 'pa', label: 'Punjabi', nativeLabel: 'ਪੰਜਾਬੀ', glyph: 'ਪ' },
   { id: 'sa', label: 'Sanskrit / AYUSH', nativeLabel: 'संस्कृतम्', glyph: 'ॐ' },
   { id: 'en', label: 'English', nativeLabel: 'English', glyph: 'En' }
 ];

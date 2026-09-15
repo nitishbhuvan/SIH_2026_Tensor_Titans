@@ -32,6 +32,7 @@ import {
 import { addClinicalRecord } from '../services/clinicalRecordsService.js';
 import { synthesizeHpiNarrative } from '../services/hpiService.js';
 import { translations } from '../translations.js';
+import { speakTextWithBhashini, stopCurrentSpeech } from '../services/bhashiniTtsService.js';
 import './AyusetuIntakeMode.css';
 
 export default function AyusetuIntakeMode({
@@ -194,13 +195,28 @@ export default function AyusetuIntakeMode({
     }
   };
 
+  const [isSpeakingText, setIsSpeakingText] = useState(false);
+
+  useEffect(() => {
+    return () => stopCurrentSpeech();
+  }, []);
+
   const handleSpeakText = (text) => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 0.95;
-      window.speechSynthesis.speak(utterance);
+    if (isSpeakingText) {
+      stopCurrentSpeech();
+      setIsSpeakingText(false);
+      return;
     }
+    speakTextWithBhashini({
+      text,
+      language: userLanguage,
+      onStart: () => {
+        setIsSpeakingText(true);
+        if (onNotify) onNotify('Speaking question via Bhashini TTS…', 'info');
+      },
+      onEnd: () => setIsSpeakingText(false),
+      onError: () => setIsSpeakingText(false)
+    });
   };
 
   // ── Navigation Between Stages ──────────────────────────────────────

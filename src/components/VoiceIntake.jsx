@@ -28,6 +28,9 @@ import { addClinicalRecord, updateClinicalRecord } from '../services/clinicalRec
 import { executeClientClinicalNLP } from '../services/clinicalNlpService.js';
 import { encodeWAV, resampleAudioBuffer } from '../utils/wavEncoder.js';
 import AdaptiveHpiCollector from './AdaptiveHpiCollector.jsx';
+import ClinicalFollowUp from './ClinicalFollowUp.jsx';
+import { VOICE_LANGUAGES } from '../translations.js';
+import { speakTextWithBhashini, stopCurrentSpeech, playLanguageSample, isSpeechPlaying } from '../services/bhashiniTtsService.js';
 import './VoiceIntake.css';
 
 // Language locale mapping for SpeechRecognition API
@@ -43,6 +46,17 @@ const SPEECH_LANG_MAP = {
   pa: 'pa-IN',
   sa: 'hi-IN',
   en: 'en-IN'
+};
+
+const DETECTED_LANGUAGE_CODES = {
+  Hindi: 'hi',
+  Kannada: 'kn',
+  Tamil: 'ta',
+  Telugu: 'te',
+  Malayalam: 'ml',
+  Marathi: 'mr',
+  Bengali: 'bn',
+  English: 'en'
 };
 
 // Cross-platform audio format detector for Mobile (iOS Safari / Android Chrome) & Desktop
@@ -115,12 +129,16 @@ export default function VoiceIntake({
   onNotify,
   patientProfile
 }) {
-  const [selectedVoiceLang, setSelectedVoiceLang] = useState('auto');
+  const [selectedVoiceLang, setSelectedVoiceLang] = useState(() => (
+    SPEECH_LANG_MAP[userLanguage] ? userLanguage : 'en'
+  ));
 
   const [recordingState, setRecordingState] = useState('idle'); // 'idle' | 'recording' | 'transcribing' | 'analyzing' | 'success' | 'error'
   const [recordDuration, setRecordDuration] = useState(0);
   const [audioLevel, setAudioLevel] = useState(0);
   const [clinicalData, setClinicalData] = useState(null);
+  const [followUpRecordId, setFollowUpRecordId] = useState(null);
+  const [followUpComplete, setFollowUpComplete] = useState(false);
   const [activeTab, setActiveTab] = useState('clinical'); // 'clinical' | 'original'
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -579,7 +597,7 @@ export default function VoiceIntake({
       setRecordingState('success');
 
       // Persist to shared Doctor Portal queue
-      const recId = addClinicalRecord(clinicalResult, {
+      const recordId = addClinicalRecord(clinicalResult, {
         name: patientProfile?.name || 'Anonymous Patient',
         abhaId: patientProfile?.abhaId || '91-8765-4321-0987',
         abhaAddress: patientProfile?.abhaAddress || 'patient@abdm',
@@ -590,7 +608,9 @@ export default function VoiceIntake({
         languageLabel: clinicalResult.detected_language || 'Auto-Detected',
         isElderly: isElderly
       });
-      setCurrentRecordId(recId);
+      setCurrentRecordId(recordId);
+      setFollowUpRecordId(recordId);
+      setFollowUpComplete(false);
 
       if (onNotify) {
         onNotify('Voice intake processed. SOAP note generated & attached to Doctor OPD queue.', 'success');
@@ -621,6 +641,16 @@ export default function VoiceIntake({
     processAudioIntake(null, customTypedText.trim());
   };
 
+  const handleFollowUpComplete = (followUpData) => {
+    const mergedClinicalData = { ...clinicalData, ...followUpData };
+    setClinicalData(mergedClinicalData);
+    setFollowUpComplete(true);
+    if (followUpRecordId) {
+      updateClinicalRecord(followUpRecordId, { intake: mergedClinicalData });
+    }
+    if (onNotify) onNotify('History of present illness and medical history added to the doctor record.', 'success');
+  };
+
   // ── Execute Preset Scenario (Explicit Demo Only) ──
   const handleSelectPreset = (preset) => {
     setShowPermissionModal(false);
@@ -645,6 +675,8 @@ export default function VoiceIntake({
     setAudioCurrentTime(0);
     setAudioDuration(0);
     setClinicalData(null);
+    setFollowUpRecordId(null);
+    setFollowUpComplete(false);
     setRecordingState('idle');
     setRecordDuration(0);
     setErrorMessage('');
@@ -704,24 +736,63 @@ export default function VoiceIntake({
     }
   };
 
-  // ── Text-to-Speech (Read Aloud) ──
+  const [isReadingSummary, setIsReadingSummary] = useState(false);
+  const [isPlayingSample, setIsPlayingSample] = useState(false);
+
+  // ── Sample Voice Preview via Bhashini TTS ──
+  const handlePlayLanguageSample = () => {
+    if (isPlayingSample) {
+      stopCurrentSpeech();
+      setIsPlayingSample(false);
+      return;
+    }
+    const langObj = VOICE_LANGUAGES.find((l) => l.id === selectedVoiceLang) || { label: selectedVoiceLang, nativeLabel: selectedVoiceLang };
+    if (onNotify) onNotify(`Synthesizing voice greeting in ${langObj.nativeLabel} (${langObj.label}) via Bhashini Indic TTS…`, 'info');
+    setIsPlayingSample(true);
+
+    playLanguageSample(selectedVoiceLang, {
+      onStart: () => setIsPlayingSample(true),
+      onEnd: () => setIsPlayingSample(false),
+      onError: () => setIsPlayingSample(false)
+    });
+  };
+
+  // ── Text-to-Speech (Read Aloud via Bhashini) ──
   const handleSpeakAloud = () => {
     if (!clinicalData) return;
-    const textToSpeak =
-      activeTab === 'clinical'
-        ? `Chief complaint: ${clinicalData.chief_complaint}. Duration: ${clinicalData.duration}. Summary: ${clinicalData.translated_clinical_english}`
-        : clinicalData.original_transcript;
-
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(textToSpeak);
-      utterance.rate = 0.95;
-      utterance.pitch = 1.0;
-      window.speechSynthesis.speak(utterance);
-      if (onNotify) {
-        onNotify('Reading clinical summary aloud…', 'info');
-      }
+    if (isReadingSummary) {
+      stopCurrentSpeech();
+      setIsReadingSummary(false);
+      return;
     }
+
+    let targetLang = 'en';
+    let textToSpeak = '';
+
+    if (activeTab === 'clinical') {
+      targetLang = 'en';
+      textToSpeak = `Chief complaint: ${clinicalData.chief_complaint}. Duration: ${clinicalData.duration}. Summary: ${clinicalData.translated_clinical_english}`;
+    } else {
+      const detectedKey = Object.keys(DETECTED_LANGUAGE_CODES).find(
+        (k) => (clinicalData.detected_language || '').toLowerCase().includes(k.toLowerCase())
+      );
+      const detectedCode = detectedKey ? DETECTED_LANGUAGE_CODES[detectedKey] : null;
+      targetLang = detectedCode || (selectedVoiceLang !== 'auto' ? selectedVoiceLang : userLanguage) || 'hi';
+      textToSpeak = clinicalData.original_transcript || clinicalData.chief_complaint;
+    }
+
+    setIsReadingSummary(true);
+    speakTextWithBhashini({
+      text: textToSpeak,
+      language: targetLang,
+      gender: 'female',
+      onStart: () => {
+        setIsReadingSummary(true);
+        if (onNotify) onNotify(`Reading ${activeTab === 'clinical' ? 'clinical note (English)' : `patient transcript (${targetLang.toUpperCase()})`} via Bhashini Indic TTS…`, 'info');
+      },
+      onEnd: () => setIsReadingSummary(false),
+      onError: () => setIsReadingSummary(false)
+    });
   };
 
   // ── Copy Clinical SOAP Note ──
@@ -820,6 +891,40 @@ RAW NATIVE PATIENT TRANSCRIPT:
         {/* Input Method Switcher & Recording Console (Visible when not viewing clinical summary) */}
         {!clinicalData && (
           <>
+            <div className="voice-language-selector">
+              <div className="voice-lang-left">
+                <label htmlFor="voice-language-select">
+                  <Volume2 size={16} />
+                  <span>Spoken Voice Language:</span>
+                </label>
+                <select
+                  id="voice-language-select"
+                  value={selectedVoiceLang}
+                  onChange={(event) => {
+                    const newLang = event.target.value;
+                    setSelectedVoiceLang(newLang);
+                    if (isPlayingSample) {
+                      stopCurrentSpeech();
+                      setIsPlayingSample(false);
+                    }
+                  }}
+                >
+                  {VOICE_LANGUAGES.map((language) => (
+                    <option key={language.id} value={language.id}>{language.nativeLabel} ({language.label})</option>
+                  ))}
+                </select>
+              </div>
+              <button
+                type="button"
+                className={`voice-sample-btn ${isPlayingSample ? 'is-playing' : ''}`}
+                onClick={handlePlayLanguageSample}
+                title="Listen to sample voice greeting in selected language with Bhashini Indic TTS"
+              >
+                <Volume2 size={15} />
+                <span>{isPlayingSample ? 'Speaking Bhashini TTS…' : '🔊 Listen Sample Voice'}</span>
+              </button>
+              <span className="voice-lang-hint">Bhashini Indic AI will articulate medical queries & spoken voice in this language.</span>
+            </div>
             <div style={{ display: 'flex', justifyContent: 'center' }}>
               <div className="intake-method-toggle-bar">
                 <button
@@ -1013,6 +1118,16 @@ RAW NATIVE PATIENT TRANSCRIPT:
             </div>
           </div>
         )} */}
+
+        {clinicalData && followUpRecordId && !followUpComplete && (
+          <ClinicalFollowUp
+            clinicalData={clinicalData}
+            userLanguage={selectedVoiceLang === 'auto'
+              ? (DETECTED_LANGUAGE_CODES[clinicalData.detected_language] || userLanguage)
+              : selectedVoiceLang}
+            onComplete={handleFollowUpComplete}
+          />
+        )}
 
         {/* ── CLINICAL INTAKE RESULT CARD ── */}
         {clinicalData && (

@@ -8,10 +8,12 @@ import {
   Calendar,
   Sparkles,
   ArrowRight,
+  Volume2,
   X
 } from 'lucide-react';
 import { SUPPORTED_LANGUAGES, translations } from '../translations.js';
 import { formatAbhaId, DEMO_PATIENT_PROFILE } from '../services/patientProfileService.js';
+import { playLanguageSample, stopCurrentSpeech } from '../services/bhashiniTtsService.js';
 import './ModeSelectionModal.css';
 
 export default function ModeSelectionModal({
@@ -46,6 +48,8 @@ export default function ModeSelectionModal({
     }
   }, [patientProfile, isOpen]);
 
+  const [previewingLangId, setPreviewingLangId] = useState(null);
+
   // Lock scroll & handle Escape key
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -69,7 +73,24 @@ export default function ModeSelectionModal({
 
   const t = translations[currentLanguage] || translations.en;
 
+  const handlePreviewVoice = (e, langId) => {
+    e.stopPropagation();
+    if (previewingLangId === langId) {
+      stopCurrentSpeech();
+      setPreviewingLangId(null);
+      return;
+    }
+    setPreviewingLangId(langId);
+    playLanguageSample(langId, {
+      onStart: () => setPreviewingLangId(langId),
+      onEnd: () => setPreviewingLangId(null),
+      onError: () => setPreviewingLangId(null)
+    });
+  };
+
   const handleLanguageClick = (langId) => {
+    stopCurrentSpeech();
+    setPreviewingLangId(null);
     if (onSelectLanguage) onSelectLanguage(langId);
     if (onStepChange) onStepChange('mode');
   };
@@ -188,20 +209,35 @@ export default function ModeSelectionModal({
             <div className="language-grid" role="group" aria-label="Select Language">
               {SUPPORTED_LANGUAGES.map((lang) => {
                 const isSelected = currentLanguage === lang.id;
+                const isPreviewing = previewingLangId === lang.id;
                 return (
-                  <button
+                  <div
                     key={lang.id}
-                    type="button"
-                    className={`language-card ${isSelected ? 'is-active' : ''}`}
-                    onClick={() => handleLanguageClick(lang.id)}
-                    aria-label={`${lang.nativeLabel} (${lang.label})`}
+                    className={`language-card-wrapper ${isSelected ? 'is-active' : ''}`}
                   >
-                    <span className="lang-glyph-badge" aria-hidden="true">
-                      {lang.glyph}
-                    </span>
-                    <span className="lang-card-native">{lang.nativeLabel}</span>
-                    <span className="lang-card-sub">{lang.label}</span>
-                  </button>
+                    <button
+                      type="button"
+                      className={`language-card ${isSelected ? 'is-active' : ''}`}
+                      onClick={() => handleLanguageClick(lang.id)}
+                      aria-label={`${lang.nativeLabel} (${lang.label})`}
+                    >
+                      <span className="lang-glyph-badge" aria-hidden="true">
+                        {lang.glyph}
+                      </span>
+                      <span className="lang-card-native">{lang.nativeLabel}</span>
+                      <span className="lang-card-sub">{lang.label}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`lang-voice-preview-btn ${isPreviewing ? 'is-previewing' : ''}`}
+                      onClick={(e) => handlePreviewVoice(e, lang.id)}
+                      title={`Preview Bhashini AI Voice in ${lang.nativeLabel} (${lang.label})`}
+                      aria-label={`Preview voice for ${lang.label}`}
+                    >
+                      <Volume2 size={13} />
+                      <span>{isPreviewing ? 'Playing…' : 'Voice'}</span>
+                    </button>
+                  </div>
                 );
               })}
             </div>
