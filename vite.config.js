@@ -444,31 +444,61 @@ function clinicalApisPlugin(env) {
             const chunks = [];
             for await (const chunk of req) chunks.push(chunk);
             const body = JSON.parse(Buffer.concat(chunks).toString('utf-8'));
-            const language = ['en', 'hi', 'kn', 'ta', 'te', 'ml'].includes(body.language) ? body.language : 'en';
-            const apiKey = env.BHASHINI_API_KEY || '';
-            const userId = env.BHASHINI_USER_ID || '';
-            const pipelineId = env.BHASHINI_PIPELINE_ID || '';
-            const serviceId = env.BHASHINI_TTS_SERVICE_ID || '';
-            if (!body.text || !apiKey || !userId || !pipelineId || !serviceId) {
+            const text = String(body.text || '').trim();
+            const rawLang = String(body.language || 'en').toLowerCase().trim();
+            const gender = body.gender === 'male' ? 'male' : 'female';
+            const bhashiniLang = (rawLang === 'sa' || rawLang === 'sanskrit') ? 'hi' : rawLang;
+
+            const apiKey = env.BHASHINI_API_KEY || process.env.BHASHINI_API_KEY || '';
+            const userId = env.BHASHINI_USER_ID || process.env.BHASHINI_USER_ID || '';
+            const inferenceKey = env.BHASHINI_INFERENCE_KEY || process.env.BHASHINI_INFERENCE_KEY || '';
+
+            const dravidianLangs = new Set(['kn', 'ta', 'te', 'ml']);
+            const miscLangs = new Set(['en', 'ur']);
+            let serviceId = 'ai4bharat/indic-tts-coqui-indo_aryan-gpu--t4';
+            if (dravidianLangs.has(bhashiniLang)) {
+              serviceId = 'ai4bharat/indic-tts-coqui-dravidian-gpu--t4';
+            } else if (miscLangs.has(bhashiniLang)) {
+              serviceId = 'ai4bharat/indic-tts-coqui-misc-gpu--t4';
+            }
+
+            if (!text || !apiKey || !userId) {
               res.statusCode = 503;
               res.setHeader('Content-Type', 'application/json');
-              res.end(JSON.stringify({ success: false, error: 'Bhashini TTS is not configured.' }));
+              res.end(JSON.stringify({ success: false, error: 'Bhashini TTS credentials or text missing.' }));
               return;
             }
+
             const bhashiniResponse = await fetch('https://dhruva-api.bhashini.gov.in/services/inference/pipeline', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json', userID: userId, ulcaApiKey: apiKey },
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': inferenceKey || apiKey,
+                'InferenceApiKey': inferenceKey || apiKey,
+                'ulcaApiKey': apiKey,
+                'userID': userId
+              },
               body: JSON.stringify({
-                pipelineId,
-                pipelineTasks: [{ taskType: 'tts', config: { language: { sourceLanguage: language }, serviceId, gender: 'female', samplingRate: 8000 } }],
-                inputData: { input: [{ source: String(body.text) }] },
+                pipelineTasks: [
+                  {
+                    taskType: 'tts',
+                    config: {
+                      language: { sourceLanguage: bhashiniLang },
+                      serviceId: serviceId,
+                      gender: gender,
+                      samplingRate: 8000
+                    }
+                  }
+                ],
+                inputData: { input: [{ source: text }] },
               }),
             });
+
             const data = await bhashiniResponse.json();
-            const audio = data?.pipelineResponse?.find((item) => item.taskType === 'tts')?.audio?.[0];
+            const audio = data?.pipelineResponse?.[0]?.audio?.[0];
             res.statusCode = bhashiniResponse.ok && audio?.audioContent ? 200 : 502;
             res.setHeader('Content-Type', 'application/json');
-            res.end(JSON.stringify(audio?.audioContent ? { success: true, audioContent: audio.audioContent, audioFormat: audio.audioFormat || 'wav' } : { success: false, error: 'Bhashini returned no audio.' }));
+            res.end(JSON.stringify(audio?.audioContent ? { success: true, audioContent: audio.audioContent, audioFormat: audio.audioFormat || 'wav', language: rawLang } : { success: false, error: data?.message || data?.detail?.message || 'Bhashini returned no audio stream.' }));
             return;
           } catch (error) {
             res.statusCode = 500;

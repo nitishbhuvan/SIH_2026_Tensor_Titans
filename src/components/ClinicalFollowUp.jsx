@@ -1,23 +1,120 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Check, ChevronRight, Mic, MicOff, Volume2 } from 'lucide-react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { Check, ChevronRight, Mic, MicOff, Volume2, Sparkles, AlertCircle } from 'lucide-react';
+import { speakTextWithBhashini, stopCurrentSpeech, isSpeechPlaying } from '../services/bhashiniTtsService.js';
 import './ClinicalFollowUp.css';
 
 const QUESTIONS = [
-  { id: 'onset', title: 'When did this problem begin?', prompt: { en: 'When exactly did this problem begin? Did it start suddenly or gradually?', hi: 'यह समस्या ठीक कब शुरू हुई? क्या यह अचानक शुरू हुई या धीरे-धीरे?', kn: 'ಈ ಸಮಸ್ಯೆ ನಿಖರವಾಗಿ ಯಾವಾಗ ಪ್ರಾರಂಭವಾಯಿತು? ಇದು ಹಠಾತ್ತಾಗಿ ಅಥವಾ ನಿಧಾನವಾಗಿ ಪ್ರಾರಂಭವಾಯಿತೇ?', ta: 'இந்தப் பிரச்சனை சரியாக எப்போது தொடங்கியது? திடீரெனவா அல்லது படிப்படியாகவா?', te: 'ఈ సమస్య సరిగ్గా ఎప్పుడు ప్రారంభమైంది? అకస్మాత్తుగా లేదా క్రమంగా ప్రారంభమైందా?', ml: 'ഈ പ്രശ്നം കൃത്യമായി എപ്പോൾ ആരംഭിച്ചു? പെട്ടെന്നാണോ ക്രമേണയാണോ?' }, options: ['Today', 'Within the last week', 'More than a week ago', 'It started gradually'] },
-  { id: 'location', title: 'Where do you feel it?', prompt: { en: 'Where exactly do you feel the symptom? Does it spread to another part of the body?', hi: 'लक्षण आपको ठीक कहाँ महसूस होता है? क्या यह शरीर के किसी दूसरे हिस्से तक फैलता है?', kn: 'ಲಕ್ಷಣವು ನಿಮಗೆ ನಿಖರವಾಗಿ ಎಲ್ಲಿದೆ? ಅದು ದೇಹದ ಬೇರೆ ಭಾಗಕ್ಕೆ ಹರಡುತ್ತದೆಯೇ?', ta: 'அறிகுறி சரியாக எங்கே உணரப்படுகிறது? அது உடலின் வேறு பகுதிக்கு பரவுகிறதா?', te: 'లక్షణం మీకు సరిగ్గా ఎక్కడ అనిపిస్తుంది? ఇది శరీరంలోని మరొక భాగానికి వ్యాపిస్తుందా?', ml: 'ലക്ഷണം കൃത്യമായി എവിടെയാണ് അനുഭവപ്പെടുന്നത്? ഇത് ശരീരത്തിന്റെ മറ്റൊരു ഭാഗത്തേക്ക് പടരുന്നുണ്ടോ?' }, options: ['One specific area', 'More than one area', 'It moves or spreads'] },
-  { id: 'character', title: 'What does it feel like?', prompt: { en: 'How would you describe the symptom: burning, pressure, sharp pain, dull pain, throbbing, itching, or something else?', hi: 'लक्षण कैसा महसूस होता है: जलन, दबाव, तेज दर्द, हल्का दर्द, धड़कन, खुजली या कुछ और?', kn: 'ಲಕ್ಷಣವು ಹೇಗೆ ಅನಿಸುತ್ತದೆ: ಉರಿ, ಒತ್ತಡ, ಚುಚ್ಚುವ ನೋವು, ಮಂದ ನೋವು, ಬಡಿತ, ತುರಿಕೆ ಅಥವಾ ಬೇರೆ ರೀತಿಯೇ?', ta: 'அறிகுறி எப்படி உணரப்படுகிறது: எரிச்சல், அழுத்தம், கூர்மையான வலி, மந்தமான வலி, துடிப்பு, அரிப்பு அல்லது வேறு ஏதாவது?', te: 'లక్షణం ఎలా అనిపిస్తుంది: మంట, ఒత్తిడి, తీవ్రమైన నొప్పి, మందమైన నొప్పి, దడ, దురద లేదా మరేదైనా?', ml: 'ലക്ഷണം എങ്ങനെ അനുഭവപ്പെടുന്നു: എരിച്ചിൽ, സമ്മർദ്ദം, കുത്തുന്ന വേദന, മന്ദമായ വേദന, മിടിപ്പ്, ചൊറിച്ചിൽ അല്ലെങ്കിൽ മറ്റെന്തെങ്കിലും?' }, options: ['Burning or pressure', 'Sharp or cramping', 'Dull or throbbing', 'Something else'] },
-  { id: 'severity', title: 'How severe is it?', prompt: { en: 'On a scale from zero to ten, how severe is the symptom right now?', hi: 'शून्य से दस के पैमाने पर अभी लक्षण कितना गंभीर है?', kn: 'ಶೂನ್ಯದಿಂದ ಹತ್ತರವರೆಗೆ, ಈಗ ಲಕ್ಷಣ ಎಷ್ಟು ತೀವ್ರವಾಗಿದೆ?', ta: 'பூஜ்ஜியம் முதல் பத்து வரை, தற்போது அறிகுறி எவ்வளவு கடுமையாக உள்ளது?', te: 'సున్నా నుండి పది వరకు, ప్రస్తుతం లక్షణం ఎంత తీవ్రంగా ఉంది?', ml: 'പൂജ്യം മുതൽ പത്ത് വരെ, ഇപ്പോൾ ലക്ഷണം എത്രത്തോളം കഠിനമാണ്?' }, options: ['Mild: 1 to 3', 'Moderate: 4 to 6', 'Severe: 7 to 10'] },
-  { id: 'triggers', title: 'What makes it better or worse?', prompt: { en: 'What makes the symptom worse or better? Does food, movement, position, weather, or rest affect it?', hi: 'लक्षण किससे बढ़ता या कम होता है? क्या खाना, हरकत, स्थिति, मौसम या आराम से फर्क पड़ता है?', kn: 'ಲಕ್ಷಣವು ಯಾವುದರಿಂದ ಹೆಚ್ಚಾಗುತ್ತದೆ ಅಥವಾ ಕಡಿಮೆಯಾಗುತ್ತದೆ? ಆಹಾರ, ಚಲನೆ, ಭಂಗಿ, ಹವಾಮಾನ ಅಥವಾ ವಿಶ್ರಾಂತಿಯಿಂದ ಬದಲಾವಣೆಯಾಗುತ್ತದೆಯೇ?', ta: 'அறிகுறி எதனால் அதிகமாகிறது அல்லது குறைகிறது? உணவு, இயக்கம், நிலை, வானிலை அல்லது ஓய்வு பாதிக்கிறதா?', te: 'లక్షణం దేనివల్ల పెరుగుతుంది లేదా తగ్గుతుంది? ఆహారం, కదలిక, స్థానం, వాతావరణం లేదా విశ్రాంతి ప్రభావం చూపుతుందా?', ml: 'ലക്ഷണം എന്തുകൊണ്ട് കൂടുകയോ കുറയുകയോ ചെയ്യുന്നു? ഭക്ഷണം, ചലനം, സ്ഥാനം, കാലാവസ്ഥ അല്ലെങ്കിൽ വിശ്രമം ബാധിക്കുന്നുണ്ടോ?' }, options: ['Worse with movement', 'Worse after food', 'Better with rest', 'No clear trigger'] },
-  { id: 'associated', title: 'What other symptoms are present?', prompt: { en: 'Are you having any other symptoms such as fever, breathlessness, vomiting, dizziness, weakness, or swelling?', hi: 'बुखार, सांस फूलना, उल्टी, चक्कर, कमजोरी या सूजन जैसे कोई अन्य लक्षण हैं?', kn: 'ಜ್ವರ, ಉಸಿರಾಟದ ತೊಂದರೆ, ವಾಂತಿ, ತಲೆಸುತ್ತು, ದೌರ್ಬಲ್ಯ ಅಥವಾ ಊತದಂತಹ ಬೇರೆ ಲಕ್ಷಣಗಳಿವೆಯೇ?', ta: 'காய்ச்சல், மூச்சுத்திணறல், வாந்தி, தலைசுற்றல், பலவீனம் அல்லது வீக்கம் போன்ற வேறு அறிகுறிகள் உள்ளனவா?', te: 'జ్వరం, శ్వాస తీసుకోవడంలో ఇబ్బంది, వాంతులు, తల తిరగడం, బలహీనత లేదా వాపు వంటి ఇతర లక్షణాలు ఉన్నాయా?', ml: 'പനി, ശ്വാസംമുട്ടൽ, ഛർദ്ദി, തലകറക്കം, ബലഹീനത അല്ലെങ്കിൽ വീക്കം പോലുള്ള മറ്റ് ലക്ഷണങ്ങളുണ്ടോ?' }, options: ['No other symptoms', 'Fever or weakness', 'Breathing or chest symptoms', 'Stomach or bowel symptoms'] },
-  { id: 'progression', title: 'How has it changed?', prompt: { en: 'Since it began, is the symptom getting better, getting worse, staying the same, or coming and going?', hi: 'തുടങ്ങിയതിന് ശേഷം ഇത് മെച്ചപ്പെടുകയാണോ, വഷളാകുകയാണോ, അതേപടി തുടരുകയാണോ, ഇടയ്ക്കിടെ വരികയാണോ?', kn: 'ಪ್ರಾರಂಭವಾದ ನಂತರ ಲಕ್ಷಣವು ಕಡಿಮೆಯಾಗುತ್ತಿದೆಯೇ, ಹೆಚ್ಚಾಗುತ್ತಿದೆಯೇ, ಹಾಗೆಯೇ ಇದೆಯೇ ಅಥವಾ ಆಗಾಗ್ಗೆ ಬರುತ್ತದೆಯೇ?', ta: 'தொடங்கியதிலிருந்து அறிகுறி குறைகிறதா, அதிகரிக்கிறதா, மாறாமல் உள்ளதா அல்லது இடையிடையே வருகிறதா?', te: 'ప్రారంభమైనప్పటి నుండి లక్షణం తగ్గుతోందా, పెరుగుతోందా, అలాగే ఉందా లేదా అప్పుడప్పుడు వస్తుందా?', ml: 'ആരംഭിച്ചതിനുശേഷം ലക്ഷണം മെച്ചപ്പെടുകയാണോ, വഷളാകുകയാണോ, അതേപടി തുടരുകയാണോ, ഇടയ്ക്കിടെ വരുകയാണോ?' }, options: ['Getting better', 'Getting worse', 'Staying the same', 'It comes and goes'] },
-  { id: 'prior_episode', title: 'Has this happened before?', prompt: { en: 'Have you had the same problem before? If yes, what treatment or medicine helped?', hi: 'ഇതേ പ്രശ്നം മുമ്പ് ഉണ്ടായിട്ടുണ്ടോ? ഉണ്ടെങ്കിൽ ഏത് ചികിത്സയോ മരുന്നോ സഹായിച്ചു?', kn: 'ಇದೇ ಸಮಸ್ಯೆ ಹಿಂದೆ ಆಗಿತ್ತೇ? ಆಗಿದ್ದರೆ ಯಾವ ಚಿಕಿತ್ಸೆ ಅಥವಾ ಔಷಧಿ ಸಹಾಯ ಮಾಡಿತು?', ta: 'இதே பிரச்சனை முன்பு ஏற்பட்டதா? ஏற்பட்டிருந்தால் எந்த சிகிச்சை அல்லது மருந்து உதவியது?', te: 'ఇదే సమస్య ఇంతకు ముందు వచ్చిందా? అయితే ఏ చికిత్స లేదా మందు సహాయపడింది?', ml: 'ഇതേ പ്രശ്നം മുമ്പ് ഉണ്ടായിട്ടുണ്ടോ? ഉണ്ടായെങ്കിൽ ഏത് ചികിത്സയോ മരുന്നോ സഹായിച്ചു?' }, options: ['Never happened before', 'It happened before', 'I am not sure'] },
-  { id: 'history', title: 'Tell us about your medical history', prompt: { en: 'Have you had any major illnesses, operations, hospital visits, diabetes, high blood pressure, or heart problems before?', hi: 'മുമ്പ് എന്തെങ്കിലും ഗുരുതര രോഗങ്ങൾ, ശസ്ത്രക്രിയകൾ, ആശുപത്രി സന്ദർശനങ്ങൾ, പ്രമേഹം, ഉയർന്ന രക്തസമ്മർദ്ദം അല്ലെങ്കിൽ ഹൃദയപ്രശ്നങ്ങൾ ഉണ്ടായിട്ടുണ്ടോ?', kn: 'ಹಿಂದೆ ಯಾವುದೇ ಪ್ರಮುಖ ಕಾಯಿಲೆಗಳು, ಶಸ್ತ್ರಚಿಕಿತ್ಸೆಗಳು, ಆಸ್ಪತ್ರೆ ಭೇಟಿ, ಮಧುಮೇಹ, ಅಧಿಕ ರಕ್ತದೊತ್ತಡ ಅಥವಾ ಹೃದಯ ಸಮಸ್ಯೆಗಳಿದ್ದವೆಯೇ?', ta: 'முன்பு பெரிய நோய்கள், அறுவை சிகிச்சைகள், மருத்துவமனைச் சந்திப்புகள், சர்க்கரை நோய், உயர் இரத்த அழுத்தம் அல்லது இதயப் பிரச்சனைகள் இருந்தனவா?', te: 'గతంలో పెద్ద అనారోగ్యాలు, శస్త్రచికిత్సలు, ఆసుపత్రి సందర్శనలు, మధుమేహం, అధిక రక్తపోటు లేదా గుండె సమస్యలు ఉన్నాయా?', ml: 'മുമ്പ് വലിയ രോഗങ്ങൾ, ശസ്ത്രക്രിയകൾ, ആശുപത്രി സന്ദർശനങ്ങൾ, പ്രമേഹം, ഉയർന്ന രക്തസമ്മർദ്ദം അല്ലെങ്കിൽ ഹൃദയപ്രശ്നങ്ങൾ ഉണ്ടായിട്ടുണ്ടോ?' }, options: ['No previous medical history', 'Yes, I have previous conditions', 'I am not sure'] },
-  { id: 'medications', title: 'Current medicines and allergies', prompt: { en: 'What medicines or Ayurvedic formulations are you taking now, and do you have any medicine or food allergies?', hi: 'ഇപ്പോൾ നിങ്ങൾ ഏത് മരുന്നുകളോ ആയുർവേദ ഫോർമുലേഷനുകളോ കഴിക്കുന്നു? മരുന്നിനോ ഭക്ഷണത്തിനോ അലർജിയുണ്ടോ?', kn: 'ನೀವು ಈಗ ಯಾವ ಔಷಧಿಗಳು ಅಥವಾ ಆಯುರ್ವೇದ ಔಷಧಿಗಳನ್ನು ತೆಗೆದುಕೊಳ್ಳುತ್ತಿದ್ದೀರಿ? ಔಷಧಿ ಅಥವಾ ಆಹಾರ ಅಲರ್ಜಿ ಇದೆಯೇ?', ta: 'நீங்கள் தற்போது எந்த மருந்துகள் அல்லது ஆயுர்வேத மருந்துகள் எடுத்துக்கொள்கிறீர்கள்? மருந்து அல்லது உணவு ஒவ்வாமை உள்ளதா?', te: 'మీరు ప్రస్తుతం ఏ మందులు లేదా ఆయుర్వేద మందులు తీసుకుంటున్నారు? మందులు లేదా ఆహారానికి అలర్జీ ఉందా?', ml: 'നിങ്ങൾ ഇപ്പോൾ ഏത് മരുന്നുകളോ ആയുർവേദ മരുന്നുകളോ കഴിക്കുന്നു? മരുന്നിനോ ഭക്ഷണത്തിനോ അലർജിയുണ്ടോ?' }, options: ['No regular medicines or known allergies', 'I take regular medicines', 'I have a medicine allergy'] },
+  {
+    id: 'onset',
+    title: 'When did this problem begin?',
+    prompt: {
+      en: 'When exactly did this problem begin? Did it start suddenly or gradually?',
+      hi: 'यह समस्या ठीक कब शुरू हुई? क्या यह अचानक शुरू हुई या धीरे-धीरे?',
+      kn: 'ಈ ಸಮಸ್ಯೆ ನಿಖರವಾಗಿ ಯಾವಾಗ ಪ್ರಾರಂಭವಾಯಿತು? ಇದು ಹಠಾತ್ತಾಗಿ ಅಥವಾ ನಿಧಾನವಾಗಿ ಪ್ರಾರಂಭವಾಯಿತೇ?',
+      ta: 'இந்தப் பிரச்சனை சரியாக எப்போது தொடங்கியது? திடீரெனவா அல்லது படிப்படியாகவா?',
+      te: 'ఈ సమస్య సరిగ్గా ఎప్పుడు ప్రారంభమైంది? అకస్మాత్తుగా లేదా క్రమంగా ప్రారంభమైందా?',
+      ml: 'ഈ പ്രശ്നം കൃത്യമായി എപ്പോൾ ആരംഭിച്ചു? പെട്ടെന്നാണോ ക്രമേണയാണോ?',
+      mr: 'ही समस्या नक्की कधी सुरू झाली? ती अचानक सुरू झाली की हळूहळू?',
+      bn: 'এই সমস্যাটি ঠিক কখন শুরু হয়েছিল? এটি কি হঠাৎ নাকি ধীরে ধীরে শুরু হয়েছিল?',
+      gu: 'આ સમસ્યા ક્યારે શરૂ થઈ? અચાનક કે ધીમે ધીમે?',
+      pa: 'ਇਹ ਸਮੱਸਿਆ ਕਦੋਂ ਸ਼ੁਰੂ ਹੋਈ ਸੀ? ਅਚਾਨਕ ਜਾਂ ਹੌਲੀ-ਹੌਲੀ?',
+      sa: 'इयं समस्या कदा प्रारब्धा? अकस्मात् उत शनैः शनैः?'
+    },
+    options: ['Today', 'Within the last week', 'More than a week ago', 'It started gradually']
+  },
+  {
+    id: 'severity',
+    title: 'How severe is your discomfort?',
+    prompt: {
+      en: 'On a scale from 1 to 10, how severe is your discomfort or pain right now?',
+      hi: '1 से 10 के पैमाने पर, अभी आपकी तकलीफ या दर्द कितना गंभीर है?',
+      kn: '1 ರಿಂದ 10 ರ ಪ್ರಮಾಣದಲ್ಲಿ, ನಿಮ್ಮ ಅಸ್ವಸ್ಥತೆ ಅಥವಾ ನೋವು ಎಷ್ಟು ತೀವ್ರವಾಗಿದೆ?',
+      ta: '1 முதல் 10 வரையிலான அளவில், உங்கள் வலி அல்லது அசௌகரியம் எவ்வளவு தீவிரமானது?',
+      te: '1 నుండి 10 స్కేలులో, మీ అసౌకర్యం లేదా నొప్పి ఎంత తీవ్రంగా ఉంది?',
+      ml: '1 മുതൽ 10 വരെയുള്ള സ്കെയിലിൽ, നിങ്ങളുടെ വേദന എത്രത്തോളം കഠിനമാണ്?',
+      mr: '1 ते 10 च्या स्केलवर, तुमचा त्रास किंवा वेदना किती तीव्र आहे?',
+      bn: '১ থেকে ১০ এর স্কেলে, আপনার কষ্ট বা ব্যথা কতটা তীব্র?',
+      gu: '૧ થી ૧૦ ના સ્કેલ પર, તમારી તકલીફ કેટલી ગંભીર છે?',
+      pa: '1 ਤੋਂ 10 ਦੇ ਪੈਮਾਨੇ ਤੇ, ਤੁਹਾਡੀ ਤਕਲੀਫ ਕਿੰਨੀ ਗੰਭੀਰ ਹੈ?',
+      sa: 'एकतः दशपर्यन्तं परिमाणे भवतः पीडा कियान् तीव्रा अस्ति?'
+    },
+    options: ['Mild (1-3)', 'Moderate (4-6)', 'Severe (7-8)', 'Very Severe (9-10)']
+  },
+  {
+    id: 'location',
+    title: 'Where do you feel it?',
+    prompt: {
+      en: 'Where exactly do you feel the symptom? Does it spread to another part of the body?',
+      hi: 'लक्षण आपको ठीक कहाँ महसूस होता है? क्या यह शरीर के किसी दूसरे हिस्से तक फैलता है?',
+      kn: 'ಲಕ್ಷಣವು ನಿಮಗೆ ನಿಖರವಾಗಿ ಎಲ್ಲಿದೆ? ಅದು ದೇಹದ ಬೇರೆ ಭಾಗಕ್ಕೆ ಹರಡುತ್ತದೆಯೇ?',
+      ta: 'அறிகுறி சரியாக எங்கே உணரப்படுகிறது? அது உடலின் வேறு பகுதிக்கு பரவுகிறதா?',
+      te: 'లక్షణం మీకు సరిగ్గా ఎక్కడ అనిపిస్తుంది? ఇది శరీరంలోని మరొక భాగానికి వ్యాపిస్తుందా?',
+      ml: 'ലക്ഷണം കൃത്യമായി എവിടെയാണ് അനുഭവപ്പെടുന്നത്? ഇത് ശരീരത്തിന്റെ മറ്റൊരു ഭാഗത്തേക്ക് പടരുന്നുണ്ടോ?',
+      mr: 'लक्षण नक्की कुठे जाणवते? ते शरीराच्या इतर भागांत पसरते का?',
+      bn: 'লক্ষণটি ঠিক কোথায় অনুভব করছেন? এটি কি শরীরের অন্য কোথাও ছড়িয়ে পড়ছে?',
+      gu: 'લક્ષણ ક્યાં અનુભવાય છે? શું તે અન્ય ભાગોમાં ફેલાય છે?',
+      pa: 'ਲੱਛਣ ਠੀਕ ਕਿੱਥੇ ਮਹਿਸੂਸ ਹੁੰਦਾ ਹੈ?',
+      sa: 'लक्षणं कुत्र अनुभूयते? किं शरीरस्य अन्यभागे प्रसरति?'
+    },
+    options: ['Chest / Epigastric', 'Abdomen / Stomach', 'Joints / Back', 'Head / Neck', 'Generalized / Whole Body']
+  },
+  {
+    id: 'history',
+    title: 'Tell us about your medical history',
+    prompt: {
+      en: 'Have you had any major illnesses, operations, diabetes, high blood pressure, or heart problems before?',
+      hi: 'क्या आपको पहले कोई गंभीर बीमारी, ऑपरेशन, मधुमेह, उच्च रक्तचाप या दिल की समस्या रही है?',
+      kn: 'ಹಿಂದೆ ಯಾವುದೇ ಪ್ರಮುಖ ಕಾಯಿಲೆಗಳು, ಶಸ್ತ್ರಚಿಕಿತ್ಸೆಗಳು, ಮಧುಮೇಹ, ಅಧಿಕ ರಕ್ತದೊತ್ತಡ ಅಥವಾ ಹೃದಯ ಸಮಸ್ಯೆಗಳಿದ್ದವೆಯೇ?',
+      ta: 'முன்பு பெரிய நோய்கள், அறுவை சிகிச்சைகள், சர்க்கரை நோய், உயர் இரத்த அழுத்தம் அல்லது இதயப் பிரச்சனைகள் இருந்தனவா?',
+      te: 'గతంలో పెద్ద అనారోగ్యాలు, శస్త్రచికిత్సలు, మధుమేహం, అధిక రక్తపోటు లేదా గుండె సమస్యలు ఉన్నాయా?',
+      ml: 'മുമ്പ് വലിയ രോഗങ്ങൾ, ശസ്ത്രക്രിയകൾ, പ്രമേഹം, ഉയർന്ന രക്തസമ്മർദ്ദം അല്ലെങ്കിൽ ഹൃദയപ്രശ്നങ്ങൾ ഉണ്ടായിട്ടുണ്ടോ?',
+      mr: 'पूर्वी काही मोठे आजार, शस्त्रक्रिया, मधुमेह, उच्च रक्तदाब किंवा हृदयाचा त्रास होता का?',
+      bn: 'আগে কি কোন বড় রোগ, অপারেশন, ডায়াবেটিস, উচ্চ রক্তচাপ বা হার্টের সমস্যা ছিল?',
+      gu: 'પહેલા કોઈ મોટી બીમારી, ઓપરેશન, ડાયાબિટીસ કે બ્લડ પ્રેશર હતું?',
+      pa: 'ਪਹਿਲਾਂ ਕੋਈ ਵੱਡੀ ਬਿਮਾਰੀ ਜਾਂ ਆਪ੍ਰੇਸ਼ਨ ਹੋਇਆ ਹੈ?',
+      sa: 'पूर्वम् किमपि गंभीररोगः, शल्यक्रिया, प्रमेहः उत उच्चरक्तचापः आसीत् वा?'
+    },
+    options: ['No previous medical conditions', 'Hypertension / High BP', 'Diabetes Mellitus', 'Cardiac / Heart History', 'Thyroid / Other']
+  },
+  {
+    id: 'medications',
+    title: 'Current medicines and allergies',
+    prompt: {
+      en: 'What medicines or Ayurvedic formulations are you taking now, and do you have any medicine allergies?',
+      hi: 'अभी आप कौन सी दवाएं या आयुर्वेदिक औषधियां ले रहे हैं, और क्या आपको किसी दवा से एलर्जी है?',
+      kn: 'ನೀವು ಈಗ ಯಾವ ಔಷಧಿಗಳು ಅಥವಾ ಆಯುರ್ವೇದ ಔಷಧಿಗಳನ್ನು ತೆಗೆದುಕೊಳ್ಳುತ್ತಿದ್ದೀರಿ? ಯಾವುದೇ ಔಷಧಿ ಅಲರ್ಜಿ ಇದೆಯೇ?',
+      ta: 'நீங்கள் தற்போது எந்த மருந்துகள் அல்லது ஆயுர்வேத மருந்துகள் எடுத்துக்கொள்கிறீர்கள்? மருந்து ஒவ்வாமை உள்ளதா?',
+      te: 'మీరు ప్రస్తుతం ఏ మందులు లేదా ఆಯುర్వేద మందులు తీసుకుంటున్నారు? మందుల అలర్జీ ఉందా?',
+      ml: 'നിങ്ങൾ ഇപ്പോൾ ഏത് മരുന്നുകളോ ആയുർവേദ മരുന്നുകളോ കഴിക്കുന്നു? മരുന്നിനോട് അലർജിയുണ്ടോ?',
+      mr: 'सध्या आपण कोणती औषधे किंवा आयुर्वेदिक औषधे घेत आहात? काही औषधांची ॲलर्जी आहे का?',
+      bn: 'এখন কি ওষুধ বা আয়ুর্বেদিক ঔষধ নিচ্ছেন? কোনো অ্যালার্জি আছে কি?',
+      gu: 'હાલમાં કઈ દવાઓ લઈ રહ્યા છો? કોઈ એલર્જી છે?',
+      pa: 'ਕਿਹੜੀਆਂ ਦਵਾਈਆਂ ਲੈ ਰਹੇ ਹੋ? ਕੋਈ ਐਲਰਜੀ ਹੈ?',
+      sa: 'सम्प्रति कानि औषधानि सेवन्ते? किमपि एलर्जी अस्ति वा?'
+    },
+    options: ['No regular medicines or known allergies', 'Metformin / Diabetes meds', 'Antihypertensives / BP meds', 'Triphala / Ayurvedic formulations', 'Known medicine allergy']
+  }
 ];
 
-const SPEECH_LANGUAGES = { en: 'en-IN', hi: 'hi-IN', kn: 'kn-IN', ta: 'ta-IN', te: 'te-IN', ml: 'ml-IN' };
+const SPEECH_LANG_MAP = {
+  hi: 'hi-IN',
+  kn: 'kn-IN',
+  ta: 'ta-IN',
+  te: 'te-IN',
+  mr: 'mr-IN',
+  bn: 'bn-IN',
+  ml: 'ml-IN',
+  gu: 'gu-IN',
+  pa: 'pa-IN',
+  sa: 'hi-IN',
+  en: 'en-IN'
+};
 
-const getLocalized = (copy, language) => copy[language] || copy.en;
+const getLocalized = (copy, language) => {
+  if (!copy) return '';
+  const langKey = (language || 'en').toLowerCase();
+  return copy[langKey] || copy.en || Object.values(copy)[0] || '';
+};
 
 export default function ClinicalFollowUp({ clinicalData, userLanguage = 'en', onComplete }) {
   const [step, setStep] = useState(0);
@@ -26,55 +123,40 @@ export default function ClinicalFollowUp({ clinicalData, userLanguage = 'en', on
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
-  const [availableVoices, setAvailableVoices] = useState([]);
-  const audioRef = useRef(null);
   const recognitionRef = useRef(null);
-  const question = QUESTIONS[step];
-  const questionTitle = question.title;
-  const questionPrompt = getLocalized(question.prompt, userLanguage);
 
+  const question = QUESTIONS[step];
+  const questionPrompt = question ? getLocalized(question.prompt, userLanguage) : '';
+
+  // Clean up on unmount
   useEffect(() => {
-    if (!('speechSynthesis' in window)) return undefined;
-    const loadVoices = () => setAvailableVoices(window.speechSynthesis.getVoices());
-    loadVoices();
-    window.speechSynthesis.addEventListener('voiceschanged', loadVoices);
-    return () => window.speechSynthesis.removeEventListener('voiceschanged', loadVoices);
+    return () => {
+      stopCurrentSpeech();
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch (_) {}
+      }
+    };
   }, []);
 
-  const speakQuestion = async () => {
-    if (!question) return;
+  const speakQuestion = useCallback(() => {
+    if (!questionPrompt) return;
     setIsSpeaking(true);
-    window.speechSynthesis?.cancel();
-    try {
-      const response = await fetch('/api/bhashini-tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: questionPrompt, language: userLanguage }) });
-      const data = await response.json();
-      if (response.ok && data.success && data.audioContent) {
-        const audio = new Audio(`data:audio/${data.audioFormat || 'wav'};base64,${data.audioContent}`);
-        audioRef.current = audio;
-        audio.onended = () => setIsSpeaking(false);
-        audio.onerror = () => setIsSpeaking(false);
-        await audio.play();
-        return;
-      }
-    } catch (_) {
-      // Use browser speech when Bhashini is unavailable.
-    }
-    if ('speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(questionPrompt);
-      utterance.lang = SPEECH_LANGUAGES[userLanguage] || 'en-IN';
-      const languagePrefix = utterance.lang.toLowerCase().split('-')[0];
-      const matchingVoice = availableVoices.find((voice) => voice.lang.toLowerCase().startsWith(languagePrefix));
-      if (matchingVoice) utterance.voice = matchingVoice;
-      utterance.rate = 0.92;
-      utterance.onend = () => setIsSpeaking(false);
-      window.speechSynthesis.speak(utterance);
-    } else setIsSpeaking(false);
-  };
+    speakTextWithBhashini({
+      text: questionPrompt,
+      language: userLanguage,
+      gender: 'female',
+      onStart: () => setIsSpeaking(true),
+      onEnd: () => setIsSpeaking(false),
+      onError: () => setIsSpeaking(false)
+    });
+  }, [questionPrompt, userLanguage]);
 
+  // Read aloud automatically when question step changes if user already started voice flow
   useEffect(() => {
-    if (hasStarted) speakQuestion();
-    return () => window.speechSynthesis?.cancel();
-  }, [step, userLanguage, availableVoices, hasStarted]);
+    if (hasStarted && question) {
+      speakQuestion();
+    }
+  }, [step, hasStarted, speakQuestion, question]);
 
   const startVoiceInterview = () => {
     setHasStarted(true);
@@ -83,58 +165,169 @@ export default function ClinicalFollowUp({ clinicalData, userLanguage = 'en', on
 
   const startListening = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
-    if (isListening) {
-      recognitionRef.current?.stop();
+    if (!SpeechRecognition) {
+      alert('Speech recognition is not supported on this browser. Please type your answer.');
       return;
     }
+
+    if (isListening && recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+      return;
+    }
+
+    // Stop TTS if speaking
+    stopCurrentSpeech();
+    setIsSpeaking(false);
+
     const recognition = new SpeechRecognition();
-    recognition.lang = SPEECH_LANGUAGES[userLanguage] || 'en-IN';
+    recognition.lang = SPEECH_LANG_MAP[userLanguage] || 'en-IN';
     recognition.interimResults = false;
     recognition.continuous = false;
+
     recognition.onresult = (event) => {
-      setTypedAnswer(event.results[0][0].transcript);
-      setIsListening(false);
+      const transcript = event.results?.[0]?.[0]?.transcript || '';
+      if (transcript.trim()) {
+        setTypedAnswer(transcript.trim());
+      }
     };
+
     recognition.onerror = () => setIsListening(false);
     recognition.onend = () => setIsListening(false);
+
     recognitionRef.current = recognition;
-    setIsListening(true);
     recognition.start();
+    setIsListening(true);
   };
 
   const submitAnswer = (answer) => {
-    const value = answer.trim();
+    const value = (answer || '').trim();
     if (!value) return;
+
+    stopCurrentSpeech();
+    setIsSpeaking(false);
+
     const nextAnswers = { ...answers, [question.id]: value };
     setAnswers(nextAnswers);
     setTypedAnswer('');
-    if (step === QUESTIONS.length - 1) {
-      onComplete({
-        history_of_present_illness: { onset: nextAnswers.onset || '', location: nextAnswers.location || '', character: nextAnswers.character || '', severity: nextAnswers.severity || '', triggers: nextAnswers.triggers || '', associated_symptoms: nextAnswers.associated || '', progression: nextAnswers.progression || '', previous_episode: nextAnswers.prior_episode || '' },
-        medical_history: { previous_illnesses_or_operations: nextAnswers.history || '', medications_and_allergies: nextAnswers.medications || '' },
-        follow_up_answers: nextAnswers,
-      });
+
+    if (step < QUESTIONS.length - 1) {
+      setStep((prev) => prev + 1);
     } else {
-      setStep((current) => current + 1);
+      onComplete?.(nextAnswers);
     }
   };
 
+  if (!question) {
+    return null;
+  }
+
   return (
-    <section className="clinical-follow-up" aria-labelledby="follow-up-title">
-      <div className="clinical-follow-up-header">
-        <div><span className="follow-up-kicker">NIDAN-AI / FOLLOW-UP INTERVIEW</span><h3 id="follow-up-title">Let us understand your complaint better</h3><p>The assistant will ask about your current illness and medical history.</p></div>
-        <span className="follow-up-progress">{step + 1} / {QUESTIONS.length}</span>
+    <div className="follow-up-card">
+      <div className="follow-up-header">
+        <div className="follow-up-badge">
+          <Sparkles size={14} />
+          <span>AI Clinical Follow-up Consultation</span>
+        </div>
+        <div className="follow-up-progress-text">
+          Question {step + 1} of {QUESTIONS.length}
+        </div>
       </div>
-      <div className="follow-up-chief-complaint"><span>Chief complaint captured</span><strong>{clinicalData?.chief_complaint || 'Your reported symptoms'}</strong></div>
-      <div className="follow-up-question-card">
-        <div className="follow-up-question-top"><span>Question {step + 1}</span><button type="button" className="follow-up-speak-btn" onClick={speakQuestion}><Volume2 size={16} /> {isSpeaking ? 'Speaking…' : 'Read aloud'}</button></div>
-        <h4>{questionTitle}</h4><p className="follow-up-prompt">{questionPrompt}</p>
-        {!hasStarted && <button type="button" className="follow-up-start-voice" onClick={startVoiceInterview}><Volume2 size={18} /> Start Voice Interview</button>}
-        <div className="follow-up-options">{question.options.map((option) => <button type="button" key={option} onClick={() => submitAnswer(option)}><Check size={15} /> {option}</button>)}</div>
-        <div className="follow-up-free-answer"><input value={typedAnswer} onChange={(event) => setTypedAnswer(event.target.value)} placeholder="Or type / speak your own answer…" /><button type="button" className={`follow-up-mic ${isListening ? 'is-listening' : ''}`} onClick={startListening} aria-label={isListening ? 'Stop speaking' : 'Speak answer'}>{isListening ? <MicOff size={18} /> : <Mic size={18} />}</button><button type="button" className="follow-up-next" onClick={() => submitAnswer(typedAnswer)} disabled={!typedAnswer.trim()}><ChevronRight size={18} /></button></div>
+
+      <div className="follow-up-progress-bar">
+        <div
+          className="follow-up-progress-fill"
+          style={{ width: `${((step + 1) / QUESTIONS.length) * 100}%` }}
+        />
       </div>
-      <p className="follow-up-note">You can answer by voice or touch. This is an intake assistant, not a diagnosis.</p>
-    </section>
+
+      {!hasStarted ? (
+        <div className="follow-up-start-pane">
+          <p className="follow-up-start-desc">
+            AYUSETU AI needs a few brief follow-up details to complete your clinical assessment.
+            You can answer by speaking in your selected language ({userLanguage.toUpperCase()}) or clicking the options.
+          </p>
+          <button
+            type="button"
+            className="follow-up-start-btn"
+            onClick={startVoiceInterview}
+          >
+            <Volume2 size={18} />
+            <span>Start Spoken Follow-up Questions (Bhashini TTS)</span>
+          </button>
+        </div>
+      ) : (
+        <div className="follow-up-body">
+          <div className="follow-up-question-top">
+            <span className="question-step-label">Question {step + 1}</span>
+            <button
+              type="button"
+              className={`follow-up-speak-btn ${isSpeaking ? 'is-speaking' : ''}`}
+              onClick={() => {
+                if (isSpeaking) {
+                  stopCurrentSpeech();
+                  setIsSpeaking(false);
+                } else {
+                  speakQuestion();
+                }
+              }}
+              title="Read question aloud via Bhashini TTS"
+            >
+              <Volume2 size={16} />
+              <span>{isSpeaking ? 'Speaking Bhashini TTS…' : 'Read Aloud'}</span>
+            </button>
+          </div>
+
+          <h4 className="follow-up-question-title">{question.title}</h4>
+          <p className="follow-up-question-prompt">{questionPrompt}</p>
+
+          <div className="follow-up-options-grid">
+            {question.options.map((option) => (
+              <button
+                type="button"
+                key={option}
+                className="follow-up-option-pill"
+                onClick={() => submitAnswer(option)}
+              >
+                <Check size={14} />
+                <span>{option}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="follow-up-free-answer">
+            <input
+              type="text"
+              value={typedAnswer}
+              onChange={(e) => setTypedAnswer(e.target.value)}
+              placeholder="Or speak / type your own detailed answer…"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && typedAnswer.trim()) {
+                  submitAnswer(typedAnswer);
+                }
+              }}
+            />
+            <button
+              type="button"
+              className={`follow-up-mic ${isListening ? 'is-listening' : ''}`}
+              onClick={startListening}
+              aria-label={isListening ? 'Stop microphone' : 'Speak answer with voice'}
+              title={isListening ? 'Listening… Tap to stop' : 'Tap to speak your answer'}
+            >
+              {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+            </button>
+            <button
+              type="button"
+              className="follow-up-next"
+              onClick={() => submitAnswer(typedAnswer)}
+              disabled={!typedAnswer.trim()}
+              title="Submit answer and proceed"
+            >
+              <ChevronRight size={18} />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
