@@ -246,6 +246,7 @@ export default function ClinicalFollowUp({ clinicalData, userLanguage = 'en', on
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
+  const [detectedVoiceLang, setDetectedVoiceLang] = useState(null);
 
   const recognitionRef = useRef(null);
   const isListeningRef = useRef(false);
@@ -332,6 +333,7 @@ export default function ClinicalFollowUp({ clinicalData, userLanguage = 'en', on
 
   /**
    * Send captured voice audio buffer to backend ASR cascade (Bhashini Flex -> Groq Whisper -> Gemini)
+   * Voice detection is auto (patient speaks in any language/dialect), and text is returned in user's selected language.
    */
   const processRecordedAudio = async (chunks) => {
     if (!chunks || chunks.length === 0) return;
@@ -341,7 +343,8 @@ export default function ClinicalFollowUp({ clinicalData, userLanguage = 'en', on
       const audioBlob = new Blob(chunks, { type: 'audio/webm' });
       const formData = new FormData();
       formData.append('audio', audioBlob, 'audio.wav');
-      formData.append('language', userLanguage || 'auto');
+      formData.append('language', 'auto'); // Auto-detect whatever language the patient speaks
+      formData.append('targetLanguage', userLanguage || 'auto'); // Format/translate text into selected language
 
       const response = await fetch('/api/voice-intake', {
         method: 'POST',
@@ -350,9 +353,13 @@ export default function ClinicalFollowUp({ clinicalData, userLanguage = 'en', on
 
       if (response.ok) {
         const resData = await response.json();
-        const serverTranscript = resData?.data?.original_transcript || resData?.data?.transcript || '';
+        // Prefer target_transcript in selected consultation language, fallback to original_transcript
+        const serverTranscript = resData?.data?.target_transcript || resData?.data?.original_transcript || resData?.data?.transcript || '';
         if (serverTranscript && serverTranscript.trim()) {
           setTypedAnswer(serverTranscript.trim());
+        }
+        if (resData?.data?.detected_language) {
+          setDetectedVoiceLang(resData.data.detected_language);
         }
       }
     } catch (err) {
@@ -475,6 +482,7 @@ export default function ClinicalFollowUp({ clinicalData, userLanguage = 'en', on
     stopListening();
     stopCurrentSpeech();
     setIsSpeaking(false);
+    setDetectedVoiceLang(null);
 
     const nextAnswers = { ...answers, [question.id]: value };
     setAnswers(nextAnswers);
@@ -616,6 +624,12 @@ export default function ClinicalFollowUp({ clinicalData, userLanguage = 'en', on
               <ChevronRight size={18} />
             </button>
           </div>
+
+          {detectedVoiceLang && (
+            <div className="follow-up-detected-badge">
+              <span>🌐 Voice Detected: <strong>{detectedVoiceLang}</strong> • Converted into: <strong>{(userLanguage || 'en').toUpperCase()}</strong></span>
+            </div>
+          )}
         </div>
       )}
     </div>

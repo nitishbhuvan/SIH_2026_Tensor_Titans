@@ -350,3 +350,22 @@
     flex-wrap: wrap;
   }
 }
+
+.follow-up-detected-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-sm, 8px);
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  color: #0284c7;
+  font-size: 0.78rem;
+  font-weight: 500;
+  margin-top: 0.4rem;
+}
+
+[data-theme="dark"] .follow-up-detected-badge {
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.08);
+}

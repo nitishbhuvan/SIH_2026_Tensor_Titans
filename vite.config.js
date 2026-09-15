@@ -432,6 +432,78 @@ Produce the structured JSON clinical intake output following all term preservati
   return null;
 }
 
+// Helper to translate text into requested target language (Indic languages or English)
+const TARGET_LANG_NAMES = {
+  hi: 'Hindi',
+  kn: 'Kannada',
+  ta: 'Tamil',
+  te: 'Telugu',
+  mr: 'Marathi',
+  bn: 'Bengali',
+  ml: 'Malayalam',
+  gu: 'Gujarati',
+  pa: 'Punjabi',
+  sa: 'Sanskrit',
+  en: 'English'
+};
+
+async function translateToTargetLanguage(text, targetLangCode, apiKey, geminiKey) {
+  if (!text || !targetLangCode || targetLangCode === 'auto') return text;
+  const langName = TARGET_LANG_NAMES[targetLangCode] || targetLangCode;
+
+  if (apiKey) {
+    const models = ['qwen/qwen3.8-27b', 'openai/gpt-oss-120b'];
+    for (const m of models) {
+      try {
+        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          signal: AbortSignal.timeout(6000),
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: m,
+            temperature: 0.1,
+            messages: [
+              {
+                role: 'system',
+                content: `You are a medical translator. Translate the patient statement into natural, accurate ${langName}. Output ONLY the translated text in ${langName} script, without any quotes, notes or explanations.`
+              },
+              { role: 'user', content: text }
+            ]
+          })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const translated = data.choices?.[0]?.message?.content?.trim();
+          if (translated) return translated;
+        }
+      } catch (_) {}
+    }
+  }
+
+  if (geminiKey) {
+    try {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${geminiKey}`, {
+        method: 'POST',
+        signal: AbortSignal.timeout(6000),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: `Translate this patient statement into ${langName}. Output ONLY the translated statement in ${langName} script:\n\n${text}` }] }]
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const translated = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        if (translated) return translated;
+      }
+    } catch (_) {}
+  }
+
+  return text;
+}
+
 // Vite plugin to handle /api/voice-intake & /api/ocr-intake in dev mode
 function clinicalApisPlugin(env) {
   return {
@@ -519,6 +591,7 @@ function clinicalApisPlugin(env) {
             const contentType = req.headers['content-type'] || '';
 
             let language = 'auto';
+            let targetLanguage = 'auto';
             let rawTranscript = null;
             let apiKeyFromReq = req.headers['x-groq-api-key'] || '';
             let audioBuffer = null;
@@ -529,6 +602,7 @@ function clinicalApisPlugin(env) {
               try {
                 const body = JSON.parse(buffer.toString('utf-8'));
                 language = body.language || 'auto';
+                targetLanguage = body.targetLanguage || language || 'auto';
                 rawTranscript = body.transcript || null;
                 if (!apiKeyFromReq && body.apiKey) {
                   apiKeyFromReq = body.apiKey;
@@ -537,6 +611,7 @@ function clinicalApisPlugin(env) {
             } else if (contentType.includes('multipart/form-data')) {
               const parsed = parseMultipartBuffer(buffer, contentType);
               if (parsed.fields.language) language = parsed.fields.language;
+              if (parsed.fields.targetLanguage) targetLanguage = parsed.fields.targetLanguage;
               if (parsed.fields.transcript) rawTranscript = parsed.fields.transcript.trim();
               if (parsed.fields.apiKey) apiKeyFromReq = parsed.fields.apiKey;
               if (parsed.files.audio?.data && parsed.files.audio.data.length > 0) {
@@ -662,6 +737,17 @@ Produce the structured JSON clinical intake output following all term preservati
             clinicalResult.transcription_engine = transcriptionEngine || 'Dynamic Indic Engine';
             if (!clinicalResult.original_transcript) {
               clinicalResult.original_transcript = rawTranscript;
+            }
+
+            if (targetLanguage && targetLanguage !== 'auto') {
+              try {
+                const targetText = await translateToTargetLanguage(rawTranscript, targetLanguage, effectiveGroqKey, effectiveGeminiKey);
+                clinicalResult.target_transcript = targetText;
+              } catch (_) {
+                clinicalResult.target_transcript = rawTranscript;
+              }
+            } else {
+              clinicalResult.target_transcript = rawTranscript;
             }
 
             res.setHeader('Content-Type', 'application/json');
