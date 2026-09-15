@@ -3,25 +3,8 @@ import { Mic, FileText, Leaf } from 'lucide-react';
 import './Hero.css';
 
 export default function Hero({ isElderly, t, onVoiceIntake, onOcrIntake, onAyusetuIntake }) {
-  const now = new Date();
-  const dateStr = now.toLocaleDateString('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric'
-  }).toUpperCase();
-
   return (
     <section className="hero-section">
-      {/* Technical metadata strip */}
-      <div className="hero-meta">
-        <span className="hero-meta__label">
-          {'// AYUSETU CLINICAL INTAKE & TRIAGE SYSTEM'}
-        </span>
-        <span className="hero-meta__status">
-          <span className="hero-status-dot" aria-hidden="true" />
-          {t.heroMetaSystemOnline || 'SYSTEM ONLINE • AYUSH & ALLOPATHIC READY'}
-        </span>
-      </div>
 
       {/* Hero Content */}
       <div className="hero-content">
@@ -68,11 +51,6 @@ export default function Hero({ isElderly, t, onVoiceIntake, onOcrIntake, onAyuse
         </div>
       </div>
 
-      {/* Bottom metadata */}
-      <div className="hero-footer-meta">
-        <span>{t.heroFooterSuite || 'AYUSETU CLINICAL SUITE'}</span>
-        <span>DATE: {dateStr}</span>
-      </div>
     </section>
   );
 }
