@@ -1,12 +1,24 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Check, ChevronRight, Mic, MicOff, Volume2, Sparkles, AlertCircle } from 'lucide-react';
+import { Check, ChevronRight, Mic, MicOff, Volume2, Sparkles, AlertCircle, Loader2 } from 'lucide-react';
 import { speakTextWithBhashini, stopCurrentSpeech, isSpeechPlaying } from '../services/bhashiniTtsService.js';
 import './ClinicalFollowUp.css';
 
 const QUESTIONS = [
   {
     id: 'onset',
-    title: 'When did this problem begin?',
+    title: {
+      en: 'When did this problem begin?',
+      hi: 'यह समस्या कब शुरू हुई?',
+      kn: 'ಈ ಸಮಸ್ಯೆ ಯಾವಾಗ ಪ್ರಾರಂಭವಾಯಿತು?',
+      ta: 'இந்தப் பிரச்சனை எப்போது தொடங்கியது?',
+      te: 'ఈ సమస్య ఎప్పుడు ప్రారంభమైంది?',
+      ml: 'ഈ പ്രശ്നം എപ്പോൾ ആരംഭിച്ചു?',
+      mr: 'ही समस्या कधी सुरू झाली?',
+      bn: 'এই সমস্যাটি কখন শুরু হয়েছিল?',
+      gu: 'આ સમસ્યા ક્યારે શરૂ થઈ?',
+      pa: 'ਇਹ ਸਮੱਸਿਆ ਕਦੋਂ ਸ਼ੁਰੂ ਹੋਈ ਸੀ?',
+      sa: 'इयं समस्या कदा प्रारब्धा?'
+    },
     prompt: {
       en: 'When exactly did this problem begin? Did it start suddenly or gradually?',
       hi: 'यह समस्या ठीक कब शुरू हुई? क्या यह अचानक शुरू हुई या धीरे-धीरे?',
@@ -20,11 +32,35 @@ const QUESTIONS = [
       pa: 'ਇਹ ਸਮੱਸਿਆ ਕਦੋਂ ਸ਼ੁਰੂ ਹੋਈ ਸੀ? ਅਚਾਨਕ ਜਾਂ ਹੌਲੀ-ਹੌਲੀ?',
       sa: 'इयं समस्या कदा प्रारब्धा? अकस्मात् उत शनैः शनैः?'
     },
-    options: ['Today', 'Within the last week', 'More than a week ago', 'It started gradually']
+    options: {
+      en: ['Today', 'Within the last week', 'More than a week ago', 'It started gradually'],
+      hi: ['आज ही', 'पिछले एक सप्ताह में', 'एक सप्ताह से अधिक पहले', 'धीरे-धीरे शुरू हुई'],
+      kn: ['ಇಂದೇ', 'ಕಳೆದ ಒಂದು ವಾರದೊಳಗೆ', 'ಒಂದು ವಾರಕ್ಕಿಂತ ಹೆಚ್ಚು ಸಮಯದ ಹಿಂದೆ', 'ನಿಧಾನವಾಗಿ ಪ್ರಾರಂಭವಾಯಿತು'],
+      ta: ['இன்றே', 'கடந்த ஒரு வாரத்திற்குள்', 'ஒரு வாரத்திற்கு முன்பு', 'படிப்படியாக தொடங்கியது'],
+      te: ['ఈ రోజే', 'గత వారంలో', 'వారం కంటే ఎక్కువ రోజుల క్రితం', 'క్రమంగా ప్రారంభమైంది'],
+      ml: ['ഇന്ന്', 'കഴിഞ്ഞ ഒരാഴ്ചയ്ക്കുള്ളിൽ', 'ഒരാഴ്ചയിലധികം മുൻപ്', 'ക്രമേണ തുടങ്ങി'],
+      mr: ['आजच', 'गेल्या आठवड्यात', 'एका आठवड्यापेक्षा जास्त आधी', 'हळूहळू सुरू झाली'],
+      bn: ['আজকেই', 'গত এক সপ্তাহের মধ্যে', 'এক সপ্তাহের বেশি আগে', 'ধীরে ধীরে শুরু হয়েছে'],
+      gu: ['આજે જ', 'છેલ્લા એક અઠવાડિયામાં', 'એક અઠવાડિયા કરતાં વધુ સમય પહેલાં', 'ધીમે ધીમે શરૂ થઈ'],
+      pa: ['ਅੱਜ ਹੀ', 'ਪਿਛਲੇ ਹਫ਼ਤੇ ਵਿੱਚ', 'ਇੱਕ ਹਫ਼ਤੇ ਤੋਂ ਵੱਧ ਪਹਿਲਾਂ', 'ਹੌਲੀ-ਹੌਲੀ ਸ਼ੁਰੂ ਹੋਈ'],
+      sa: ['अद्यैव', 'विगतसप्ताहे', 'सप्ताहादधिकपूर्वं', 'शनैः प्रारब्धा']
+    }
   },
   {
     id: 'severity',
-    title: 'How severe is your discomfort?',
+    title: {
+      en: 'How severe is your discomfort?',
+      hi: 'तकलीफ कितनी गंभीर है?',
+      kn: 'ನಿಮ್ಮ ಅಸ್ವಸ್ಥತೆ ಎಷ್ಟು ತೀವ್ರವಾಗಿದೆ?',
+      ta: 'அசௌகரியம் எவ்வளவு தீவிரமானது?',
+      te: 'మీ అసౌకర్యం ఎంత తీవ్రంగా ఉంది?',
+      ml: 'വേദന എത്രത്തോളം കഠിനമാണ്?',
+      mr: 'त्रास किती तीव्र आहे?',
+      bn: 'কষ্ট কতটা তীব্র?',
+      gu: 'તકલીફ કેટલી ગંભીર છે?',
+      pa: 'ਤਕਲੀਫ ਕਿੰਨੀ ਗੰਭੀਰ ਹੈ?',
+      sa: 'पीडा कियान् तीव्रा?'
+    },
     prompt: {
       en: 'On a scale from 1 to 10, how severe is your discomfort or pain right now?',
       hi: '1 से 10 के पैमाने पर, अभी आपकी तकलीफ या दर्द कितना गंभीर है?',
@@ -38,11 +74,35 @@ const QUESTIONS = [
       pa: '1 ਤੋਂ 10 ਦੇ ਪੈਮਾਨੇ ਤੇ, ਤੁਹਾਡੀ ਤਕਲੀਫ ਕਿੰਨੀ ਗੰਭੀਰ ਹੈ?',
       sa: 'एकतः दशपर्यन्तं परिमाणे भवतः पीडा कियान् तीव्रा अस्ति?'
     },
-    options: ['Mild (1-3)', 'Moderate (4-6)', 'Severe (7-8)', 'Very Severe (9-10)']
+    options: {
+      en: ['Mild (1-3)', 'Moderate (4-6)', 'Severe (7-8)', 'Very Severe (9-10)'],
+      hi: ['हल्का (1-3)', 'मध्यम (4-6)', 'गंभीर (7-8)', 'अति गंभीर (9-10)'],
+      kn: ['ಸೌಮ್ಯ (1-3)', 'ಮಧ್ಯಮ (4-6)', 'ತೀವ್ರ (7-8)', 'ಅತ್ಯಂತ ತೀವ್ರ (9-10)'],
+      ta: ['லேசானது (1-3)', 'மிதமானது (4-6)', 'கடுமையானது (7-8)', 'மிகக் கடுமையானது (9-10)'],
+      te: ['తేలికపాటి (1-3)', 'మధ్యస్థం (4-6)', 'తీవ్రమైనది (7-8)', 'చాలా తీవ్రమైనది (9-10)'],
+      ml: ['നേരിയത് (1-3)', 'മിതമായത് (4-6)', 'കഠിനമായത് (7-8)', 'വളരെ കഠിനമായത് (9-10)'],
+      mr: ['सौम्य (1-3)', 'मध्यम (4-6)', 'तीव्र (7-8)', 'अति तीव्र (9-10)'],
+      bn: ['হালকা (1-3)', 'মাঝারি (4-6)', 'তীব্র (7-8)', 'অত্যন্ত তীব্র (9-10)'],
+      gu: ['હળવી (1-3)', 'મધ્યમ (4-6)', 'ગંભીર (7-8)', 'અતિ ગંભીર (9-10)'],
+      pa: ['ਹਲਕੀ (1-3)', 'ਦਰਮਿਆਨੀ (4-6)', 'ਗੰਭੀਰ (7-8)', 'ਬਹੁਤ ਗੰਭੀਰ (9-10)'],
+      sa: ['मन्दम् (1-3)', 'मध्यमम् (4-6)', 'तीव्रम् (7-8)', 'अतितीव्रम् (9-10)']
+    }
   },
   {
     id: 'location',
-    title: 'Where do you feel it?',
+    title: {
+      en: 'Where do you feel it?',
+      hi: 'लक्षण कहाँ महसूस होता है?',
+      kn: 'ಲಕ್ಷಣವು ಎಲ್ಲಿ ಅನುಭವವಾಗುತ್ತಿದೆ?',
+      ta: 'அறிகுறி எங்கே உணரப்படுகிறது?',
+      te: 'లక్షణం ఎక్కడ అనిపిస్తుంది?',
+      ml: 'ലക്ഷണം എവിടെയാണ് അനുഭവപ്പെടുന്നത്?',
+      mr: 'त्रास कुठे जाणवतो?',
+      bn: 'লক্ষণটি কোথায় অনুভব করছেন?',
+      gu: 'લક્ષણ ક્યાં અનુભવાય છે?',
+      pa: 'ਲੱਛਣ ਕਿੱਥੇ ਮਹਿਸੂਸ ਹੁੰਦਾ ਹੈ?',
+      sa: 'लक्षणं कुत्र अनुभूयते?'
+    },
     prompt: {
       en: 'Where exactly do you feel the symptom? Does it spread to another part of the body?',
       hi: 'लक्षण आपको ठीक कहाँ महसूस होता है? क्या यह शरीर के किसी दूसरे हिस्से तक फैलता है?',
@@ -56,11 +116,35 @@ const QUESTIONS = [
       pa: 'ਲੱਛਣ ਠੀਕ ਕਿੱਥੇ ਮਹਿਸੂਸ ਹੁੰਦਾ ਹੈ?',
       sa: 'लक्षणं कुत्र अनुभूयते? किं शरीरस्य अन्यभागे प्रसरति?'
     },
-    options: ['Chest / Epigastric', 'Abdomen / Stomach', 'Joints / Back', 'Head / Neck', 'Generalized / Whole Body']
+    options: {
+      en: ['Chest / Epigastric', 'Abdomen / Stomach', 'Joints / Back', 'Head / Neck', 'Generalized / Whole Body'],
+      hi: ['छाती / सीना', 'पेट / उदर', 'जोड़ / पीठ', 'सिर / गर्दन', 'पूरे शरीर में'],
+      kn: ['ಎದೆ / ಜಠರ', 'ಹೊಟ್ಟೆ', 'ಕೀಲುಗಳು / ಬೆನ್ನು', 'ತಲೆ / ಕುತ್ತಿಗೆ', 'ಇಡೀ ದೇಹ'],
+      ta: ['நெஞ்சு / மார்பு', 'வயிறு', 'மூட்டுகள் / முதுகு', 'தலை / கழுத்து', 'முழு உடல்'],
+      te: ['ఛాతీ', 'కడుపు', 'కీళ్ళు / వీపు', 'తల / మెడ', 'మొత్తం శరీరం'],
+      ml: ['നെഞ്ച്', 'വയറ്', 'സന്ധികൾ / പുറം', 'തല / കഴുത്ത്', 'മുഴുവൻ ശരീരം'],
+      mr: ['छाती', 'पोट', 'सांधे / पाठ', 'डोके / मान', 'पूर्ण शरीर'],
+      bn: ['বুক', 'পেট', 'গাঁট / পিঠ', 'মাথা / ঘাড়', 'সারা শরীর'],
+      gu: ['છાતી', 'પેટ', 'સાંધા / પીઠ', 'માથું / ગરદન', 'આખું શરીર'],
+      pa: ['ਛਾਤੀ', 'ਪੇਟ', 'ਜੋੜ / ਪਿੱਠ', 'ਸਿਰ / ਗਰਦਨ', 'ਪੂਰਾ ਸਰੀਰ'],
+      sa: ['वक्षःस्थलम्', 'उदरम्', 'सन्धयः / पृष्ठम्', 'शिरः / ग्रीवा', 'सर्वशरीरम्']
+    }
   },
   {
     id: 'history',
-    title: 'Tell us about your medical history',
+    title: {
+      en: 'Tell us about your medical history',
+      hi: 'चिकित्सा इतिहास बताएं',
+      kn: 'ವೈದ್ಯಕೀಯ ಇತಿಹಾಸ ತಿಳಿಸಿ',
+      ta: 'மருத்துவ வரலாறு கூறுங்கள்',
+      te: 'వైద్య చరిత్రను తెలపండి',
+      ml: 'ചികിത്സാ ചരിത്രം പറയുക',
+      mr: 'वैद्यकीय इतिहास सांगा',
+      bn: 'চিকিৎসা ইতিহাস জানান',
+      gu: 'તબીબી ઇતિહાસ જણાવો',
+      pa: 'ਡਾਕਟਰੀ ਇਤਿਹਾਸ ਦੱਸੋ',
+      sa: 'पूर्वचिकित्साविवरणं वदतु'
+    },
     prompt: {
       en: 'Have you had any major illnesses, operations, diabetes, high blood pressure, or heart problems before?',
       hi: 'क्या आपको पहले कोई गंभीर बीमारी, ऑपरेशन, मधुमेह, उच्च रक्तचाप या दिल की समस्या रही है?',
@@ -74,11 +158,35 @@ const QUESTIONS = [
       pa: 'ਪਹਿਲਾਂ ਕੋਈ ਵੱਡੀ ਬਿਮਾਰੀ ਜਾਂ ਆਪ੍ਰੇਸ਼ਨ ਹੋਇਆ ਹੈ?',
       sa: 'पूर्वम् किमपि गंभीररोगः, शल्यक्रिया, प्रमेहः उत उच्चरक्तचापः आसीत् वा?'
     },
-    options: ['No previous medical conditions', 'Hypertension / High BP', 'Diabetes Mellitus', 'Cardiac / Heart History', 'Thyroid / Other']
+    options: {
+      en: ['No previous medical conditions', 'Hypertension / High BP', 'Diabetes Mellitus', 'Cardiac / Heart History', 'Thyroid / Other'],
+      hi: ['कोई पूर्व बीमारी नहीं', 'उच्च रक्तचाप (High BP)', 'मधुमेह (Sugar)', 'हृदय रोग का इतिहास', 'थायराइड / अन्य'],
+      kn: ['ಯಾವುದೇ ಹಿಂದಿನ ಕಾಯಿಲೆಗಳಿಲ್ಲ', 'ಅಧಿಕ ರಕ್ತದೊತ್ತಡ (BP)', 'ಮಧುಮೇಹ (Sugar)', 'ಹೃದಯ ಸಂಬಂಧಿ ಇತಿಹಾಸ', 'ಥೈರಾಯ್ಡ್ / ಇತರೆ'],
+      ta: ['முந்தைய நோய்கள் எதுவும் இல்லை', 'உயர் இரத்த அழுத்தம் (BP)', 'சர்க்கரை நோய் (Diabetes)', 'இதய நோய் வரலாறு', 'தைராய்டு / பிற'],
+      te: ['మునుపటి అనారోగ్యాలు లేవు', 'అధిక రక్తపోటు (BP)', 'మధుమేహం (Sugar)', 'గుండె జబ్బుల చరిత్ర', 'థైరాయిడ్ / ఇతర'],
+      ml: ['മുൻകാല രോഗങ്ങളൊന്നുമില്ല', 'ഉയർന്ന രക്തസമ്മർദ്ദം (BP)', 'പ്രമേഹം (Diabetes)', 'ഹൃദ്രോഗ ചരിത്രം', 'തൈറോയ്ഡ് / മറ്റുള്ളവ'],
+      mr: ['कोणताही जुना आजार नाही', 'उच्च रक्तदाब (High BP)', 'मधुमेह (Sugar)', 'हृदयरोग इतिहास', 'थायरॉईड / इतर'],
+      bn: ['আগের কোনো রোগ নেই', 'উচ্চ রক্তচাপ (High BP)', 'ডায়াবেটিস', 'হৃদরোগের ইতিহাস', 'থাইরয়েড / অন্যান্য'],
+      gu: ['પહેલાંની કોઈ બીમારી નથી', 'હાઈ બીપી (Hypertension)', 'ડાયાબિટીસ', 'હૃદયરોગનો ઇતિહાસ', 'થાઈરોઈડ / અન્ય'],
+      pa: ['ਕੋਈ ਪੁਰਾਣੀ ਬਿਮਾਰੀ ਨਹੀਂ', 'ਹਾਈ ਬੀਪੀ', 'ਸ਼ੂਗਰ (Diabetes)', 'ਦਿਲ ਦੀ ਬਿਮਾਰੀ ਦਾ ਇਤਿਹਾਸ', 'ਥਾਈਰਾਇਡ / ਹੋਰ'],
+      sa: ['कोऽपि पूर्वरोगः नास्ति', 'उच्चरक्तचापः', 'मधुमेहः', 'हृद्रोगवृत्तान्तः', 'थायराइड् / अन्यम्']
+    }
   },
   {
     id: 'medications',
-    title: 'Current medicines and allergies',
+    title: {
+      en: 'Current medicines and allergies',
+      hi: 'वर्तमान दवाएं और एलर्जी',
+      kn: 'ಪ್ರಸ್ತುತ ಔಷಧಿಗಳು ಮತ್ತು ಅಲರ್ಜಿಗಳು',
+      ta: 'தற்போதைய மருந்துகள் மற்றும் ஒவ்வாமை',
+      te: 'ప్రస్తుత మందులు మరియు అలెర్జీలు',
+      ml: 'നിലവിലെ മരുന്നുകളും അലർജികളും',
+      mr: 'सध्याची औषधे आणि ॲलर्जी',
+      bn: 'বর্তমান ওষুধ এবং অ্যালার্জি',
+      gu: 'હાલની દવાઓ અને એલર્જી',
+      pa: 'ਮੌਜੂਦਾ ਦਵਾਈਆਂ ਅਤੇ ਐਲਰਜੀ',
+      sa: 'वर्तमानौषधानि एलर्जी च'
+    },
     prompt: {
       en: 'What medicines or Ayurvedic formulations are you taking now, and do you have any medicine allergies?',
       hi: 'अभी आप कौन सी दवाएं या आयुर्वेदिक औषधियां ले रहे हैं, और क्या आपको किसी दवा से एलर्जी है?',
@@ -92,7 +200,19 @@ const QUESTIONS = [
       pa: 'ਕਿਹੜੀਆਂ ਦਵਾਈਆਂ ਲੈ ਰਹੇ ਹੋ? ਕੋਈ ਐਲਰਜੀ ਹੈ?',
       sa: 'सम्प्रति कानि औषधानि सेवन्ते? किमपि एलर्जी अस्ति वा?'
     },
-    options: ['No regular medicines or known allergies', 'Metformin / Diabetes meds', 'Antihypertensives / BP meds', 'Triphala / Ayurvedic formulations', 'Known medicine allergy']
+    options: {
+      en: ['No regular medicines or known allergies', 'Metformin / Diabetes meds', 'Antihypertensives / BP meds', 'Triphala / Ayurvedic formulations', 'Known medicine allergy'],
+      hi: ['कोई नियमित दवा या एलर्जी नहीं', 'मेटफॉर्मिन / शुगर की दवाएं', 'बीपी की दवाएं', 'त्रिफला / आयुर्वेदिक योग', 'दवा से ज्ञात एलर्जी'],
+      kn: ['ಯಾವುದೇ ನಿಯಮಿತ ಔಷಧಿ ಅಥವಾ ಅಲರ್ಜಿ ಇಲ್ಲ', 'ಮೆಟ್‌ಫಾರ್ಮಿನ್ / ಮಧುಮೇಹ ಔಷಧಿ', 'ಬಿಪಿ ಔಷಧಿಗಳು', 'ತ್ರಿಫಲಾ / ಆಯುರ್ವೇದ ಔಷಧಿಗಳು', 'ಔಷಧಿ ಅಲರ್ಜಿ ಇದೆ'],
+      ta: ['வழக்கமான மருந்துகள் அல்லது ஒவ்வாமை இல்லை', 'மெட்ஃபோர்மின் / சர்க்கரை மருந்துகள்', 'இரத்த அழுத்த மருந்துகள்', 'திரிபலா / ஆயுர்வேத மருந்துகள்', 'மருந்து ஒவ்வாமை உள்ளது'],
+      te: ['రెగ్యులర్ మందులు లేదా అలెర్జీలు లేవు', 'మెట్‌ఫార్మిన్ / షుగర్ మందులు', 'బీపీ మందులు', 'త్రిఫల / ఆయుర్వేద మందులు', 'తెలిసిన ఔషధ అలెర్జీ'],
+      ml: ['പതിവ് മരുന്നുകളോ അലർജിയോ ഇല്ല', 'മെറ്റ്ഫോർമിൻ / പ്രമേഹ മരുന്നുകൾ', 'രക്തസമ്മർദ്ദ മരുന്നുകൾ', 'ത്രിഫല / ആയുർവേദ മരുന്നുകൾ', 'മരുന്ന് അലർജിയുണ്ട്'],
+      mr: ['कोणतीही नियमित औषधे किंवा ॲलर्जी नाही', 'मेटफॉर्मिन / मधुमेहाची औषधे', 'बीपीची औषधे', 'त्रिफळा / आयुर्वेदिक औषधे', 'औषधाची ॲलर्जी आहे'],
+      bn: ['কোনো নিয়মিত ওষুধ বা অ্যালার্জি নেই', 'মেটফর্মিন / ডায়াবেটিসের ওষুধ', 'রক্তচাপের ওষুধ', 'ত্রিফলা / আয়ুর্বেদিক ওষুধ', 'ওষুধের অ্যালার্জি আছে'],
+      gu: ['કોઈ નિયમિત દવા કે એલર્જી નથી', 'મેટફોર્મિન / ડાયાબિટીસની દવાઓ', 'બીપીની દવાઓ', 'ત્રિફળા / આયુર્વેદિક દવાઓ', 'દવાની એલર્જી છે'],
+      pa: ['ਕੋਈ ਨਿਯਮਿਤ ਦਵਾਈ ਜਾਂ ਐਲਰਜੀ ਨਹੀਂ', 'ਸ਼ੂਗਰ ਦੀਆਂ ਦਵਾਈਆਂ', 'ਬੀਪੀ ਦੀਆਂ ਦਵਾਈਆਂ', 'ਤ੍ਰਿਫਲਾ / ਆਯੁਰਵੈਦਿਕ ਦਵਾਈਆਂ', 'ਜਾਣੀ-ਪਛਾਣੀ ਦਵਾਈ ਐਲਰਜੀ'],
+      sa: ['नियमितौषधं वा एलर्जी नास्ति', 'मधुमेहास्यौषधम्', 'उच्चरक्तचापस्यौषधम्', 'त्रिफला / आयुर्वेदीययोगः', 'औषधैलर्जी वर्तते']
+    }
   }
 ];
 
@@ -112,8 +232,10 @@ const SPEECH_LANG_MAP = {
 
 const getLocalized = (copy, language) => {
   if (!copy) return '';
+  if (typeof copy === 'string') return copy;
+  if (Array.isArray(copy)) return copy;
   const langKey = (language || 'en').toLowerCase();
-  return copy[langKey] || copy.en || Object.values(copy)[0] || '';
+  return copy[langKey] || copy.en || copy.hi || Object.values(copy)[0] || '';
 };
 
 export default function ClinicalFollowUp({ clinicalData, userLanguage = 'en', onComplete }) {
@@ -121,89 +243,236 @@ export default function ClinicalFollowUp({ clinicalData, userLanguage = 'en', on
   const [answers, setAnswers] = useState({});
   const [typedAnswer, setTypedAnswer] = useState('');
   const [isListening, setIsListening] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
+
   const recognitionRef = useRef(null);
+  const isListeningRef = useRef(false);
+  const lastSpokenStepRef = useRef(-1);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const audioStreamRef = useRef(null);
 
   const question = QUESTIONS[step];
+  const questionTitle = question ? getLocalized(question.title, userLanguage) : '';
   const questionPrompt = question ? getLocalized(question.prompt, userLanguage) : '';
+  const localizedOptions = question ? getLocalized(question.options, userLanguage) : [];
+
+  const stopListening = useCallback(() => {
+    isListeningRef.current = false;
+    setIsListening(false);
+
+    // 1. Stop Web Speech Recognition
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.onresult = null;
+        recognitionRef.current.onerror = null;
+        recognitionRef.current.onend = null;
+        recognitionRef.current.stop();
+      } catch (_) {}
+      recognitionRef.current = null;
+    }
+
+    // 2. Stop MediaRecorder
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      try {
+        mediaRecorderRef.current.stop();
+      } catch (_) {}
+    }
+
+    // 3. Stop Audio Hardware Tracks
+    if (audioStreamRef.current) {
+      try {
+        audioStreamRef.current.getTracks().forEach((track) => track.stop());
+      } catch (_) {}
+      audioStreamRef.current = null;
+    }
+  }, []);
 
   // Clean up on unmount
   useEffect(() => {
     return () => {
       stopCurrentSpeech();
-      if (recognitionRef.current) {
-        try { recognitionRef.current.stop(); } catch (_) {}
-      }
+      stopListening();
     };
-  }, []);
+  }, [stopListening]);
 
-  const speakQuestion = useCallback(() => {
-    if (!questionPrompt) return;
+  const speakQuestion = useCallback((targetStep = step) => {
+    const q = QUESTIONS[targetStep];
+    if (!q) return;
+    const prompt = getLocalized(q.prompt, userLanguage);
+    if (!prompt) return;
+
+    // Stop listening before speaking to prevent feedback
+    stopListening();
+
     setIsSpeaking(true);
     speakTextWithBhashini({
-      text: questionPrompt,
+      text: prompt,
       language: userLanguage,
       gender: 'female',
       onStart: () => setIsSpeaking(true),
       onEnd: () => setIsSpeaking(false),
       onError: () => setIsSpeaking(false)
     });
-  }, [questionPrompt, userLanguage]);
+  }, [userLanguage, step, stopListening]);
 
-  // Read aloud automatically when question step changes if user already started voice flow
+  // Read aloud automatically when user begins or when question changes (never twice)
   useEffect(() => {
-    if (hasStarted && question) {
-      speakQuestion();
+    if (hasStarted && question && lastSpokenStepRef.current !== step) {
+      lastSpokenStepRef.current = step;
+      speakQuestion(step);
     }
   }, [step, hasStarted, speakQuestion, question]);
 
   const startVoiceInterview = () => {
     setHasStarted(true);
-    speakQuestion();
   };
 
-  const startListening = () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert('Speech recognition is not supported on this browser. Please type your answer.');
+  /**
+   * Send captured voice audio buffer to backend ASR cascade (Bhashini Flex -> Groq Whisper -> Gemini)
+   */
+  const processRecordedAudio = async (chunks) => {
+    if (!chunks || chunks.length === 0) return;
+    setIsTranscribing(true);
+
+    try {
+      const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'audio.wav');
+      formData.append('language', userLanguage || 'auto');
+
+      const response = await fetch('/api/voice-intake', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (response.ok) {
+        const resData = await response.json();
+        const serverTranscript = resData?.data?.original_transcript || resData?.data?.transcript || '';
+        if (serverTranscript && serverTranscript.trim()) {
+          setTypedAnswer(serverTranscript.trim());
+        }
+      }
+    } catch (err) {
+      console.warn('[ClinicalFollowUp] Audio transcription failed:', err);
+    } finally {
+      setIsTranscribing(false);
+      audioChunksRef.current = [];
+    }
+  };
+
+  const startListening = async () => {
+    if (isListening) {
+      stopListening();
       return;
     }
 
-    if (isListening && recognitionRef.current) {
-      recognitionRef.current.stop();
-      setIsListening(false);
-      return;
-    }
-
-    // Stop TTS if speaking
+    // 1. Stop any playing speech before opening the mic
     stopCurrentSpeech();
     setIsSpeaking(false);
 
-    const recognition = new SpeechRecognition();
-    recognition.lang = SPEECH_LANG_MAP[userLanguage] || 'en-IN';
-    recognition.interimResults = false;
-    recognition.continuous = false;
-
-    recognition.onresult = (event) => {
-      const transcript = event.results?.[0]?.[0]?.transcript || '';
-      if (transcript.trim()) {
-        setTypedAnswer(transcript.trim());
+    // 2. Request microphone stream from browser
+    let stream = null;
+    try {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          }
+        });
+        audioStreamRef.current = stream;
       }
-    };
+    } catch (permErr) {
+      console.warn('[Microphone Permission Error]:', permErr);
+      alert('Microphone access was denied. Please allow microphone permissions in your browser address bar.');
+      return;
+    }
 
-    recognition.onerror = () => setIsListening(false);
-    recognition.onend = () => setIsListening(false);
+    if (!stream) {
+      alert('Unable to access microphone on this device.');
+      return;
+    }
 
-    recognitionRef.current = recognition;
-    recognition.start();
+    audioChunksRef.current = [];
+    isListeningRef.current = true;
     setIsListening(true);
+
+    // 3. Start MediaRecorder to capture audio for high-fidelity Bhashini ASR
+    try {
+      let mimeType = '';
+      if (typeof MediaRecorder !== 'undefined') {
+        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) mimeType = 'audio/webm;codecs=opus';
+        else if (MediaRecorder.isTypeSupported('audio/webm')) mimeType = 'audio/webm';
+        else if (MediaRecorder.isTypeSupported('audio/mp4')) mimeType = 'audio/mp4';
+      }
+
+      const mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) {
+          audioChunksRef.current.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const capturedChunks = [...audioChunksRef.current];
+        await processRecordedAudio(capturedChunks);
+      };
+
+      mediaRecorder.start(250);
+      mediaRecorderRef.current = mediaRecorder;
+    } catch (recErr) {
+      console.warn('[MediaRecorder warning]:', recErr);
+    }
+
+    // 4. Concurrently run browser SpeechRecognition for immediate live feedback
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      try {
+        const recognition = new SpeechRecognition();
+        const targetLocale = SPEECH_LANG_MAP[userLanguage] || 'en-IN';
+        recognition.lang = targetLocale;
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.maxAlternatives = 1;
+
+        recognition.onresult = (event) => {
+          let interim = '';
+          let final = '';
+          for (let i = 0; i < event.results.length; i++) {
+            const res = event.results[i];
+            if (res.isFinal) {
+              final += res[0].transcript + ' ';
+            } else {
+              interim += res[0].transcript;
+            }
+          }
+          const text = (final + interim).trim();
+          if (text) {
+            setTypedAnswer(text);
+          }
+        };
+
+        recognition.onerror = (event) => {
+          console.warn('[ClinicalFollowUp SpeechRecognition notice]:', event.error);
+        };
+
+        recognition.start();
+        recognitionRef.current = recognition;
+      } catch (e) {
+        console.warn('SpeechRecognition live setup notice:', e);
+      }
+    }
   };
 
   const submitAnswer = (answer) => {
     const value = (answer || '').trim();
     if (!value) return;
 
+    stopListening();
     stopCurrentSpeech();
     setIsSpeaking(false);
 
@@ -278,11 +547,11 @@ export default function ClinicalFollowUp({ clinicalData, userLanguage = 'en', on
             </button>
           </div>
 
-          <h4 className="follow-up-question-title">{question.title}</h4>
+          <h4 className="follow-up-question-title">{questionTitle}</h4>
           <p className="follow-up-question-prompt">{questionPrompt}</p>
 
           <div className="follow-up-options-grid">
-            {question.options.map((option) => (
+            {Array.isArray(localizedOptions) && localizedOptions.map((option) => (
               <button
                 type="button"
                 key={option}
@@ -300,7 +569,15 @@ export default function ClinicalFollowUp({ clinicalData, userLanguage = 'en', on
               type="text"
               value={typedAnswer}
               onChange={(e) => setTypedAnswer(e.target.value)}
-              placeholder="Or speak / type your own detailed answer…"
+              placeholder={
+                isTranscribing
+                  ? "⏳ Transcribing speech with Bhashini Indic ASR..."
+                  : isListening
+                  ? "🎙️ Recording your voice... Tap mic when finished speaking"
+                  : "Or speak / type your own detailed answer…"
+              }
+              className={isListening ? "is-listening-input" : isTranscribing ? "is-transcribing-input" : ""}
+              disabled={isTranscribing}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && typedAnswer.trim()) {
                   submitAnswer(typedAnswer);
@@ -309,18 +586,31 @@ export default function ClinicalFollowUp({ clinicalData, userLanguage = 'en', on
             />
             <button
               type="button"
-              className={`follow-up-mic ${isListening ? 'is-listening' : ''}`}
+              className={`follow-up-mic ${isListening ? 'is-listening' : ''} ${isTranscribing ? 'is-transcribing' : ''}`}
               onClick={startListening}
-              aria-label={isListening ? 'Stop microphone' : 'Speak answer with voice'}
-              title={isListening ? 'Listening… Tap to stop' : 'Tap to speak your answer'}
+              disabled={isTranscribing}
+              aria-label={isListening ? 'Stop recording & transcribe' : 'Speak answer with microphone'}
+              title={
+                isTranscribing
+                  ? 'Transcribing audio...'
+                  : isListening
+                  ? 'Recording in progress. Tap to finish and transcribe'
+                  : 'Tap to speak your answer with microphone'
+              }
             >
-              {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+              {isTranscribing ? (
+                <Loader2 size={18} className="follow-up-spin" />
+              ) : isListening ? (
+                <MicOff size={18} />
+              ) : (
+                <Mic size={18} />
+              )}
             </button>
             <button
               type="button"
               className="follow-up-next"
               onClick={() => submitAnswer(typedAnswer)}
-              disabled={!typedAnswer.trim()}
+              disabled={!typedAnswer.trim() || isTranscribing}
               title="Submit answer and proceed"
             >
               <ChevronRight size={18} />

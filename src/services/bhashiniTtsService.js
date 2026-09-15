@@ -27,7 +27,7 @@ export const SAMPLE_GREETINGS = {
   ta: 'வணக்கம், ஆயுசேது டிஜிட்டல் சுகாதார உதவியாளருக்கு உங்களை வரவேற்கிறோம். உங்கள் உடல்நலப் பிரச்சனைகளை எங்களிடம் கூறுங்கள்.',
   te: 'నమస్కారం, ఆయుసేతు డిజిటల్ ఆరోగ్య సహాయకుడికి స్వాగతం. మీ ఆరోగ్య సమస్యలను నిరభ్యంతరంగా చెప్పండి.',
   mr: 'नमस्कार, आयुसेतू डिजिटल आरोग्य सहाय्यकामध्ये आपले स्वागत आहे. आपल्या आरोग्यविषयक समस्या सांगा.',
-  bn: 'নমস্কার, আয়ুসেতু ডিজিটাল স্বাস্থ্য সহায়কে আপনাকে স্বাগতম। আপনার স্বাস্থ্য সমস্যা জানান।',
+  bn: 'নমস্কার, আয়ুসেতু ডিজিটাল স্বাস্থ্য সহায়কে আপনাকে স্বাগতম। আপনার স্বাস্থ্য समस्या জানান।',
   ml: 'നമസ്കാരം, ആയുസേതു ഡിജിറ്റൽ ആരോഗ്യ സഹായിയിലേക്ക് സ്വാഗതം. നിങ്ങളുടെ ആരോഗ്യ പ്രശ്നങ്ങൾ പങ്കുവെക്കുക.',
   gu: 'નમસ્તે, આયુસેતુ ડિજિટલ આરોગ્ય સહાયકમાં આપનું સ્વાગત છે. તમારી સ્વાસ્થ્ય સમસ્યા જણાવો.',
   pa: 'ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ, ਆਯੂਸੇਤੂ ਡਿਜੀਟਲ ਸਿਹਤ ਸਹਾਇਕ ਵਿੱਚ ਤੁਹਾਡਾ ਸਵਾਗਤ ਹੈ।',
@@ -42,6 +42,8 @@ const MAX_CACHE_ITEMS = 60;
 let currentAudio = null;
 let currentPlayingLanguage = null;
 let activeUtterance = null;
+let currentSpeechRequestId = 0;
+let activeAbortController = null;
 
 /**
  * Check if speech is currently playing
@@ -66,9 +68,16 @@ export function getCurrentPlayingLanguage() {
 }
 
 /**
- * Immediately stop any current audio playback or speech synthesis
+ * Immediately stop any current audio playback or speech synthesis and cancel any inflight fetch
  */
 export function stopCurrentSpeech() {
+  currentSpeechRequestId++;
+  if (activeAbortController) {
+    try {
+      activeAbortController.abort();
+    } catch (_) {}
+    activeAbortController = null;
+  }
   if (currentAudio) {
     try {
       currentAudio.pause();
@@ -123,8 +132,9 @@ export async function speakTextWithBhashini(optionsOrText, languageParam = 'en',
     return false;
   }
 
-  // Cancel any existing playing speech
+  // Cancel any existing playing speech or in-flight requests to eliminate echoing
   stopCurrentSpeech();
+  const thisRequestId = currentSpeechRequestId;
 
   const langCode = (language || 'en').toLowerCase().trim();
   const cacheKey = `${langCode}_${gender}_${cleanText}`;
@@ -134,13 +144,14 @@ export async function speakTextWithBhashini(optionsOrText, languageParam = 'en',
   // 1. Check in-memory audio cache for instant playback
   if (audioCache.has(cacheKey)) {
     const cachedData = audioCache.get(cacheKey);
-    playBase64Audio(cachedData.audioContent, cachedData.audioFormat, langCode, onStart, onEnd, onError, cleanText);
+    playBase64Audio(cachedData.audioContent, cachedData.audioFormat, langCode, onStart, onEnd, onError, cleanText, thisRequestId);
     return true;
   }
 
   // 2. Fetch from Bhashini TTS Backend Proxy (/api/bhashini-tts)
   try {
     const controller = new AbortController();
+    activeAbortController = controller;
     const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s timeout
 
     const response = await fetch('/api/bhashini-tts', {
@@ -156,8 +167,16 @@ export async function speakTextWithBhashini(optionsOrText, languageParam = 'en',
 
     clearTimeout(timeoutId);
 
+    // Stale check: if another speech request was initiated while awaiting, discard this one
+    if (thisRequestId !== currentSpeechRequestId) {
+      return false;
+    }
+
     if (response.ok) {
       const data = await response.json();
+      if (thisRequestId !== currentSpeechRequestId) {
+        return false;
+      }
       if (data.success && data.audioContent) {
         // Save into cache
         if (audioCache.size >= MAX_CACHE_ITEMS) {
@@ -169,30 +188,53 @@ export async function speakTextWithBhashini(optionsOrText, languageParam = 'en',
           audioFormat: data.audioFormat || 'wav'
         });
 
-        playBase64Audio(data.audioContent, data.audioFormat, langCode, onStart, onEnd, onError, cleanText);
+        playBase64Audio(data.audioContent, data.audioFormat, langCode, onStart, onEnd, onError, cleanText, thisRequestId);
         return true;
       }
     }
   } catch (err) {
+    if (err.name === 'AbortError') {
+      return false;
+    }
     console.warn('[Bhashini TTS] Service query failed or timed out, falling back to Web Speech:', err.message);
   }
 
+  if (thisRequestId !== currentSpeechRequestId) {
+    return false;
+  }
+
   // 3. Fallback to Browser Native SpeechSynthesis
-  fallbackToWebSpeech(cleanText, langCode, onStart, onEnd, onError);
+  fallbackToWebSpeech(cleanText, langCode, onStart, onEnd, onError, thisRequestId);
   return true;
 }
 
 /**
  * Internal helper to play base64-encoded audio
  */
-function playBase64Audio(base64Content, format, langCode, onStart, onEnd, onError, fallbackText) {
+function playBase64Audio(base64Content, format, langCode, onStart, onEnd, onError, fallbackText, requestId) {
+  if (requestId !== undefined && requestId !== currentSpeechRequestId) {
+    return;
+  }
   try {
+    // If an audio is already playing, stop it first
+    if (currentAudio) {
+      try {
+        currentAudio.pause();
+        currentAudio.src = '';
+      } catch (_) {}
+      currentAudio = null;
+    }
+
     const mimeType = format === 'mp3' ? 'audio/mp3' : 'audio/wav';
     const audio = new Audio(`data:${mimeType};base64,${base64Content}`);
     currentAudio = audio;
     currentPlayingLanguage = langCode;
 
     audio.onplay = () => {
+      if (requestId !== undefined && requestId !== currentSpeechRequestId) {
+        audio.pause();
+        return;
+      }
       if (onStart) onStart();
     };
 
@@ -210,30 +252,36 @@ function playBase64Audio(base64Content, format, langCode, onStart, onEnd, onErro
         currentAudio = null;
         currentPlayingLanguage = null;
       }
-      fallbackToWebSpeech(fallbackText, langCode, onStart, onEnd, onError);
+      fallbackToWebSpeech(fallbackText, langCode, onStart, onEnd, onError, requestId);
     };
 
     const playPromise = audio.play();
     if (playPromise !== undefined) {
       playPromise.catch((playErr) => {
+        if (requestId !== undefined && requestId !== currentSpeechRequestId) {
+          return;
+        }
         console.warn('[Bhashini TTS] Autoplay blocked or interrupted:', playErr);
         if (currentAudio === audio) {
           currentAudio = null;
           currentPlayingLanguage = null;
         }
-        fallbackToWebSpeech(fallbackText, langCode, onStart, onEnd, onError);
+        fallbackToWebSpeech(fallbackText, langCode, onStart, onEnd, onError, requestId);
       });
     }
   } catch (err) {
     console.error('[Bhashini TTS] Error constructing audio playback:', err);
-    fallbackToWebSpeech(fallbackText, langCode, onStart, onEnd, onError);
+    fallbackToWebSpeech(fallbackText, langCode, onStart, onEnd, onError, requestId);
   }
 }
 
 /**
  * Fallback to browser's native Web Speech API (speechSynthesis)
  */
-function fallbackToWebSpeech(text, langCode, onStart, onEnd, onError) {
+function fallbackToWebSpeech(text, langCode, onStart, onEnd, onError, requestId) {
+  if (requestId !== undefined && requestId !== currentSpeechRequestId) {
+    return;
+  }
   if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
     if (onError) onError('Speech synthesis is not supported on this device/browser.');
     if (onEnd) onEnd();
@@ -259,6 +307,10 @@ function fallbackToWebSpeech(text, langCode, onStart, onEnd, onError) {
     }
 
     utterance.onstart = () => {
+      if (requestId !== undefined && requestId !== currentSpeechRequestId) {
+        window.speechSynthesis.cancel();
+        return;
+      }
       if (onStart) onStart();
     };
 
