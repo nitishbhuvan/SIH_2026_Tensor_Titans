@@ -47,7 +47,7 @@ function getInitialRole() {
 function getInitialIntakeModule() {
   const hash = window.location.hash.toLowerCase();
   if (hash === '#/ayusetu' || hash === '#ayusetu' || hash === '#/ayush' || hash === '#ayush') return 'ayusetu';
-  return 'ayusetu'; // Default to AYUSETU 25-Section Protocol on Patient page
+  return 'voice'; // Default to Voice Intake on Patient page
 }
 
 export default function App() {
@@ -452,8 +452,8 @@ export default function App() {
             onOcrIntake={scrollToOcrIntake}
           />
 
-          {/* Module 0: Pre-Consultation Protocol with Dashavidha Pariksha & Dataset Explorer */}
-          {(activeIntakeModule === 'ayusetu' || activeIntakeModule === 'all') && (
+          {/* Module 0: Pre-Consultation Protocol with Dashavidha Pariksha & Dataset Explorer (Hidden for now, preserved for later) */}
+          {/* {(activeIntakeModule === 'ayusetu' || activeIntakeModule === 'all') && (
             <div id="ayusetu-intake-section">
               <AyusetuIntakeMode
                 userLanguage={userLanguage}
@@ -464,7 +464,7 @@ export default function App() {
                 onBackToMain={() => navigateToRole('intro')}
               />
             </div>
-          )}
+          )} */}
 
           {/* Module 1: Multilingual Indic Voice Intake */}
           {(activeIntakeModule === 'voice' || activeIntakeModule === 'all') && (

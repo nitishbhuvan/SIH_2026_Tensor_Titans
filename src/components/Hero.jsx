@@ -36,7 +36,8 @@ export default function Hero({ isElderly, t, onVoiceIntake, onOcrIntake, onAyuse
         </p>
 
         <div className="hero-actions">
-          <button
+          {/* AYUSETU Intake CTA Option (Hidden for now, preserved for later) */}
+          {/* <button
             type="button"
             className="hero-cta hero-cta-ayusetu"
             onClick={onAyusetuIntake}
@@ -44,7 +45,7 @@ export default function Hero({ isElderly, t, onVoiceIntake, onOcrIntake, onAyuse
           >
             <Leaf size={isElderly ? 22 : 18} aria-hidden="true" />
             <span>{isElderly ? 'AYUSETU पूर्व-परामर्श' : 'AYUSETU Clinical Intake'}</span>
-          </button>
+          </button> */}
 
           <button
             type="button"
