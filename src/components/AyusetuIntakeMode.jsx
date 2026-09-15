@@ -7,7 +7,6 @@ import {
   ChevronRight,
   ChevronLeft,
   Mic,
-  MicOff,
   Volume2,
   Database,
   Download,
@@ -534,22 +533,12 @@ export default function AyusetuIntakeMode({
                     <label>
                       What is your full name? <span className="req">*</span>
                     </label>
-                    <div className="input-with-voice">
-                      <input
-                        type="text"
-                        value={responses.q_name}
-                        onChange={(e) => handleResponseChange('q_name', e.target.value)}
-                        placeholder="Enter full legal name"
-                      />
-                      <button
-                        type="button"
-                        className={`voice-mic-btn ${isListening && activeListeningQuestionId === 'q_name' ? 'is-mic-active' : ''}`}
-                        onClick={() => toggleVoiceInput('q_name')}
-                        title="Speak name"
-                      >
-                        {isListening && activeListeningQuestionId === 'q_name' ? <MicOff size={16} /> : <Mic size={16} />}
-                      </button>
-                    </div>
+                    <input
+                      type="text"
+                      value={responses.q_name}
+                      onChange={(e) => handleResponseChange('q_name', e.target.value)}
+                      placeholder="Enter full legal name"
+                    />
                   </div>
 
                   <div className="question-field-row">
