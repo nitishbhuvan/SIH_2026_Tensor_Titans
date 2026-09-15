@@ -580,6 +580,29 @@ function clinicalApisPlugin(env) {
           }
         }
 
+        // ── /api/translate ──
+        if (req.url?.startsWith('/api/translate') && req.method === 'POST') {
+          try {
+            const chunks = [];
+            for await (const chunk of req) chunks.push(chunk);
+            const body = JSON.parse(Buffer.concat(chunks).toString('utf-8'));
+            const text = String(body.text || '').trim();
+            const targetLanguage = String(body.targetLanguage || 'en').trim();
+            const effectiveGroqKey = env.GROQ_API_KEY || process.env.GROQ_API_KEY || '';
+            const effectiveGeminiKey = env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || '';
+            const translatedText = await translateToTargetLanguage(text, targetLanguage, effectiveGroqKey, effectiveGeminiKey);
+            res.setHeader('Content-Type', 'application/json');
+            res.statusCode = 200;
+            res.end(JSON.stringify({ success: true, translatedText }));
+            return;
+          } catch (err) {
+            res.setHeader('Content-Type', 'application/json');
+            res.statusCode = 500;
+            res.end(JSON.stringify({ success: false, error: err.message }));
+            return;
+          }
+        }
+
         // ── /api/voice-intake ──
         if (req.url?.startsWith('/api/voice-intake') && req.method === 'POST') {
           try {

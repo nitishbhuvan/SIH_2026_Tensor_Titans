@@ -230,6 +230,20 @@ const SPEECH_LANG_MAP = {
   en: 'en-IN'
 };
 
+const LANG_DISPLAY_NAMES = {
+  en: 'English',
+  hi: 'हिन्दी (Hindi)',
+  kn: 'ಕನ್ನಡ (Kannada)',
+  ta: 'தமிழ் (Tamil)',
+  te: 'తెలుగు (Telugu)',
+  ml: 'മലയാളം (Malayalam)',
+  mr: 'मराठी (Marathi)',
+  bn: 'বাংলা (Bengali)',
+  gu: 'ગુજરાતી (Gujarati)',
+  pa: 'ਪੰਜਾਬੀ (Punjabi)',
+  sa: 'संस्कृतम् (Sanskrit)'
+};
+
 const getLocalized = (copy, language) => {
   if (!copy) return '';
   if (typeof copy === 'string') return copy;
@@ -243,17 +257,29 @@ export default function ClinicalFollowUp({ clinicalData, userLanguage = 'en', on
   const [answers, setAnswers] = useState({});
   const [typedAnswer, setTypedAnswer] = useState('');
   const [isListening, setIsListening] = useState(false);
+  const [isLiveStreamActive, setIsLiveStreamActive] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [detectedVoiceLang, setDetectedVoiceLang] = useState(null);
+  const [micLanguage, setMicLanguage] = useState(userLanguage || 'en');
 
   const recognitionRef = useRef(null);
   const isListeningRef = useRef(false);
   const lastSpokenStepRef = useRef(-1);
+  const liveAccumulatorRef = useRef('');
+  const silenceTimerRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const audioStreamRef = useRef(null);
+
+  // Sync mic language when userLanguage prop changes
+  useEffect(() => {
+    if (userLanguage) {
+      setMicLanguage(userLanguage);
+    }
+  }, [userLanguage]);
 
   const question = QUESTIONS[step];
   const questionTitle = question ? getLocalized(question.title, userLanguage) : '';
@@ -263,6 +289,12 @@ export default function ClinicalFollowUp({ clinicalData, userLanguage = 'en', on
   const stopListening = useCallback(() => {
     isListeningRef.current = false;
     setIsListening(false);
+    setIsLiveStreamActive(false);
+
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
 
     // 1. Stop Web Speech Recognition
     if (recognitionRef.current) {
@@ -275,7 +307,7 @@ export default function ClinicalFollowUp({ clinicalData, userLanguage = 'en', on
       recognitionRef.current = null;
     }
 
-    // 2. Stop MediaRecorder
+    // 2. Stop MediaRecorder (only if fallback recorder was active)
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
       try {
         mediaRecorderRef.current.stop();
@@ -332,8 +364,8 @@ export default function ClinicalFollowUp({ clinicalData, userLanguage = 'en', on
   };
 
   /**
+   * Fallback for browsers lacking Web Speech API (Firefox desktop):
    * Send captured voice audio buffer to backend ASR cascade (Bhashini Flex -> Groq Whisper -> Gemini)
-   * Voice detection is auto (patient speaks in any language/dialect), and text is returned in user's selected language.
    */
   const processRecordedAudio = async (chunks) => {
     if (!chunks || chunks.length === 0) return;
@@ -343,8 +375,8 @@ export default function ClinicalFollowUp({ clinicalData, userLanguage = 'en', on
       const audioBlob = new Blob(chunks, { type: 'audio/webm' });
       const formData = new FormData();
       formData.append('audio', audioBlob, 'audio.wav');
-      formData.append('language', 'auto'); // Auto-detect whatever language the patient speaks
-      formData.append('targetLanguage', userLanguage || 'auto'); // Format/translate text into selected language
+      formData.append('language', 'auto');
+      formData.append('targetLanguage', userLanguage || 'auto');
 
       const response = await fetch('/api/voice-intake', {
         method: 'POST',
@@ -353,7 +385,6 @@ export default function ClinicalFollowUp({ clinicalData, userLanguage = 'en', on
 
       if (response.ok) {
         const resData = await response.json();
-        // Prefer target_transcript in selected consultation language, fallback to original_transcript
         const serverTranscript = resData?.data?.target_transcript || resData?.data?.original_transcript || resData?.data?.transcript || '';
         if (serverTranscript && serverTranscript.trim()) {
           setTypedAnswer(serverTranscript.trim());
@@ -363,29 +394,36 @@ export default function ClinicalFollowUp({ clinicalData, userLanguage = 'en', on
         }
       }
     } catch (err) {
-      console.warn('[ClinicalFollowUp] Audio transcription failed:', err);
+      console.warn('[ClinicalFollowUp] Fallback audio transcription failed:', err);
     } finally {
       setIsTranscribing(false);
       audioChunksRef.current = [];
     }
   };
 
+  /**
+   * Live Voice Detection:
+   * Provides 0ms latency real-time speech streaming directly into typedAnswer.
+   * Words appear on screen in real time as the patient speaks.
+   * Resilient to silence pauses with zero post-recording waiting time!
+   */
   const startListening = async () => {
-    if (isListening) {
+    if (isListening || isListeningRef.current) {
       stopListening();
       return;
     }
 
-    // 1. Stop any playing speech before opening the mic
+    // 1. Stop any playing TTS speech before opening the mic
     stopCurrentSpeech();
     setIsSpeaking(false);
 
-    // 2. Request microphone stream from browser
+    // 2. Request microphone stream to ensure permissions and active hardware mic
     let stream = null;
     try {
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         stream = await navigator.mediaDevices.getUserMedia({
           audio: {
+            channelCount: 1,
             echoCancellation: true,
             noiseSuppression: true,
             autoGainControl: true
@@ -404,11 +442,81 @@ export default function ClinicalFollowUp({ clinicalData, userLanguage = 'en', on
       return;
     }
 
-    audioChunksRef.current = [];
+    // Set listening state active
     isListeningRef.current = true;
     setIsListening(true);
+    setIsLiveStreamActive(true);
+    audioChunksRef.current = [];
 
-    // 3. Start MediaRecorder to capture audio for high-fidelity Bhashini ASR
+    // Pre-populate accumulator with whatever is already typed
+    liveAccumulatorRef.current = typedAnswer ? typedAnswer.trim() + ' ' : '';
+
+    // 3. Setup Browser Speech Recognition for instant live streaming
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (SpeechRecognition) {
+      try {
+        const recognition = new SpeechRecognition();
+        const activeLangCode = micLanguage || userLanguage || 'en';
+        const targetLocale = SPEECH_LANG_MAP[activeLangCode] || 'en-IN';
+
+        recognition.lang = targetLocale;
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.maxAlternatives = 1;
+
+        recognition.onresult = (event) => {
+          let interim = '';
+          let currentFinal = '';
+
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const piece = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              currentFinal += piece + ' ';
+            } else {
+              interim += piece;
+            }
+          }
+
+          if (currentFinal) {
+            liveAccumulatorRef.current = (liveAccumulatorRef.current + currentFinal);
+          }
+
+          const liveStream = (liveAccumulatorRef.current + interim).trim();
+          if (liveStream) {
+            setTypedAnswer(liveStream);
+          }
+        };
+
+        recognition.onerror = (event) => {
+          console.warn('[ClinicalFollowUp Live Speech notice]:', event.error);
+          if (event.error === 'no-speech') {
+            // Normal speech boundary pause — keep listening!
+            return;
+          }
+          if (event.error === 'not-allowed') {
+            alert('Microphone access was denied. Please allow microphone permissions in your browser address bar.');
+            stopListening();
+          }
+        };
+
+        // Resilient restart: Do NOT cancel listening on brief silence
+        recognition.onend = () => {
+          if (isListeningRef.current) {
+            try {
+              recognition.start();
+            } catch (_) {}
+          }
+        };
+
+        recognition.start();
+        recognitionRef.current = recognition;
+      } catch (recErr) {
+        console.warn('[SpeechRecognition Setup Error]:', recErr);
+      }
+    }
+
+    // 4. Setup MediaRecorder as background safety net
     try {
       let mimeType = '';
       if (typeof MediaRecorder !== 'undefined') {
@@ -425,53 +533,45 @@ export default function ClinicalFollowUp({ clinicalData, userLanguage = 'en', on
       };
 
       mediaRecorder.onstop = async () => {
+        // If live speech recognition already captured text, skip server wait entirely!
         const capturedChunks = [...audioChunksRef.current];
-        await processRecordedAudio(capturedChunks);
+        if (!liveAccumulatorRef.current.trim() && capturedChunks.length > 0) {
+          await processRecordedAudio(capturedChunks);
+        }
       };
 
       mediaRecorder.start(250);
       mediaRecorderRef.current = mediaRecorder;
-    } catch (recErr) {
-      console.warn('[MediaRecorder warning]:', recErr);
+    } catch (mrErr) {
+      console.warn('[MediaRecorder notice]:', mrErr);
     }
+  };
 
-    // 4. Concurrently run browser SpeechRecognition for immediate live feedback
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      try {
-        const recognition = new SpeechRecognition();
-        const targetLocale = SPEECH_LANG_MAP[userLanguage] || 'en-IN';
-        recognition.lang = targetLocale;
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.maxAlternatives = 1;
-
-        recognition.onresult = (event) => {
-          let interim = '';
-          let final = '';
-          for (let i = 0; i < event.results.length; i++) {
-            const res = event.results[i];
-            if (res.isFinal) {
-              final += res[0].transcript + ' ';
-            } else {
-              interim += res[0].transcript;
-            }
-          }
-          const text = (final + interim).trim();
-          if (text) {
-            setTypedAnswer(text);
-          }
-        };
-
-        recognition.onerror = (event) => {
-          console.warn('[ClinicalFollowUp SpeechRecognition notice]:', event.error);
-        };
-
-        recognition.start();
-        recognitionRef.current = recognition;
-      } catch (e) {
-        console.warn('SpeechRecognition live setup notice:', e);
+  /**
+   * Fast, non-blocking translation of the typed/spoken answer into the user's consultation language
+   */
+  const handleTranslateAnswer = async () => {
+    if (!typedAnswer.trim() || isTranslating) return;
+    setIsTranslating(true);
+    try {
+      const res = await fetch('/api/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: typedAnswer.trim(),
+          targetLanguage: userLanguage || 'en'
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.translatedText) {
+          setTypedAnswer(data.translatedText);
+        }
       }
+    } catch (err) {
+      console.warn('Quick translate failed:', err);
+    } finally {
+      setIsTranslating(false);
     }
   };
 
@@ -572,16 +672,25 @@ export default function ClinicalFollowUp({ clinicalData, userLanguage = 'en', on
             ))}
           </div>
 
+          {isListening && (
+            <div className="follow-up-live-indicator">
+              <span className="live-dot" />
+              <span>
+                Live Voice Detection ({LANG_DISPLAY_NAMES[micLanguage] || micLanguage}) — Words appear in real-time as you speak...
+              </span>
+            </div>
+          )}
+
           <div className="follow-up-free-answer">
             <input
               type="text"
               value={typedAnswer}
               onChange={(e) => setTypedAnswer(e.target.value)}
               placeholder={
-                isTranscribing
-                  ? "⏳ Transcribing speech with Bhashini Indic ASR..."
-                  : isListening
-                  ? "🎙️ Recording your voice... Tap mic when finished speaking"
+                isListening
+                  ? `🎙️ Listening live in ${LANG_DISPLAY_NAMES[micLanguage]?.split(' ')[0] || micLanguage}... speak now`
+                  : isTranscribing
+                  ? "⏳ Transcribing audio..."
                   : "Or speak / type your own detailed answer…"
               }
               className={isListening ? "is-listening-input" : isTranscribing ? "is-transcribing-input" : ""}
@@ -597,13 +706,13 @@ export default function ClinicalFollowUp({ clinicalData, userLanguage = 'en', on
               className={`follow-up-mic ${isListening ? 'is-listening' : ''} ${isTranscribing ? 'is-transcribing' : ''}`}
               onClick={startListening}
               disabled={isTranscribing}
-              aria-label={isListening ? 'Stop recording & transcribe' : 'Speak answer with microphone'}
+              aria-label={isListening ? 'Stop live microphone' : 'Speak answer with live microphone'}
               title={
                 isTranscribing
                   ? 'Transcribing audio...'
                   : isListening
-                  ? 'Recording in progress. Tap to finish and transcribe'
-                  : 'Tap to speak your answer with microphone'
+                  ? 'Live speech detection active. Tap to stop.'
+                  : 'Tap to speak live in real time'
               }
             >
               {isTranscribing ? (
@@ -624,6 +733,51 @@ export default function ClinicalFollowUp({ clinicalData, userLanguage = 'en', on
               <ChevronRight size={18} />
             </button>
           </div>
+
+          {userLanguage && userLanguage !== 'en' && (
+            <div className="follow-up-lang-bar">
+              <span className="follow-up-lang-label">Voice Mic:</span>
+              <button
+                type="button"
+                className={`follow-up-lang-chip ${micLanguage === userLanguage ? 'active' : ''}`}
+                onClick={() => {
+                  setMicLanguage(userLanguage);
+                  if (isListening) stopListening();
+                }}
+                title={`Listen in ${LANG_DISPLAY_NAMES[userLanguage] || userLanguage}`}
+              >
+                {LANG_DISPLAY_NAMES[userLanguage] || userLanguage}
+              </button>
+              <button
+                type="button"
+                className={`follow-up-lang-chip ${micLanguage === 'en' ? 'active' : ''}`}
+                onClick={() => {
+                  setMicLanguage('en');
+                  if (isListening) stopListening();
+                }}
+                title="Listen in English"
+              >
+                English
+              </button>
+
+              {typedAnswer && (
+                <button
+                  type="button"
+                  className="follow-up-translate-btn"
+                  onClick={handleTranslateAnswer}
+                  disabled={isTranslating}
+                  title={`Translate into ${LANG_DISPLAY_NAMES[userLanguage] || userLanguage}`}
+                >
+                  <Sparkles size={13} />
+                  <span>
+                    {isTranslating
+                      ? 'Translating…'
+                      : `Translate to ${LANG_DISPLAY_NAMES[userLanguage]?.split(' ')[0] || userLanguage}`}
+                  </span>
+                </button>
+              )}
+            </div>
+          )}
 
           {detectedVoiceLang && (
             <div className="follow-up-detected-badge">
