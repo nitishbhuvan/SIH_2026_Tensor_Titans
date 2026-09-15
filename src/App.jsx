@@ -153,11 +153,8 @@ export default function App() {
       window.location.hash = '#/patient';
       localStorage.setItem(ROLE_STORAGE_KEY, 'patient');
       setCurrentRole('patient');
-      // If patient has no profile saved, prompt onboarding
-      if (!getPatientProfile()) {
-        setModalStep('language');
-        setShowModeModal(true);
-      }
+      setModalStep('language');
+      setShowModeModal(true);
     } else if (role === 'ayusetu') {
       window.location.hash = '#/patient';
       localStorage.setItem(ROLE_STORAGE_KEY, 'patient');
